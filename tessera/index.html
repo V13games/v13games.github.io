@@ -1,0 +1,2472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0620">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Tessera</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230a0620'/%3E%3Crect x='2' y='2' width='5' height='5' rx='1' fill='%23ff2e97'/%3E%3Crect x='9' y='2' width='5' height='5' rx='1' fill='%2300e5ff'/%3E%3Crect x='2' y='9' width='5' height='5' rx='1' fill='%23ffe600'/%3E%3C/svg%3E">
+<!-- Async so a slow or dead CDN can never hold up the game. Menus and HUD stay usable without it (see the stand-ins in the stylesheet). -->
+<script src="https://cdn.tailwindcss.com" async></script>
+<style>
+  :root {
+    --hud:#f4f0ff; --hud-muted:#a9a0d4; --bg:#0a0620; --panel:#171033; --panel2:#241a4c; --fg:#f4f0ff; --muted:#a9a0d4;
+    --accent:#ff2e97; --on-accent:#fff; --line:#3b2f78; --radius:18px;
+    --font:ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  }
+  *,*::before,*::after { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; overscroll-behavior:none; background:var(--bg); color:var(--fg);
+    font-family:var(--font); -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
+  body { position:fixed; inset:0; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  h2,h3,p { margin:0; }
+  button { font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; }
+  input { font:inherit; color:inherit; }
+  svg { display:block; }
+
+  #app { position:fixed; inset:0; display:flex; flex-direction:column; touch-action:none; overflow:hidden; }
+  #game { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; outline:none; }
+  #stage { position:relative; flex:1 1 auto; min-height:0;
+    margin:0 max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); pointer-events:none; }
+
+  /* HUD. The container lets pointers through to the canvas; only its buttons take them. */
+  #hud { position:relative; z-index:2; flex:none; pointer-events:none; width:100%; max-width:640px; margin:0 auto;
+    padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 4px max(14px,env(safe-area-inset-left));
+    display:grid; grid-template-columns:1fr auto 1fr; align-items:start; }
+  #hud button { pointer-events:auto; }
+  .stat-label { font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+  #hud .stat-label { color:var(--hud-muted); }
+  #best,#score { color:var(--hud); }
+  #best { font-size:20px; font-weight:800; line-height:1.15; font-variant-numeric:tabular-nums; }
+  #score { font-size:38px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; text-align:center; min-width:3ch; }
+  .icon-btn { width:44px; height:44px; display:grid; place-items:center; border-radius:13px; background:var(--panel);
+    border:1px solid var(--line); color:var(--fg); }
+  .combo { height:22px; margin-top:3px; padding:0 9px; display:flex; align-items:center; justify-content:center; gap:7px; white-space:nowrap;
+    border-radius:99px; background:var(--accent); color:var(--on-accent); font-size:12px; font-weight:800; visibility:hidden; }
+  .combo.on { visibility:visible; }
+  .pips { display:inline-flex; gap:3px; }
+  .pips i { width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.28; }
+  .pips i.live { opacity:1; }
+
+  /* Dialogs. Never set display on the closed element: that would make it visible. */
+  dialog.modal { margin:auto; padding:0; border:0; background:transparent; color:var(--fg); font-family:var(--font);
+    width:min(calc(100vw - 24px),440px); max-width:none; max-height:none; overflow:visible; }
+  dialog.modal::backdrop { background:rgba(0,0,0,.5); }
+  .sheet { display:flex; flex-direction:column; gap:14px; padding:20px; background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px); }
+  .sheet-title { font-size:22px; font-weight:800; }
+  .scroll { overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; min-height:0;
+    scrollbar-width:thin; padding-right:10px; margin-right:-6px; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:46px; padding:10px 14px;
+    border-radius:13px; background:var(--panel2); border:1px solid var(--line); color:var(--fg); font-weight:700; }
+  .btn-primary { background:var(--accent); border-color:transparent; color:var(--on-accent); }
+  .btn-row { display:flex; gap:10px; }
+  .btn:focus-visible,.icon-btn:focus-visible,.tab:focus-visible,.theme-card:focus-visible,.slot:focus-visible,.swatch:focus-visible {
+    outline:2px solid var(--accent); outline-offset:2px; }
+  .muted { color:var(--muted); }
+  .small { font-size:14px; line-height:1.45; }
+
+  .tabs { display:flex; gap:4px; padding:4px; border-radius:13px; background:var(--panel2); }
+  .tab { flex:1; min-height:38px; border-radius:10px; font-size:14px; font-weight:700; color:var(--muted); }
+  .tab[aria-selected="true"] { background:var(--accent); color:var(--on-accent); }
+  .tab-panel { display:flex; flex-direction:column; gap:12px; }
+  .tab-panel[hidden] { display:none; }
+  .theme-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .theme-card { display:block; width:100%; padding:6px 6px 8px; border-radius:14px; background:var(--panel2); border:2px solid var(--line);
+    text-align:center; font-size:14px; font-weight:700; color:var(--fg); }
+  .theme-card[aria-pressed="true"] { border-color:var(--accent); }
+  .theme-card canvas { display:block; width:100%; aspect-ratio:4/3; border-radius:9px; margin-bottom:6px; }
+  #colorsPreview { display:block; width:100%; height:92px; border-radius:12px; }
+  .slot-row { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; }
+  .slot { position:relative; padding:3px; border-radius:10px; border:2px solid transparent; background:var(--panel2); }
+  .slot[aria-checked="true"] { border-color:var(--accent); }
+  .slot canvas { display:block; width:100%; aspect-ratio:1; }
+  .slot .dot { position:absolute; top:1px; right:1px; width:7px; height:7px; border-radius:50%; background:var(--accent); display:none; }
+  .slot.custom .dot { display:block; }
+  .editor { display:flex; align-items:center; gap:8px; }
+  .editor input[type=color] { flex:none; width:46px; height:46px; padding:2px; border-radius:11px; border:1px solid var(--line); background:var(--panel2); cursor:pointer; }
+  /* 16px stops iOS zooming the page when the field takes focus. */
+  .editor input[type=text] { flex:1 1 0; min-width:0; height:46px; padding:0 12px; border-radius:11px; border:1px solid var(--line);
+    background:var(--panel2); font-size:16px; font-family:ui-monospace,Menlo,Consolas,monospace; text-transform:uppercase;
+    -webkit-user-select:text; user-select:text; }
+  .editor input[aria-invalid="true"] { border-color:#ff5a5a; }
+  .editor .btn { width:auto; flex:none; }
+  .swatches { display:grid; grid-template-columns:repeat(9,1fr); gap:6px; }
+  .swatch { aspect-ratio:1; border-radius:8px; border:1px solid rgba(127,127,127,.4); }
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:46px; }
+  .switch { flex:none; position:relative; width:52px; height:30px; border-radius:99px; background:var(--panel2); border:1px solid var(--line); }
+  .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--muted); }
+  .switch[aria-checked="true"] { background:var(--accent); }
+  .switch[aria-checked="true"]::after { left:25px; background:var(--on-accent); }
+  .score-table { width:100%; border-collapse:collapse; font-size:14px; }
+  .score-table td { padding:5px 0; border-bottom:1px solid var(--line); }
+  .score-table td:last-child { padding-left:10px; text-align:right; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .final { text-align:center; font-size:54px; font-weight:800; line-height:1.05; font-variant-numeric:tabular-nums; }
+  .badge { align-self:center; padding:4px 12px; border-radius:99px; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:800; }
+  .badge[hidden] { display:none; }
+
+  /* Stand-ins for the Tailwind utilities the layout relies on, so nothing collapses if the CDN fails. */
+  .flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-end{justify-content:flex-end}
+  .gap-2{gap:.5rem}.gap-3{gap:.75rem}.text-center{text-align:center}.font-bold{font-weight:700}
+
+  @media (max-height:520px) {
+    #hud { padding-top:max(4px,env(safe-area-inset-top)); padding-bottom:0; }
+    #score { font-size:26px; } #best { font-size:16px; } .combo { height:18px; margin-top:1px; font-size:11px; }
+    .icon-btn { width:36px; height:36px; }
+  }
+  @media (max-width:360px) { .swatches { grid-template-columns:repeat(6,1fr); } }
+  @media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition:none !important; animation:none !important; } }
+</style>
+<meta name="description" content="Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233a2b22'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="Game board and piece tray"></canvas>
+
+  <header id="hud">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <a id="allGames" class="icon-btn" href="../" aria-label="All games" title="All games" style="pointer-events:auto;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
+      <div>
+        <div class="stat-label">Best</div>
+        <div id="best">0</div>
+      </div>
+    </div>
+    <div class="flex flex-col items-center">
+      <div id="score" aria-label="Score">0</div>
+      <div id="combo" class="combo shadow-md">
+        <span id="comboText">Combo 1 · ×1.5</span>
+        <span class="pips" id="comboPips" title="Moves left before the combo resets"><i></i><i></i><i></i></span>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2">
+      <button id="btnTheme" class="icon-btn transition hover:brightness-125 active:scale-95" aria-label="Themes and colors">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2.2-1 2.2-2 0-1.300-1-1.700-1-2.800 0-1.100.9-1.900 2-1.900H17a4 4 0 0 0 4-4c0-4-4-7.300-9-7.300Z"/><circle cx="7.500" cy="11" r="1.200" fill="currentColor" stroke="none"/><circle cx="10.500" cy="7" r="1.200" fill="currentColor" stroke="none"/><circle cx="15.500" cy="7.500" r="1.200" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button id="btnPause" class="icon-btn transition hover:brightness-125 active:scale-95" aria-label="Pause">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.500" width="4.500" height="15" rx="1.300"/><rect x="13.500" y="4.500" width="4.500" height="15" rx="1.300"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="stage"></div>
+</div>
+
+<!-- Pause -->
+<dialog id="dlgPause" class="modal" aria-labelledby="pauseTitle">
+  <div class="sheet shadow-2xl">
+    <h2 id="pauseTitle" class="sheet-title text-center">Paused</h2>
+    <div class="flex flex-col gap-2">
+      <button id="pResume" class="btn btn-primary transition hover:brightness-110 active:scale-[.98]">Resume</button>
+      <button id="pRestart" class="btn transition hover:brightness-125 active:scale-[.98]">Restart</button>
+      <button id="pTheme" class="btn transition hover:brightness-125 active:scale-[.98]">Theme</button>
+      <button id="pColors" class="btn transition hover:brightness-125 active:scale-[.98]">Block colors</button>
+      <button id="pSound" class="btn transition hover:brightness-125 active:scale-[.98]">Sound: On</button>
+      <button id="pHelp" class="btn transition hover:brightness-125 active:scale-[.98]">Help</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Restart confirmation -->
+<dialog id="dlgConfirm" class="modal" aria-labelledby="confirmTitle">
+  <div class="sheet shadow-2xl">
+    <h2 id="confirmTitle" class="sheet-title">Restart this game?</h2>
+    <p class="muted small">Your current board and score will be lost. Your best score stays.</p>
+    <div class="btn-row">
+      <button id="cCancel" class="btn transition hover:brightness-125">Keep playing</button>
+      <button id="cRestart" class="btn btn-primary transition hover:brightness-110">Restart</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Settings -->
+<dialog id="dlgSettings" class="modal" aria-labelledby="settingsTitle">
+  <div class="sheet shadow-2xl">
+    <h2 id="settingsTitle" class="sheet-title">Settings</h2>
+    <div class="tabs" role="tablist" aria-label="Settings sections">
+      <button class="tab transition" role="tab" id="tabThemes" aria-controls="panelThemes" aria-selected="true">Themes</button>
+      <button class="tab transition" role="tab" id="tabColors" aria-controls="panelColors" aria-selected="false">Block colors</button>
+      <button class="tab transition" role="tab" id="tabGeneral" aria-controls="panelGeneral" aria-selected="false">General</button>
+    </div>
+
+    <div class="scroll">
+      <section id="panelThemes" class="tab-panel" role="tabpanel" aria-labelledby="tabThemes">
+        <div id="themeGrid" class="theme-grid"></div>
+      </section>
+
+      <section id="panelColors" class="tab-panel" role="tabpanel" aria-labelledby="tabColors" hidden>
+        <p class="muted small">Recoloring <strong id="colorsThemeName">Neon Arcade</strong>. Each theme keeps its own colors, and blocks already on the board update right away.</p>
+        <canvas id="colorsPreview"></canvas>
+        <div id="slotRow" class="slot-row" role="radiogroup" aria-label="Block color to edit"></div>
+        <div class="editor">
+          <input id="colorPicker" type="color" aria-label="Pick a color">
+          <input id="colorHex" type="text" maxlength="7" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Hex color">
+          <button id="colorResetOne" class="btn transition hover:brightness-125">Reset</button>
+        </div>
+        <p id="colorWarn" class="muted small" hidden>This color is close to the empty cells, so blocks may be hard to see.</p>
+        <div id="swatches" class="swatches" aria-label="Quick colors"></div>
+        <div class="btn-row">
+          <button id="colorShuffle" class="btn transition hover:brightness-125">Shuffle order</button>
+          <button id="colorResetAll" class="btn transition hover:brightness-125">Reset all</button>
+        </div>
+      </section>
+
+      <section id="panelGeneral" class="tab-panel" role="tabpanel" aria-labelledby="tabGeneral" hidden>
+        <div class="toggle-row">
+          <span id="soundLabel" class="font-bold">Sound</span>
+          <button id="soundSwitch" class="switch transition" role="switch" aria-checked="true" aria-labelledby="soundLabel"></button>
+        </div>
+        <button id="sHelp" class="btn transition hover:brightness-125">How to play</button>
+      </section>
+    </div>
+
+    <button id="sDone" class="btn btn-primary transition hover:brightness-110">Done</button>
+  </div>
+</dialog>
+
+<!-- Help -->
+<dialog id="dlgHelp" class="modal" aria-labelledby="helpTitle">
+  <div class="sheet shadow-2xl">
+    <h2 id="helpTitle" class="sheet-title">How to play</h2>
+    <div class="scroll flex flex-col gap-3 small">
+      <p>Fit the three tray pieces onto the 8×8 board in any order. Fill a whole row or column to clear it. Pieces never rotate. The game ends when no remaining piece fits.</p>
+      <p><strong>Drag</strong> a piece onto the board and let go, or <strong>tap</strong> a piece, then tap the board cell for its top-left corner.</p>
+      <table class="score-table"><tbody>
+        <tr><td>Each cell placed</td><td>+1</td></tr>
+        <tr><td>Line clear</td><td>10 × lines × lines</td></tr>
+        <tr><td class="muted">1 / 2 / 3 / 4 lines at once</td><td class="muted">10 / 40 / 90 / 160</td></tr>
+        <tr><td>Combo multiplier on line points</td><td>1 + combo × 0.5</td></tr>
+        <tr><td class="muted">Combo 1 / 2 / 3 / 4</td><td class="muted">×1.5 / ×2 / ×2.5 / ×3</td></tr>
+        <tr><td>Board clear</td><td>+300</td></tr>
+      </tbody></table>
+      <p>Every placement that clears a line raises the combo by 1 before it scores. The combo resets after 3 placements in a row without a clear; the dots beside it show how many you have left. Cell points and the board-clear bonus aren't multiplied.</p>
+      <p class="muted">Keyboard: 1, 2, 3 select a tray piece. Esc pauses or goes back.</p>
+    </div>
+    <button id="hClose" class="btn btn-primary transition hover:brightness-110">Got it</button>
+  </div>
+</dialog>
+
+<!-- Game over -->
+<dialog id="dlgOver" class="modal" aria-labelledby="overTitle">
+  <div class="sheet shadow-2xl">
+    <h2 id="overTitle" class="sheet-title text-center">No moves left</h2>
+    <span id="ovBadge" class="badge" hidden>New best!</span>
+    <div>
+      <div class="stat-label text-center">Final score</div>
+      <div id="ovScore" class="final">0</div>
+    </div>
+    <p class="muted text-center">Best score <strong id="ovBest">0</strong></p>
+    <button id="ovAgain" class="btn btn-primary transition hover:brightness-110 active:scale-[.98]">Play Again</button>
+    <a class="btn transition hover:brightness-125 active:scale-[.98]" href="../" style="text-decoration:none">All games</a>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+(function () {
+
+/*@headless-begin*/
+/* ==========================================================================
+   CONFIG
+   ========================================================================== */
+const CONFIG = Object.freeze({
+  SIZE: 8,
+  TRAY_SLOTS: 3,
+  COLOR_SLOTS: 8,            // Logic stores a slot index; each theme maps slots to real colors.
+  SCORE_CELL: 1,
+  SCORE_LINE: 10,
+  SCORE_BOARD_CLEAR: 300,
+  COMBO_STEP: 0.5,
+  COMBO_GRACE: 3,            // Placements without a clear before the combo resets.
+  SNAP_DISTANCE: 1.25,       // How far (in cells) the ghost may snap to reach a valid spot.
+  STORAGE_KEY: 'tessera.v1',
+  STORAGE_VERSION: 1,
+  MAX_BOARD_PX: 640,
+  MAX_PARTICLES: 420,
+});
+
+/* ==========================================================================
+   PIECE DEFINITIONS
+   Each family is drawn once and expanded into every distinct rotation. Pieces
+   never rotate in play, so each rotation is a separate piece with its own id.
+   A 3-cell L, a 3-cell J and a small corner are the same four shapes, so they
+   are a single family rather than duplicates.
+   ========================================================================== */
+const PIECE_FAMILIES = [
+  { name: 'single',  weight: 3,    rows: ['#'] },
+  { name: 'line2',   weight: 5,    rows: ['##'] },
+  { name: 'line3',   weight: 5,    rows: ['###'] },
+  { name: 'line4',   weight: 3,    rows: ['####'] },
+  { name: 'line5',   weight: 1.5,  rows: ['#####'] },
+  { name: 'square2', weight: 8,    rows: ['##', '##'] },
+  { name: 'square3', weight: 2,    rows: ['###', '###', '###'] },
+  { name: 'rect',    weight: 2,    rows: ['##', '##', '##'] },
+  { name: 'corner3', weight: 4,    rows: ['#.', '##'] },
+  { name: 'ell4',    weight: 2.5,  rows: ['#.', '#.', '##'] },
+  { name: 'jay4',    weight: 2.5,  rows: ['.#', '.#', '##'] },
+  { name: 'tee',     weight: 3,    rows: ['###', '.#.'] },
+  { name: 'ess',     weight: 3,    rows: ['.##', '##.'] },
+  { name: 'zed',     weight: 3,    rows: ['##.', '.##'] },
+  { name: 'corner5', weight: 1.25, rows: ['#..', '#..', '###'] },
+];
+
+function normalizeCells(cells) {
+  const minR = Math.min(...cells.map(p => p[0]));
+  const minC = Math.min(...cells.map(p => p[1]));
+  return cells.map(([r, c]) => [r - minR, c - minC]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+}
+
+function buildPieces(families) {
+  const pieces = [];
+  for (const family of families) {
+    let cells = [];
+    family.rows.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === '#') cells.push([r, c]); }));
+    const seen = new Set();
+    for (let turn = 0; turn < 4; turn++) {
+      const norm = normalizeCells(cells);
+      const key = JSON.stringify(norm);
+      if (!seen.has(key)) {
+        seen.add(key);
+        pieces.push(Object.freeze({
+          id: family.name + '-' + seen.size,
+          family: family.name,
+          cells: norm,
+          w: Math.max(...norm.map(p => p[1])) + 1,
+          h: Math.max(...norm.map(p => p[0])) + 1,
+          size: norm.length,
+          weight: family.weight,
+        }));
+      }
+      cells = cells.map(([r, c]) => [c, -r]);
+    }
+  }
+  return Object.freeze(pieces);
+}
+
+const PIECES = buildPieces(PIECE_FAMILIES);
+const PIECE_BY_ID = Object.freeze(Object.fromEntries(PIECES.map(p => [p.id, p])));
+
+/* ==========================================================================
+   THEMES
+   Plain data. `style` picks the block painter, `particle` the burst look,
+   `backdrop` the background painter and `wave` the synth timbre.
+   ========================================================================== */
+const THEMES = [
+  {
+    id: 'neon', name: 'Neon Arcade', style: 'glow', particle: 'spark', backdrop: 'horizon', wave: 'sawtooth',
+    font: 'ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,Roboto,sans-serif',
+    ui: { hud: '#f4f0ff', hudMuted: '#a9a0d4', bg: '#0a0620', panel: '#171033', panel2: '#241a4c', fg: '#f4f0ff', muted: '#a9a0d4', accent: '#ff2e97', onAccent: '#ffffff', line: '#3b2f78', radius: '18px' },
+    sky: ['#0a0620', '#170a3d', '#3a0d5e'], lines: '#ff2e97',
+    board: '#100a2b', frame: '#00e5ff', empty: '#1a1340', grid: '#2e2566', tray: 'rgba(255,255,255,.04)',
+    highlight: '#ffffff', flash: '#ffffff', gray: '#5a5674', textStroke: '#0a0620', textFill: '#ffffff',
+    palette: ['#ff2e97', '#00e5ff', '#ffe600', '#39ff14', '#ff7a1a', '#b14dff', '#3d7bff', '#ff3d5a'],
+  },
+  {
+    id: 'wood', name: 'Wooden Blocks', style: 'bevel', particle: 'chip', backdrop: 'planks', wave: 'triangle',
+    font: 'Georgia,"Iowan Old Style","Palatino Linotype",serif',
+    ui: { hud: '#fff0d0', hudMuted: '#d8bb92', bg: '#2b1a0f', panel: '#f0dfc2', panel2: '#e2cca6', fg: '#3a2413', muted: '#7a5c40', accent: '#a4512a', onAccent: '#fff6e8', line: '#c9ad85', radius: '10px' },
+    sky: ['#4a2e1a', '#35200f'], lines: '#1d1007',
+    board: '#6b4324', frame: '#c99a63', empty: '#54331b', grid: '#3f2512', tray: 'rgba(0,0,0,.22)',
+    highlight: '#ffe6b0', flash: '#fff4d6', gray: '#8a7a68', textStroke: '#2b1a0f', textFill: '#fff0d0',
+    palette: ['#c8843c', '#a8582c', '#e3b76b', '#8a5a33', '#93a05e', '#b84a3a', '#5a8498', '#dba945'],
+  },
+  {
+    id: 'candy', name: 'Pastel Candy', style: 'soft', particle: 'puff', backdrop: 'sprinkles', wave: 'sine',
+    font: 'ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,Roboto,sans-serif',
+    ui: { hud: '#5b3a68', hudMuted: '#94719e', bg: '#fff0f6', panel: '#fffafc', panel2: '#fde6f0', fg: '#5b3a68', muted: '#94719e', accent: '#e8589a', onAccent: '#ffffff', line: '#f5cfe0', radius: '24px' },
+    sky: ['#fff0f6', '#f1ebff'], lines: '#ffffff',
+    board: '#fdd9e8', frame: '#ffffff', empty: '#fff4f9', grid: '#fbd0e2', tray: 'rgba(255,255,255,.65)',
+    highlight: '#ffd24d', flash: '#ffffff', gray: '#cdc4d2', textStroke: '#ffffff', textFill: '#a33a78',
+    palette: ['#ff8fae', '#ffb877', '#ffdc6e', '#8fe08a', '#74cfee', '#ad98f5', '#f49be0', '#62dcc0'],
+  },
+  {
+    id: 'matrix', name: 'Matrix Cyber', style: 'scanline', particle: 'glyph', backdrop: 'rain', wave: 'square',
+    font: 'ui-monospace,Menlo,Consolas,"Courier New",monospace',
+    ui: { hud: '#c8ffd9', hudMuted: '#5fae7b', bg: '#020a05', panel: '#06140b', panel2: '#0b2415', fg: '#c8ffd9', muted: '#5fae7b', accent: '#00ff66', onAccent: '#02140a', line: '#14512b', radius: '4px' },
+    sky: ['#020a05', '#010503'], lines: '#00ff66',
+    board: '#031008', frame: '#00c853', empty: '#07190e', grid: '#0d3a1e', tray: 'rgba(0,255,102,.05)',
+    highlight: '#b6ffd0', flash: '#eafff2', gray: '#3c5244', textStroke: '#020a05', textFill: '#b6ffd0',
+    palette: ['#00ff66', '#7dff00', '#00e0a0', '#00f0ff', '#c6ff4f', '#2fd46b', '#3ba7ff', '#ffd84d'],
+  },
+];
+const THEME_BY_ID = Object.fromEntries(THEMES.map(t => [t.id, t]));
+
+/* ==========================================================================
+   GAME LOGIC
+   Pure functions only: no DOM, no timers, no globals beyond the data above.
+   Randomness is always passed in. Board cells hold 0 (empty) or color slot + 1.
+   ========================================================================== */
+const Logic = (() => {
+  const N = CONFIG.SIZE;
+
+  const emptyBoard = () => Array.from({ length: N }, () => new Array(N).fill(0));
+  const pieceOf = item => PIECE_BY_ID[item.id];
+  const isBoardEmpty = board => board.every(row => row.every(v => v === 0));
+
+  function canPlace(board, piece, r, c) {
+    for (const [dr, dc] of piece.cells) {
+      const rr = r + dr, cc = c + dc;
+      if (rr < 0 || rr >= N || cc < 0 || cc >= N || board[rr][cc] !== 0) return false;
+    }
+    return true;
+  }
+
+  function pieceFits(board, piece) {
+    for (let r = 0; r <= N - piece.h; r++) {
+      for (let c = 0; c <= N - piece.w; c++) if (canPlace(board, piece, r, c)) return true;
+    }
+    return false;
+  }
+
+  const anyFits = (board, tray) => tray.some(item => item && pieceFits(board, pieceOf(item)));
+
+  function stamp(board, piece, r, c, value) {
+    const next = board.map(row => row.slice());
+    for (const [dr, dc] of piece.cells) next[r + dr][c + dc] = value;
+    return next;
+  }
+
+  function fullLines(board) {
+    const rows = [], cols = [];
+    for (let i = 0; i < N; i++) {
+      if (board[i].every(v => v !== 0)) rows.push(i);
+      if (board.every(row => row[i] !== 0)) cols.push(i);
+    }
+    return { rows, cols };
+  }
+
+  /** Clears every listed line at once. `cleared` holds each cell once, even at an intersection. */
+  function clearLines(board, lines) {
+    const next = board.map(row => row.slice());
+    const cleared = [];
+    const take = (r, c) => { if (next[r][c] !== 0) { cleared.push({ r, c, v: next[r][c] }); next[r][c] = 0; } };
+    for (const r of lines.rows) for (let c = 0; c < N; c++) take(r, c);
+    for (const c of lines.cols) for (let r = 0; r < N; r++) take(r, c);
+    return { board: next, cleared };
+  }
+
+  /** Which lines a placement would complete, for the drag highlight. */
+  const previewClears = (board, piece, r, c) => fullLines(stamp(board, piece, r, c, 1));
+
+  /** The valid anchor closest to a fractional grid position, or null if none is within reach. */
+  function nearestValid(board, piece, fr, fc, maxDist = CONFIG.SNAP_DISTANCE) {
+    let best = null, bestD = maxDist * maxDist;
+    for (let r = 0; r <= N - piece.h; r++) {
+      for (let c = 0; c <= N - piece.w; c++) {
+        const d = (r - fr) * (r - fr) + (c - fc) * (c - fc);
+        if (d <= bestD && canPlace(board, piece, r, c)) {
+          if (!best || d < bestD) { best = { r, c }; bestD = d; }
+        }
+      }
+    }
+    return best;
+  }
+
+  const comboMultiplier = combo => 1 + combo * CONFIG.COMBO_STEP;
+
+  function advanceCombo(combo, misses, didClear) {
+    if (didClear) return { combo: combo + 1, misses: 0 };
+    if (combo === 0) return { combo: 0, misses: 0 };
+    const m = misses + 1;
+    return m >= CONFIG.COMBO_GRACE ? { combo: 0, misses: 0 } : { combo, misses: m };
+  }
+
+  /** `combo` is the value after this move has advanced it. */
+  function scoreMove(cellsPlaced, lines, combo, boardClear) {
+    const cells = cellsPlaced * CONFIG.SCORE_CELL;
+    const multiplier = lines > 0 ? comboMultiplier(combo) : 1;
+    const linePoints = Math.round(CONFIG.SCORE_LINE * lines * lines * multiplier);
+    const bonus = boardClear ? CONFIG.SCORE_BOARD_CLEAR : 0;
+    return { cells, linePoints, bonus, multiplier, total: cells + linePoints + bonus };
+  }
+
+  function pickWeighted(pool, rng) {
+    const total = pool.reduce((sum, p) => sum + p.weight, 0);
+    let roll = rng() * total;
+    for (const p of pool) {
+      roll -= p.weight;
+      if (roll < 0) return p;
+    }
+    return pool[pool.length - 1];
+  }
+
+  /**
+   * Draws a weighted set. If none of it fits, one slot is swapped for a piece
+   * that does; the set stays as drawn only when nothing in the pool fits at all.
+   * The other two slots are left alone, so all three are never guaranteed.
+   */
+  function generateTray(board, rng, pool = PIECES) {
+    const colors = Array.from({ length: CONFIG.COLOR_SLOTS }, (_, i) => i);
+    for (let i = colors.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [colors[i], colors[j]] = [colors[j], colors[i]];
+    }
+    const picks = Array.from({ length: CONFIG.TRAY_SLOTS }, () => pickWeighted(pool, rng));
+    if (!picks.some(p => pieceFits(board, p))) {
+      const fitting = pool.filter(p => pieceFits(board, p));
+      if (fitting.length) picks[Math.floor(rng() * picks.length)] = pickWeighted(fitting, rng);
+    }
+    return picks.map((p, i) => ({ id: p.id, color: colors[i] }));
+  }
+
+  function newGame(rng) {
+    const board = emptyBoard();
+    return { board, tray: generateTray(board, rng), score: 0, combo: 0, misses: 0, moves: 0, over: false };
+  }
+
+  /**
+   * Plays one move. Returns { state, events }, or null if the move is illegal.
+   * Order matters: place, clear, score, refill the tray, then test for game over.
+   */
+  function applyMove(state, slot, r, c, rng) {
+    if (state.over) return null;
+    const item = state.tray[slot];
+    if (!item) return null;
+    const piece = pieceOf(item);
+    if (!canPlace(state.board, piece, r, c)) return null;
+
+    const placed = stamp(state.board, piece, r, c, item.color + 1);
+    const lines = fullLines(placed);
+    const lineCount = lines.rows.length + lines.cols.length;
+    const { board, cleared } = clearLines(placed, lines);
+    const boardClear = lineCount > 0 && isBoardEmpty(board);
+    const { combo, misses } = advanceCombo(state.combo, state.misses, lineCount > 0);
+    const points = scoreMove(piece.size, lineCount, combo, boardClear);
+
+    let tray = state.tray.slice();
+    tray[slot] = null;
+    const refilled = tray.every(s => !s);
+    if (refilled) tray = generateTray(board, rng);
+
+    return {
+      state: { board, tray, score: state.score + points.total, combo, misses, moves: state.moves + 1, over: !anyFits(board, tray) },
+      events: {
+        piece, slot, r, c, color: item.color,
+        placedCells: piece.cells.map(([dr, dc]) => ({ r: r + dr, c: c + dc })),
+        rows: lines.rows, cols: lines.cols, lineCount, cleared, boardClear, points, combo, refilled,
+      },
+    };
+  }
+
+  /** Rebuilds a state from untrusted saved data. Returns null if anything is off. */
+  function sanitizeGame(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const { board, tray, score, combo, misses, moves } = raw;
+    const isCount = v => Number.isSafeInteger(v) && v >= 0;
+    if (!Array.isArray(board) || board.length !== N) return null;
+    const cleanBoard = [];
+    for (const row of board) {
+      if (!Array.isArray(row) || row.length !== N) return null;
+      if (!row.every(v => Number.isInteger(v) && v >= 0 && v <= CONFIG.COLOR_SLOTS)) return null;
+      cleanBoard.push(row.slice());
+    }
+    const full = fullLines(cleanBoard);
+    if (full.rows.length || full.cols.length) return null;
+    if (!Array.isArray(tray) || tray.length !== CONFIG.TRAY_SLOTS) return null;
+    const cleanTray = [];
+    for (const item of tray) {
+      if (item === null) { cleanTray.push(null); continue; }
+      if (!item || !Object.prototype.hasOwnProperty.call(PIECE_BY_ID, item.id)) return null;
+      if (!Number.isInteger(item.color) || item.color < 0 || item.color >= CONFIG.COLOR_SLOTS) return null;
+      cleanTray.push({ id: item.id, color: item.color });
+    }
+    if (!isCount(score) || !isCount(combo) || !isCount(misses) || misses >= CONFIG.COMBO_GRACE) return null;
+    return {
+      board: cleanBoard, tray: cleanTray, score, combo, misses,
+      moves: isCount(moves) ? moves : 0,
+      over: cleanTray.some(Boolean) ? !anyFits(cleanBoard, cleanTray) : false,
+    };
+  }
+
+  return {
+    emptyBoard, isBoardEmpty, canPlace, pieceFits, anyFits, stamp, fullLines, clearLines, previewClears, nearestValid,
+    comboMultiplier, advanceCombo, scoreMove, pickWeighted, generateTray, newGame, applyMove, sanitizeGame,
+  };
+})();
+
+/* ==========================================================================
+   TESTS
+   Runs in Node (the logic section above is DOM-free) or at index.html?test.
+   ========================================================================== */
+const Tests = (() => {
+  const N = CONFIG.SIZE;
+
+  function mulberry32(seed) {
+    return () => {
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const eq = (a, b, label) => {
+    const x = JSON.stringify(a), y = JSON.stringify(b);
+    if (x !== y) throw new Error((label ? label + ': ' : '') + 'expected ' + y + ', got ' + x);
+  };
+  const ok = (v, label) => { if (!v) throw new Error(label || 'expected truthy'); };
+  const P = id => PIECE_BY_ID[id];
+  const pieceWith = (family, w, h) => PIECES.find(p => p.family === family && p.w === w && p.h === h);
+  const dot = P('single-1'), bar2H = pieceWith('line2', 2, 1), bar2V = pieceWith('line2', 1, 2);
+  const state = (board, tray, extra) => Object.assign(
+    { board, tray, score: 0, combo: 0, misses: 0, moves: 0, over: false }, extra);
+  const fixed = v => () => v;
+  const fill = (cells, v = 1) => {
+    const b = Logic.emptyBoard();
+    for (const [r, c] of cells) b[r][c] = v;
+    return b;
+  };
+  /** Full board except the listed holes. */
+  const fullExcept = holes => {
+    const b = Array.from({ length: N }, () => new Array(N).fill(1));
+    for (const [r, c] of holes) b[r][c] = 0;
+    return b;
+  };
+  /** A reachable packed board: the diagonal is open, so no line is full and no 2-cell piece fits. */
+  const diagonalHoles = extra => fullExcept(Array.from({ length: N }, (_, i) => [i, i]).concat(extra || []));
+
+  const units = {
+    'piece set: expected size and no duplicate shapes'() {
+      const keys = PIECES.map(p => JSON.stringify(p.cells));
+      eq(new Set(keys).size, PIECES.length, 'unique shapes');
+      eq(PIECES.length, 37, 'piece count');
+    },
+    'piece set: every required family and rotation exists'() {
+      const count = f => PIECES.filter(p => p.family === f).length;
+      eq([1, 2, 2, 2, 2, 1, 1, 2], ['single', 'line2', 'line3', 'line4', 'line5', 'square2', 'square3', 'rect'].map(count));
+      eq([4, 4, 4, 4, 2, 2, 4], ['corner3', 'ell4', 'jay4', 'tee', 'ess', 'zed', 'corner5'].map(count));
+      ok(pieceWith('rect', 2, 3) && pieceWith('rect', 3, 2), '2x3 and 3x2');
+    },
+    'row and column cleared together count the intersection once'() {
+      const holes = [];
+      for (let i = 0; i < N; i++) { holes.push([3, i]); holes.push([i, 5]); }
+      const board = fill(holes.filter(([r, c]) => !(r === 3 && c === 5)));
+      const out = Logic.applyMove(state(board, [{ id: 'single-1', color: 0 }, { id: 'single-1', color: 1 }, null]), 0, 3, 5, fixed(0.1));
+      eq(out.events.rows, [3]); eq(out.events.cols, [5]);
+      eq(out.events.lineCount, 2);
+      eq(out.events.cleared.length, 15, 'unique cells');
+      eq(new Set(out.events.cleared.map(k => k.r + ',' + k.c)).size, 15, 'no repeats');
+    },
+    'multiple simultaneous clears score 10 x lines x lines'() {
+      const cells = [];
+      for (let r = 0; r < 3; r++) for (let c = 2; c < N; c++) cells.push([r, c]);
+      cells.push([7, 7]); // Keeps the board from emptying, so no bonus.
+      // Columns 0-1 of the top rows are open; a 2x3 piece completes three rows at once.
+      const rect = pieceWith('rect', 2, 3);
+      const out = Logic.applyMove(state(fill(cells), [{ id: rect.id, color: 2 }, { id: 'single-1', color: 1 }, null]), 0, 0, 0, fixed(0.1));
+      eq(out.events.rows, [0, 1, 2]);
+      eq(out.events.points.cells, 6);
+      eq(out.events.combo, 1);
+      eq(out.events.points.linePoints, 135, '90 x 1.5');
+      eq(out.state.score, 141);
+      eq(out.events.boardClear, false);
+    },
+    'combo rises per clearing move and only resets on the third miss'() {
+      const s = (c, m, hit) => Logic.advanceCombo(c, m, hit);
+      eq(s(0, 0, true), { combo: 1, misses: 0 });
+      eq(s(1, 0, true), { combo: 2, misses: 0 });
+      eq(s(2, 0, false), { combo: 2, misses: 1 });
+      eq(s(2, 1, false), { combo: 2, misses: 2 });
+      eq(s(2, 2, false), { combo: 0, misses: 0 });
+      eq(s(2, 2, true), { combo: 3, misses: 0 }, 'a clear on the last chance saves it');
+      eq(s(0, 0, false), { combo: 0, misses: 0 }, 'misses do not pile up with no combo');
+      eq(Logic.comboMultiplier(3), 2.5);
+    },
+    'combo timing through real moves'() {
+      const tray = [{ id: 'single-1', color: 0 }, { id: 'single-1', color: 0 }, { id: 'single-1', color: 0 }];
+      let st = state(fill([[7, 7]]), tray, { combo: 2, misses: 0 });
+      const miss = (r, c) => { st = Logic.applyMove(Object.assign({}, st, { tray: tray.slice() }), 0, r, c, fixed(0.1)).state; };
+      miss(0, 0); eq([st.combo, st.misses], [2, 1]);
+      miss(0, 2); eq([st.combo, st.misses], [2, 2]);
+      miss(0, 4); eq([st.combo, st.misses], [0, 0]);
+    },
+    'combo multiplier applies to line points only'() {
+      const p = Logic.scoreMove(4, 2, 2, false);
+      eq(p, { cells: 4, linePoints: 80, bonus: 0, multiplier: 2, total: 84 });
+      eq(Logic.scoreMove(4, 0, 5, false).total, 4, 'no clear, no multiplier');
+    },
+    'board-clear bonus needs a clear that empties the board'() {
+      const cells = []; for (let c = 0; c < N - 1; c++) cells.push([0, c]);
+      const out = Logic.applyMove(state(fill(cells), [{ id: 'single-1', color: 0 }, { id: 'single-1', color: 0 }, null]), 0, 0, 7, fixed(0.1));
+      eq(out.events.boardClear, true);
+      eq(out.events.points, { cells: 1, linePoints: 15, bonus: 300, multiplier: 1.5, total: 316 });
+      const other = Logic.applyMove(state(fill([[4, 4]]), [{ id: 'single-1', color: 0 }, null, { id: 'single-1', color: 0 }]), 0, 0, 0, fixed(0.1));
+      eq(other.events.boardClear, false);
+      eq(other.events.points.bonus, 0);
+    },
+    'fit detection at the board edges'() {
+      const e = Logic.emptyBoard();
+      const bar5H = pieceWith('line5', 5, 1), sq3 = P('square3-1');
+      ok(Logic.canPlace(e, bar5H, 0, 3), 'right edge in');
+      ok(!Logic.canPlace(e, bar5H, 0, 4), 'right edge out');
+      ok(Logic.canPlace(e, sq3, 5, 5), 'corner in');
+      ok(!Logic.canPlace(e, sq3, 6, 5), 'bottom out');
+      ok(!Logic.canPlace(e, dot, -1, 0), 'negative row');
+      ok(!Logic.canPlace(e, dot, 0, -1), 'negative col');
+      ok(Logic.canPlace(e, dot, 7, 7), 'last cell');
+      ok(Logic.pieceFits(fullExcept([[7, 6], [7, 7]]), bar2H), 'pair in bottom corner');
+      ok(!Logic.pieceFits(fullExcept([[7, 6], [7, 7]]), bar2V), 'vertical pair has no room');
+      // An L whose bounding box overlaps filled cells still fits through its gaps.
+      const lShape = PIECES.find(p => p.family === 'corner3' && JSON.stringify(p.cells) === '[[0,0],[1,0],[1,1]]');
+      ok(Logic.canPlace(fullExcept([[0, 0], [1, 0], [1, 1]]), lShape, 0, 0), 'empty corner of the box may be filled');
+    },
+    'game over on a nearly full board, only when nothing fits'() {
+      const board = diagonalHoles();
+      const tray = [{ id: bar2H.id, color: 0 }, { id: bar2V.id, color: 1 }, { id: 'square2-1', color: 2 }];
+      ok(!Logic.anyFits(board, tray), 'nothing fits');
+      ok(Logic.anyFits(board, [null, { id: 'single-1', color: 0 }, null]), 'a single fits');
+      // One pair of open cells at the top; (0,3) and (2,0) stop the move from completing a line.
+      const packed = diagonalHoles([[0, 1], [0, 3], [2, 0]]);
+      const st = state(packed, [{ id: bar2H.id, color: 0 }, { id: bar2H.id, color: 0 }, null]);
+      const out = Logic.applyMove(st, 0, 0, 0, fixed(0.1));
+      eq(out.events.lineCount, 0, 'no clear rescues the board');
+      eq(out.state.over, true, 'over after the move');
+      eq(Logic.applyMove(out.state, 1, 7, 7, fixed(0.1)), null, 'no moves after game over');
+    },
+    'a playable placement that leaves a fitting piece is not game over'() {
+      const packed = diagonalHoles([[0, 1], [0, 3], [2, 0]]);
+      const out = Logic.applyMove(state(packed, [{ id: bar2H.id, color: 0 }, { id: 'single-1', color: 0 }, null]), 0, 0, 0, fixed(0.1));
+      eq(out.events.lineCount, 0);
+      eq(out.state.over, false);
+    },
+    'new set keeps at least one fitting piece, without forcing all three'() {
+      const board = fullExcept([[3, 3]]);
+      for (let seed = 1; seed <= 300; seed++) {
+        const tray = Logic.generateTray(board, mulberry32(seed));
+        ok(Logic.anyFits(board, tray), 'seed ' + seed);
+      }
+      const tally = { all: 0 };
+      for (let seed = 1; seed <= 300; seed++) {
+        const tray = Logic.generateTray(board, mulberry32(seed));
+        if (tray.every(item => Logic.pieceFits(board, PIECE_BY_ID[item.id]))) tally.all++;
+      }
+      ok(tally.all < 30, 'three singles should be rare, got ' + tally.all);
+    },
+    'new set falls back to a non-fitting set only when no pool piece fits'() {
+      const board = fullExcept([[3, 3]]);
+      const pool = [PIECES.find(p => p.family === 'square3')];
+      const tray = Logic.generateTray(board, mulberry32(9), pool);
+      eq(tray.length, 3);
+      ok(!Logic.anyFits(board, tray));
+    },
+    'weighted selection favors small pieces'() {
+      const rng = mulberry32(4), hits = {};
+      for (let i = 0; i < 20000; i++) { const p = Logic.pickWeighted(PIECES, rng); hits[p.size] = (hits[p.size] || 0) + 1; }
+      ok(hits[4] > hits[9] * 5, '4-cell pieces should far outnumber 9-cell');
+      ok(hits[9] > 0, 'large pieces still appear');
+    },
+    'ghost snaps to the nearest valid spot and gives up when too far'() {
+      const b = fill([[3, 3]]);
+      eq(Logic.nearestValid(b, dot, 3.1, 3.4), { r: 3, c: 4 }, 'skips the blocked cell');
+      eq(Logic.nearestValid(Logic.emptyBoard(), dot, 2.2, 5.8), { r: 2, c: 6 });
+      eq(Logic.nearestValid(Logic.emptyBoard(), dot, -3, 0), null, 'off the board');
+      eq(Logic.nearestValid(fullExcept([[7, 7]]), dot, 0, 0), null, 'only spot is too far');
+    },
+    'clear preview matches what the move really does'() {
+      const cells = []; for (let c = 0; c < N - 2; c++) cells.push([2, c]);
+      const b = fill(cells);
+      eq(Logic.previewClears(b, bar2H, 2, 6), { rows: [2], cols: [] });
+      eq(Logic.previewClears(b, bar2H, 3, 6), { rows: [], cols: [] });
+    },
+    'sanitizeGame rejects bad saves and keeps good ones'() {
+      const good = Logic.newGame(mulberry32(2));
+      ok(Logic.sanitizeGame(JSON.parse(JSON.stringify(good))), 'good save');
+      const bad = [
+        null, 7, {}, Object.assign({}, good, { board: [] }),
+        Object.assign({}, good, { score: -1 }), Object.assign({}, good, { score: '10' }),
+        Object.assign({}, good, { tray: [{ id: 'nope', color: 0 }, null, null] }),
+        Object.assign({}, good, { tray: [{ id: 'constructor', color: 0 }, null, null] }),
+        Object.assign({}, good, { tray: [{ id: 'single-1', color: 99 }, null, null] }),
+        Object.assign({}, good, { misses: CONFIG.COMBO_GRACE }),
+        Object.assign({}, good, { board: Array.from({ length: N }, () => new Array(N).fill(1)) }),
+      ];
+      bad.forEach((b, i) => eq(Logic.sanitizeGame(b), null, 'bad save #' + i));
+    },
+    'sanitizeGame flags a saved dead board as over'() {
+      const out = Logic.sanitizeGame(state(diagonalHoles(), [{ id: bar2H.id, color: 0 }, null, null]));
+      ok(out, 'a packed board is a valid save');
+      eq(out.over, true);
+    },
+    'pure: applyMove leaves its input untouched'() {
+      const st = Logic.newGame(mulberry32(5));
+      const before = JSON.stringify(st);
+      const slot = st.tray.findIndex(Boolean);
+      Logic.applyMove(st, slot, 0, 0, mulberry32(6));
+      eq(JSON.stringify(st), before);
+    },
+  };
+
+  function runUnits() {
+    return Object.keys(units).map(name => {
+      try { units[name](); return { name, pass: true }; }
+      catch (err) { return { name, pass: false, error: String(err && err.message || err) }; }
+    });
+  }
+
+  /** Checked with its own loops so a bug in Logic can't vouch for itself. */
+  function bruteFits(board, tray) {
+    for (const item of tray) {
+      if (!item) continue;
+      const piece = PIECE_BY_ID[item.id];
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        if (piece.cells.every(([dr, dc]) => r + dr < N && c + dc < N && board[r + dr][c + dc] === 0)) return true;
+      }
+    }
+    return false;
+  }
+
+  function legalMoves(st) {
+    const moves = [];
+    st.tray.forEach((item, slot) => {
+      if (!item) return;
+      const piece = PIECE_BY_ID[item.id];
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        if (Logic.canPlace(st.board, piece, r, c)) moves.push({ slot, r, c });
+      }
+    });
+    return moves;
+  }
+
+  function fuzz(games = 300, seed = 1) {
+    const rng = mulberry32(seed);
+    const report = { games: 0, moves: 0, lineClears: 0, multiLine: 0, boardClears: 0, overs: 0, bestScore: 0, maxCombo: 0, failures: [] };
+    const fail = (game, move, msg) => { if (report.failures.length < 20) report.failures.push('game ' + game + ' move ' + move + ': ' + msg); };
+
+    for (let g = 0; g < games; g++) {
+      let st, move = 0;
+      try {
+        st = Logic.newGame(rng);
+        while (!st.over) {
+          const moves = legalMoves(st);
+          if (!moves.length) { fail(g, move, 'no legal move but game not over'); break; }
+          const m = moves[Math.floor(rng() * moves.length)];
+          const item = st.tray[m.slot];
+          const piece = PIECE_BY_ID[item.id];
+          const filled = st.board.flat().filter(Boolean).length;
+          const out = Logic.applyMove(st, m.slot, m.r, m.c, rng);
+          if (!out) { fail(g, move, 'legal move rejected'); break; }
+          const { state: next, events: ev } = out;
+          move++;
+
+          if (next.score < st.score) fail(g, move, 'score decreased');
+          if (next.score - st.score !== ev.points.total) fail(g, move, 'score delta mismatch');
+          const expectLine = 10 * ev.lineCount * ev.lineCount * (ev.lineCount ? 1 + next.combo * 0.5 : 1);
+          if (ev.points.linePoints !== expectLine) fail(g, move, 'line points mismatch');
+
+          const nowFilled = next.board.flat().filter(Boolean).length;
+          if (nowFilled !== filled + piece.size - ev.cleared.length) fail(g, move, 'cell count drifted');
+          if (next.board.length !== N || next.board.some(row => row.length !== N)) fail(g, move, 'board shape');
+          if (next.board.flat().some(v => !Number.isInteger(v) || v < 0 || v > CONFIG.COLOR_SLOTS)) fail(g, move, 'bad cell value');
+          const full = Logic.fullLines(next.board);
+          if (full.rows.length || full.cols.length) fail(g, move, 'full line left on board');
+          if (new Set(ev.cleared.map(k => k.r * N + k.c)).size !== ev.cleared.length) fail(g, move, 'cell cleared twice');
+          if (ev.boardClear !== (ev.lineCount > 0 && nowFilled === 0)) fail(g, move, 'board clear flag');
+
+          if (ev.lineCount) {
+            if (next.combo !== st.combo + 1 || next.misses !== 0) fail(g, move, 'combo did not rise');
+          } else if (st.combo === 0) {
+            if (next.combo !== 0) fail(g, move, 'combo from nothing');
+          } else if (st.misses === CONFIG.COMBO_GRACE - 1) {
+            if (next.combo !== 0) fail(g, move, 'combo should reset');
+          } else if (next.combo !== st.combo || next.misses !== st.misses + 1) fail(g, move, 'combo grace');
+
+          if (next.tray.length !== CONFIG.TRAY_SLOTS) fail(g, move, 'tray size');
+          if (ev.refilled) {
+            if (!next.tray.every(Boolean)) fail(g, move, 'refill incomplete');
+            if (!bruteFits(next.board, next.tray)) fail(g, move, 'new set has no fitting piece');
+          } else {
+            if (next.tray[m.slot] !== null) fail(g, move, 'placed piece stayed in tray');
+          }
+          if (next.over !== !bruteFits(next.board, next.tray)) fail(g, move, 'game over flag disagrees with brute force');
+
+          const round = Logic.sanitizeGame(JSON.parse(JSON.stringify(next)));
+          if (!round) fail(g, move, 'save rejected');
+          else if (JSON.stringify(round) !== JSON.stringify(next)) fail(g, move, 'save did not round-trip');
+
+          report.moves++;
+          if (ev.lineCount) report.lineClears++;
+          if (ev.lineCount > 1) report.multiLine++;
+          if (ev.boardClear) report.boardClears++;
+          report.maxCombo = Math.max(report.maxCombo, next.combo);
+          st = next;
+        }
+        if (st.over && legalMoves(st).length) fail(g, move, 'game over with a legal move left');
+        if (st.over) report.overs++;
+        report.games++;
+        report.bestScore = Math.max(report.bestScore, st.score);
+      } catch (err) {
+        fail(g, move, 'exception: ' + (err && err.stack || err));
+      }
+    }
+    return report;
+  }
+
+  return { runUnits, fuzz };
+})();
+/*@headless-end*/
+
+/* ==========================================================================
+   SHARED HELPERS
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const QUERY = new URLSearchParams(location.search);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeOut = t => 1 - (1 - t) * (1 - t) * (1 - t);
+const reducedMotionQuery = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+const reducedMotion = () => reducedMotionQuery.matches;
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+const rgbToHex = rgb => '#' + rgb.map(v => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
+function mix(a, b, t) {
+  const x = hexToRgb(a), y = hexToRgb(b);
+  return rgbToHex(x.map((v, i) => lerp(v, y[i], t)));
+}
+const lighten = (hex, t) => mix(hex, '#ffffff', t);
+const darken = (hex, t) => mix(hex, '#000000', t);
+function rgba(hex, a) { const [r, g, b] = hexToRgb(hex); return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')'; }
+function luminance(hex) {
+  const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const [r, g, b] = hexToRgb(hex).map(f);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a, b) {
+  const x = luminance(a), y = luminance(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+const isHex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
+function seeded(seed) {
+  return () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashString(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) | 0;
+  return h;
+}
+function roundRect(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+/* ==========================================================================
+   STORAGE
+   One versioned key. Every access is guarded; `data` is the working copy and
+   is all the game ever needs if localStorage is missing, full or corrupted.
+   ========================================================================== */
+const Store = (() => {
+  const defaults = () => ({ best: 0, theme: THEMES[0].id, muted: false, colors: {}, game: null, beatBest: false });
+  const data = defaults();
+
+  function cleanColors(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    for (const theme of THEMES) {
+      const list = raw[theme.id];
+      if (!Array.isArray(list)) continue;
+      const slots = theme.palette.map((_, i) => (isHex(list[i]) ? list[i].toLowerCase() : null));
+      if (slots.some(Boolean)) out[theme.id] = slots;
+    }
+    return out;
+  }
+
+  function load() {
+    try {
+      const raw = window.localStorage.getItem(CONFIG.STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || parsed.v !== CONFIG.STORAGE_VERSION) return;
+      if (Number.isSafeInteger(parsed.best) && parsed.best >= 0) data.best = parsed.best;
+      if (typeof parsed.theme === 'string' && Object.prototype.hasOwnProperty.call(THEME_BY_ID, parsed.theme)) data.theme = parsed.theme;
+      data.muted = parsed.muted === true;
+      data.colors = cleanColors(parsed.colors);
+      data.game = Logic.sanitizeGame(parsed.game);
+      data.beatBest = !!data.game && parsed.beatBest === true;
+    } catch (err) { /* Unreadable or corrupted: carry on with what we have. */ }
+  }
+
+  function save() {
+    try {
+      window.localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(Object.assign({ v: CONFIG.STORAGE_VERSION }, data)));
+    } catch (err) { /* Storage blocked or full: state stays in memory. */ }
+  }
+
+  return { data, load, save };
+})();
+
+/* ==========================================================================
+   RENDERING
+   Everything theme-aware paints through a context passed in, so the board,
+   sprites and mini-previews share one set of painters.
+   ========================================================================== */
+const N = CONFIG.SIZE;
+const canvas = $('game');
+const ctx = canvas.getContext('2d', { alpha: false });
+const L = { W: 0, H: 0, dpr: 1 };           // Layout, recomputed on resize.
+const layers = { bg: null, board: null };
+const spriteCache = new Map();
+let theme = THEMES[0];
+let palette = theme.palette.slice();
+let dirty = true;
+
+function paletteFor(t) {
+  const custom = Store.data.colors[t.id];
+  return t.palette.map((hex, i) => (custom && custom[i]) || hex);
+}
+const colorOf = slot => palette[slot % palette.length];
+
+/* ---- Block painters ---- */
+function paintGlow(c, hex, x, y, s) {
+  const r = s * 0.2, inset = s * 0.05;
+  const X = x + inset, Y = y + inset, S = s - inset * 2;
+  c.shadowColor = hex; c.shadowBlur = s * 0.34;
+  roundRect(c, X, Y, S, S, r);
+  c.fillStyle = rgba(hex, 0.26); c.fill();
+  c.lineWidth = Math.max(1.25, s * 0.07); c.strokeStyle = hex; c.stroke();
+  c.shadowBlur = 0;
+  const g = c.createLinearGradient(0, Y, 0, Y + S);
+  g.addColorStop(0, 'rgba(255,255,255,.42)'); g.addColorStop(0.55, 'rgba(255,255,255,.04)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  roundRect(c, X + S * 0.1, Y + S * 0.1, S * 0.8, S * 0.8, r * 0.7);
+  c.fillStyle = g; c.fill();
+}
+
+function paintBevel(c, hex, x, y, s, variant) {
+  const inset = s * 0.025, X = x + inset, Y = y + inset, S = s - inset * 2, b = S * 0.13;
+  c.save();
+  roundRect(c, X, Y, S, S, S * 0.07);
+  c.clip();
+  c.fillStyle = hex; c.fillRect(X, Y, S, S);
+  const rnd = seeded(hashString(hex) + variant * 97);
+  c.lineWidth = Math.max(0.6, s * 0.018);
+  for (let i = 0; i < 7; i++) {
+    const gy = Y + rnd() * S, drift = (rnd() - 0.5) * S * 0.22;
+    c.strokeStyle = rgba(rnd() > 0.35 ? darken(hex, 0.5) : lighten(hex, 0.6), 0.1 + rnd() * 0.17);
+    c.beginPath();
+    c.moveTo(X, gy);
+    c.bezierCurveTo(X + S * 0.3, gy + drift, X + S * 0.7, gy - drift, X + S, gy + drift * 0.4);
+    c.stroke();
+  }
+  const edge = (fill, pts) => {
+    c.fillStyle = fill; c.beginPath();
+    pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py)));
+    c.closePath(); c.fill();
+  };
+  const R = X + S, B = Y + S;
+  edge(rgba(lighten(hex, 0.75), 0.6), [[X, Y], [R, Y], [R - b, Y + b], [X + b, Y + b]]);
+  edge(rgba(lighten(hex, 0.6), 0.34), [[X, Y], [X + b, Y + b], [X + b, B - b], [X, B]]);
+  edge(rgba(darken(hex, 0.6), 0.45), [[R, Y], [R, B], [R - b, B - b], [R - b, Y + b]]);
+  edge(rgba(darken(hex, 0.7), 0.58), [[X, B], [X + b, B - b], [R - b, B - b], [R, B]]);
+  c.restore();
+}
+
+function paintSoft(c, hex, x, y, s) {
+  const inset = s * 0.05, X = x + inset, Y = y + inset, S = s - inset * 2, r = S * 0.3;
+  const g = c.createLinearGradient(0, Y, 0, Y + S);
+  g.addColorStop(0, lighten(hex, 0.32)); g.addColorStop(1, hex);
+  c.shadowColor = rgba(darken(hex, 0.3), 0.5); c.shadowBlur = s * 0.12; c.shadowOffsetY = s * 0.06;
+  roundRect(c, X, Y, S, S, r);
+  c.fillStyle = g; c.fill();
+  c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+  roundRect(c, X + S * 0.16, Y + S * 0.1, S * 0.5, S * 0.17, S * 0.09);
+  c.fillStyle = 'rgba(255,255,255,.62)'; c.fill();
+}
+
+function paintScanline(c, hex, x, y, s) {
+  const inset = s * 0.05, X = x + inset, Y = y + inset, S = s - inset * 2;
+  c.fillStyle = mix(hex, '#000000', 0.68);
+  c.fillRect(X, Y, S, S);
+  const step = Math.max(2.5, S / 9);
+  c.fillStyle = rgba(hex, 0.5);
+  for (let ly = Y + step * 0.5; ly < Y + S; ly += step) c.fillRect(X, ly, S, Math.max(1, step * 0.42));
+  c.shadowColor = hex; c.shadowBlur = s * 0.14;
+  c.strokeStyle = hex; c.lineWidth = Math.max(1, s * 0.05);
+  c.strokeRect(X + c.lineWidth / 2, Y + c.lineWidth / 2, S - c.lineWidth, S - c.lineWidth);
+  c.shadowBlur = 0;
+  const tick = S * 0.2;
+  c.fillStyle = lighten(hex, 0.65);
+  c.fillRect(X, Y, tick, Math.max(1.5, S * 0.06)); c.fillRect(X, Y, Math.max(1.5, S * 0.06), tick);
+  c.fillRect(X + S - tick, Y + S - Math.max(1.5, S * 0.06), tick, Math.max(1.5, S * 0.06));
+  c.fillRect(X + S - Math.max(1.5, S * 0.06), Y + S - tick, Math.max(1.5, S * 0.06), tick);
+}
+
+function paintBlock(c, t, hex, x, y, s, variant = 0) {
+  c.save();
+  if (t.style === 'glow') paintGlow(c, hex, x, y, s);
+  else if (t.style === 'bevel') paintBevel(c, hex, x, y, s, variant);
+  else if (t.style === 'soft') paintSoft(c, hex, x, y, s);
+  else paintScanline(c, hex, x, y, s);
+  c.restore();
+}
+
+/* ---- Sprites: glow and shadows are costly, so blocks are painted once and blitted ---- */
+function sprite(hex, size, variant) {
+  const px = Math.round(size * L.dpr);
+  const key = theme.id + hex + px + '/' + variant;
+  let entry = spriteCache.get(key);
+  if (entry) return entry;
+  if (spriteCache.size > 240) spriteCache.clear();
+  const pad = Math.ceil(size * 0.5);
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = Math.ceil((size + pad * 2) * L.dpr);
+  const c = cv.getContext('2d');
+  c.scale(L.dpr, L.dpr);
+  paintBlock(c, theme, hex, pad, pad, size, variant);
+  entry = { cv, pad, size };
+  spriteCache.set(key, entry);
+  return entry;
+}
+
+/** Draws a block with its cell at (x, y). `w`/`h` default to the sprite's own size. */
+function blit(hex, base, variant, x, y, w = base, h = base) {
+  const s = sprite(hex, base, variant);
+  const kx = w / base, ky = h / base;
+  const full = base + s.pad * 2;
+  ctx.drawImage(s.cv, x - s.pad * kx, y - s.pad * ky, full * kx, full * ky);
+}
+
+const cellVariant = (r, c) => (theme.style === 'bevel' ? (r * 5 + c * 3) % 4 : 0);
+
+/* ---- Backgrounds ---- */
+function paintBackdrop(c, t, w, h) {
+  const g = c.createLinearGradient(0, 0, 0, h);
+  t.sky.forEach((col, i) => g.addColorStop(i / (t.sky.length - 1), col));
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  const rnd = seeded(hashString(t.id));
+
+  if (t.backdrop === 'horizon') {
+    for (let i = 0; i < 70; i++) {
+      c.fillStyle = 'rgba(255,255,255,' + (0.1 + rnd() * 0.5) + ')';
+      const r = rnd() * 1.2 + 0.3;
+      c.fillRect(rnd() * w, rnd() * h * 0.62, r, r);
+    }
+    const top = h * 0.68, vx = w / 2;
+    const glow = c.createRadialGradient(vx, top, 0, vx, top, Math.max(w, h) * 0.55);
+    glow.addColorStop(0, rgba(t.lines, 0.3)); glow.addColorStop(1, rgba(t.lines, 0));
+    c.fillStyle = glow; c.fillRect(0, 0, w, h);
+    c.strokeStyle = rgba(t.lines, 0.22); c.lineWidth = 1;
+    c.beginPath();
+    for (let i = -16; i <= 16; i++) { c.moveTo(vx + i * w * 0.012, top); c.lineTo(vx + i * w * 0.28, h); }
+    for (let i = 0; i < 12; i++) { const y = top + (h - top) * Math.pow(i / 11, 2.1); c.moveTo(0, y); c.lineTo(w, y); }
+    c.stroke();
+  } else if (t.backdrop === 'planks') {
+    const plank = Math.max(46, Math.min(w, h) / 6);
+    for (let px = 0, i = 0; px < w; px += plank, i++) {
+      c.fillStyle = rgba(rnd() > 0.5 ? '#000000' : '#ffffff', rnd() * 0.07);
+      c.fillRect(px, 0, plank, h);
+      c.fillStyle = 'rgba(0,0,0,.42)'; c.fillRect(px, 0, 1.5, h);
+      c.lineWidth = 1;
+      for (let j = 0; j < 8; j++) {
+        const gx = px + rnd() * plank, sway = (rnd() - 0.5) * plank * 0.5;
+        c.strokeStyle = 'rgba(0,0,0,' + (0.07 + rnd() * 0.13) + ')';
+        c.beginPath(); c.moveTo(gx, 0);
+        c.bezierCurveTo(gx + sway, h * 0.33, gx - sway, h * 0.66, gx + sway * 0.4, h);
+        c.stroke();
+      }
+    }
+  } else if (t.backdrop === 'sprinkles') {
+    const count = Math.round(w * h / 9000) + 8;
+    for (let i = 0; i < count; i++) {
+      const hex = t.palette[Math.floor(rnd() * t.palette.length)];
+      c.save();
+      c.translate(rnd() * w, rnd() * h); c.rotate(rnd() * Math.PI);
+      c.fillStyle = rgba(hex, 0.32 + rnd() * 0.2);
+      const len = 7 + rnd() * 9;
+      roundRect(c, -len / 2, -2.2, len, 4.4, 2.2); c.fill();
+      c.restore();
+    }
+  } else if (t.backdrop === 'rain') {
+    const size = clamp(Math.min(w, h) / 30, 8, 16), glyphs = '01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂ';
+    c.font = size + 'px ui-monospace,Menlo,Consolas,monospace';
+    for (let x = size / 2; x < w; x += size * 1.25) {
+      if (rnd() < 0.25) continue;
+      const head = rnd() * h, tail = 7 + rnd() * 16;
+      for (let i = 0; i < tail; i++) {
+        const a = (1 - i / tail) * 0.34;
+        c.fillStyle = rgba(t.lines, a);
+        c.fillText(glyphs[Math.floor(rnd() * glyphs.length)], x, ((head - i * size * 1.2) % h + h) % h);
+      }
+    }
+  }
+}
+
+function paintBoard(c, t, x, y, size, pad, cell) {
+  const radius = t.style === 'scanline' ? 3 : t.style === 'soft' ? size * 0.05 : t.style === 'bevel' ? size * 0.018 : size * 0.03;
+  c.save();
+  if (t.style === 'glow') { c.shadowColor = t.frame; c.shadowBlur = size * 0.04; }
+  if (t.style === 'soft') { c.shadowColor = rgba(t.ui.accent, 0.28); c.shadowBlur = size * 0.05; c.shadowOffsetY = size * 0.012; }
+  if (t.style === 'bevel') { c.shadowColor = 'rgba(0,0,0,.55)'; c.shadowBlur = size * 0.035; c.shadowOffsetY = size * 0.012; }
+  if (t.style === 'scanline') { c.shadowColor = t.frame; c.shadowBlur = size * 0.02; }
+  roundRect(c, x, y, size, size, radius);
+  c.fillStyle = t.board; c.fill();
+  c.restore();
+  c.save();
+  roundRect(c, x + 0.5, y + 0.5, size - 1, size - 1, radius);
+  c.lineWidth = t.style === 'bevel' ? Math.max(1.5, pad * 0.6) : t.style === 'soft' ? Math.max(2, pad * 0.5) : Math.max(1, pad * 0.2);
+  c.strokeStyle = t.frame; c.stroke();
+
+  const gx = x + pad, gy = y + pad, gridSize = cell * N;
+  const inset = Math.max(0.5, cell * 0.035), r = t.style === 'scanline' ? 1 : t.style === 'soft' ? cell * 0.24 : cell * 0.12;
+  c.lineWidth = 1; c.strokeStyle = t.grid;
+  c.beginPath();
+  for (let i = 1; i < N; i++) {
+    const p = Math.round(i * cell * 2) / 2;
+    c.moveTo(gx + p, gy); c.lineTo(gx + p, gy + gridSize);
+    c.moveTo(gx, gy + p); c.lineTo(gx + gridSize, gy + p);
+  }
+  c.stroke();
+  c.fillStyle = t.empty;
+  for (let row = 0; row < N; row++) for (let col = 0; col < N; col++) {
+    roundRect(c, gx + col * cell + inset, gy + row * cell + inset, cell - inset * 2, cell - inset * 2, r);
+    c.fill();
+    if (t.style === 'bevel') {
+      c.save(); c.clip();
+      c.fillStyle = 'rgba(0,0,0,.26)';
+      c.fillRect(gx + col * cell, gy + row * cell, cell, cell * 0.09);
+      c.restore();
+      c.fillStyle = t.empty;
+    }
+  }
+  c.restore();
+}
+
+function rebuildLayers() {
+  const make = (w, h) => {
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(w * L.dpr)); cv.height = Math.max(1, Math.round(h * L.dpr));
+    const c = cv.getContext('2d');
+    c.scale(L.dpr, L.dpr);
+    return [cv, c];
+  };
+  const [bg, b] = make(L.W, L.H);
+  paintBackdrop(b, theme, L.W, L.H);
+  b.fillStyle = theme.tray;
+  roundRect(b, L.bx, L.ty, L.bs, L.th, theme.style === 'scanline' ? 3 : Math.min(18, L.th * 0.14));
+  b.fill();
+  layers.bg = bg;
+
+  const m = L.margin;
+  const [board, bc] = make(L.bs + m * 2, L.bs + m * 2);
+  paintBoard(bc, theme, m, m, L.bs, L.pad, L.cell);
+  layers.board = board;
+  dirty = true;
+}
+
+function computeLayout() {
+  const stage = $('stage').getBoundingClientRect();
+  const W = Math.round(window.innerWidth), H = Math.round(window.innerHeight);
+  if (!W || !H) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const dprChanged = dpr !== L.dpr;
+  const snap = v => Math.round(v * dpr) / dpr;
+
+  const gap = clamp(stage.height * 0.022, 6, 14);
+  const wanted = Math.min(stage.width, (stage.height - gap) / 1.3, CONFIG.MAX_BOARD_PX);
+  const padPx = Math.max(2, Math.round(wanted * dpr * 0.018));
+  const cellPx = Math.max(8, Math.floor((wanted * dpr - padPx * 2) / N));   // Whole device pixels keep cells crisp.
+  const cell = cellPx / dpr, pad = padPx / dpr, bs = cell * N + pad * 2;
+  const th = Math.min(stage.height - gap - bs, bs * 0.42);
+  const contentH = bs + gap + th;
+  const bx = snap(stage.left + (stage.width - bs) / 2);
+  const by = snap(stage.top + Math.max(0, (stage.height - contentH) / 2));
+  const ty = snap(by + bs + gap);
+  const slotW = bs / CONFIG.TRAY_SLOTS;
+  const trayCell = Math.min(cell * 0.62, Math.floor(Math.min(slotW, th) * 0.9 / 5 * dpr) / dpr);
+
+  Object.assign(L, {
+    W, H, dpr, bs, bx, by, pad, cell, gap, th, ty, trayCell, slotW,
+    gx: bx + pad, gy: by + pad, margin: Math.ceil(bs * 0.06),
+    slots: Array.from({ length: CONFIG.TRAY_SLOTS }, (_, i) => ({ x: bx + slotW * i, y: ty, w: slotW, h: th })),
+  });
+
+  const bw = Math.round(W * dpr), bh = Math.round(H * dpr);
+  if (canvas.width !== bw) canvas.width = bw;
+  if (canvas.height !== bh) canvas.height = bh;
+  if (dprChanged) spriteCache.clear();
+  rebuildLayers();
+}
+
+/* ---- Effects state (visual only: game state never waits on these) ---- */
+const FX = {
+  placed: null,          // { cells, t0 }
+  clears: [],            // { cells:[{r,c,hex,delay,burst}], t0, end }
+  particles: [],
+  floats: [],
+  shake: null,           // { t0, amp }
+  trayPop: [0, 0, 0],    // Pop-in start time per slot.
+  returning: [],         // Pieces flying back to the tray.
+  denied: null,          // { slot, t0, cells } after a rejected tap.
+};
+const FLASH_MS = 110, SHRINK_MS = 170, STAGGER_MS = 16;
+
+function spawnBurst(x, y, hex) {
+  const reduced = reducedMotion();
+  const count = Math.round((theme.particle === 'glyph' ? 3 : 7) * (reduced ? 0.3 : 1));
+  const glyphs = '01ｱｶｻﾀﾅﾊﾏ';
+  for (let i = 0; i < count && FX.particles.length < CONFIG.MAX_PARTICLES; i++) {
+    const a = Math.random() * Math.PI * 2, sp = (40 + Math.random() * 190) * (reduced ? 0.5 : 1);
+    const p = {
+      kind: theme.particle, hex, x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      g: 240, life: 0, max: 0.4 + Math.random() * 0.4, size: L.cell * (0.06 + Math.random() * 0.1),
+      rot: Math.random() * 6.3, spin: (Math.random() - 0.5) * 14,
+    };
+    if (p.kind === 'chip') { p.vy -= 90; p.g = 620; p.size *= 1.7; }
+    else if (p.kind === 'puff') { p.g = -24; p.vx *= 0.5; p.vy *= 0.5; p.size *= 2.2; p.max += 0.25; }
+    else if (p.kind === 'glyph') { p.vx *= 0.15; p.vy = 50 + Math.random() * 170; p.g = 140; p.size = L.cell * 0.34; p.ch = glyphs[Math.floor(Math.random() * glyphs.length)]; }
+    FX.particles.push(p);
+  }
+}
+
+function stepParticles(dt) {
+  const list = FX.particles;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const p = list[i];
+    p.life += dt;
+    if (p.life >= p.max) { list[i] = list[list.length - 1]; list.pop(); continue; }
+    p.vy += p.g * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.spin * dt;
+  }
+}
+
+function drawParticles() {
+  if (!FX.particles.length) return;
+  ctx.save();
+  if (theme.particle === 'spark') ctx.globalCompositeOperation = 'lighter';
+  for (const p of FX.particles) {
+    const k = 1 - p.life / p.max;
+    ctx.globalAlpha = p.kind === 'puff' ? k * 0.8 : Math.min(1, k * 1.6);
+    if (p.kind === 'spark') {
+      ctx.strokeStyle = p.hex; ctx.lineWidth = Math.max(1, p.size * 0.8); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); ctx.stroke();
+    } else if (p.kind === 'chip') {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.hex; ctx.fillRect(-p.size, -p.size * 0.38, p.size * 2, p.size * 0.76);
+      ctx.restore();
+    } else if (p.kind === 'puff') {
+      ctx.fillStyle = p.hex;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.6 + k * 0.5), 0, 6.3); ctx.fill();
+    } else {
+      ctx.fillStyle = p.hex;
+      ctx.font = Math.round(p.size) + 'px ' + theme.font;
+      ctx.fillText(p.ch, p.x, p.y);
+    }
+  }
+  ctx.restore();
+}
+
+function addFloat(text, x, y, size, delay, color) {
+  const now = performance.now();
+  FX.floats.push({ text, x, y, size, born: now, t0: now + delay, life: reducedMotion() ? 800 : 950, color });
+  dirty = true;
+}
+
+function drawFloats(now) {
+  if (!FX.floats.length) return;
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  const reduced = reducedMotion();
+  FX.floats = FX.floats.filter(f => now < f.t0 + f.life);
+  for (const f of FX.floats) {
+    const t = now - f.t0;
+    if (t < 0) continue;
+    const p = t / f.life;
+    const pop = reduced ? 1 : p < 0.14 ? 0.6 + 0.55 * easeOut(p / 0.14) : p < 0.24 ? 1.15 - 0.15 * ((p - 0.14) / 0.1) : 1;
+    const size = f.size * pop;
+    ctx.font = '800 ' + Math.round(size) + 'px ' + theme.font;
+    const half = ctx.measureText(f.text).width / 2 + 6;
+    const x = clamp(f.x, half, Math.max(half, L.W - half));
+    // Rise is timed from birth, not from appearing, so a stack of pop-ups keeps its spacing.
+    const y = f.y - (reduced ? 0 : easeOut(clamp((now - f.born) / f.life, 0, 1)) * L.cell * 0.9);
+    ctx.globalAlpha = p > 0.68 ? (1 - p) / 0.32 : 1;
+    ctx.lineWidth = Math.max(3, f.size * 0.17);
+    ctx.strokeStyle = theme.textStroke; ctx.strokeText(f.text, x, y);
+    ctx.fillStyle = f.color || theme.textFill; ctx.fillText(f.text, x, y);
+  }
+  ctx.restore();
+}
+
+function shakeOffset(now) {
+  const s = FX.shake;
+  if (!s) return { x: 0, y: 0 };
+  const t = (now - s.t0) / 340;
+  if (t >= 1) { FX.shake = null; return { x: 0, y: 0 }; }
+  const amp = s.amp * (1 - t) * (1 - t);
+  return { x: Math.sin(t * 47) * amp, y: Math.cos(t * 61) * amp * 0.8 };
+}
+
+const cellX = c => L.gx + c * L.cell;
+const cellY = r => L.gy + r * L.cell;
+
+/** 0 to 1 gray amount for a board row while the game-over sequence runs. */
+function settleAmount(r, now) {
+  if (!Over.grayed) return 0;
+  const t = now - Over.settleAt;
+  if (t <= 0) return 0;
+  return clamp((t - r * 42) / 220, 0, 1);
+}
+
+function drawCells(now) {
+  const placed = FX.placed;
+  const squashT = placed && !reducedMotion() ? (now - placed.t0) / 210 : 2;
+  if (placed && now - placed.t0 > 210) FX.placed = null;
+  const clearing = new Set();
+  for (const fx of FX.clears) for (const k of fx.cells) clearing.add(k.r * N + k.c);
+
+  for (let r = 0; r < N; r++) {
+    const gray = settleAmount(r, now);
+    const drop = gray ? Math.sin(gray * Math.PI) * L.cell * 0.05 : 0;
+    for (let c = 0; c < N; c++) {
+      const v = G.board[r][c];
+      if (!v || clearing.has(r * N + c)) continue;
+      const hex = colorOf(v - 1), x = cellX(c), y = cellY(r) + drop;
+      if (squashT < 1 && placed.keys.has(r * N + c)) {
+        const a = 0.17 * Math.exp(-4.4 * squashT) * Math.cos(squashT * 9.5);
+        const w = L.cell * (1 + a), h = L.cell * (1 - a);
+        blit(hex, L.cell, cellVariant(r, c), x + (L.cell - w) / 2, y + (L.cell - h), w, h);
+      } else {
+        blit(hex, L.cell, cellVariant(r, c), x, y);
+      }
+      if (gray) {
+        ctx.globalAlpha = gray;
+        blit(theme.gray, L.cell, cellVariant(r, c), x, y);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+}
+
+function drawClears(now) {
+  if (!FX.clears.length) return;
+  FX.clears = FX.clears.filter(fx => now < fx.end);
+  for (const fx of FX.clears) {
+    for (const k of fx.cells) {
+      const t = now - fx.t0 - k.delay;
+      const x = cellX(k.c), y = cellY(k.r);
+      if (t < FLASH_MS) {
+        blit(k.hex, L.cell, cellVariant(k.r, k.c), x, y);
+        if (t >= 0) {
+          ctx.fillStyle = rgba(theme.flash, 0.85 * Math.sin(Math.PI * clamp(t / FLASH_MS, 0, 1) * 0.6 + 0.3));
+          roundRect(ctx, x + 1, y + 1, L.cell - 2, L.cell - 2, L.cell * 0.14);
+          ctx.fill();
+        }
+      } else {
+        if (!k.burst) { k.burst = true; spawnBurst(x + L.cell / 2, y + L.cell / 2, k.hex); }
+        const p = (t - FLASH_MS) / SHRINK_MS;
+        if (p < 1) {
+          const s = L.cell * (1 - p);
+          ctx.globalAlpha = 1 - p * 0.6;
+          blit(k.hex, L.cell, cellVariant(k.r, k.c), x + (L.cell - s) / 2, y + (L.cell - s) / 2, s, s);
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+  }
+}
+
+function drawLineHighlight(rows, cols, now) {
+  if (!rows.length && !cols.length) return;
+  const pulse = 0.3 + 0.08 * Math.sin(now / 120);
+  const size = L.cell * N;
+  ctx.fillStyle = rgba(theme.highlight, pulse);
+  for (const r of rows) ctx.fillRect(L.gx, cellY(r), size, L.cell);
+  for (const c of cols) ctx.fillRect(cellX(c), L.gy, L.cell, size);
+  ctx.strokeStyle = rgba(theme.highlight, 0.85); ctx.lineWidth = 1.5;
+  for (const r of rows) ctx.strokeRect(L.gx + 0.75, cellY(r) + 0.75, size - 1.5, L.cell - 1.5);
+  for (const c of cols) ctx.strokeRect(cellX(c) + 0.75, L.gy + 0.75, L.cell - 1.5, size - 1.5);
+}
+
+function drawGhost(piece, hex, r, c, valid) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(L.gx, L.gy, L.cell * N, L.cell * N); ctx.clip();
+  for (const [dr, dc] of piece.cells) {
+    const x = cellX(c + dc), y = cellY(r + dr);
+    ctx.globalAlpha = valid ? 0.5 : 0.28;
+    blit(valid ? hex : theme.gray, L.cell, 0, x, y);
+    ctx.globalAlpha = valid ? 0.95 : 0.7;
+    ctx.strokeStyle = valid ? theme.highlight : '#ff4d4d'; ctx.lineWidth = 1.5;
+    roundRect(ctx, x + 2, y + 2, L.cell - 4, L.cell - 4, L.cell * 0.14);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPreview(now) {
+  const d = Input.drag;
+  if (d) {
+    if (!d.ghost) return;
+    drawLineHighlight(d.clears.rows, d.clears.cols, now);
+    drawGhost(PIECE_BY_ID[d.id], colorOf(d.color), d.ghost.r, d.ghost.c, true);
+    return;
+  }
+  const item = Input.selected !== null ? G.tray[Input.selected] : null;
+  if (item && Input.hover) {
+    const piece = PIECE_BY_ID[item.id], { r, c } = Input.hover;
+    const valid = Logic.canPlace(G.board, piece, r, c);
+    if (valid) { const k = Logic.previewClears(G.board, piece, r, c); drawLineHighlight(k.rows, k.cols, now); }
+    drawGhost(piece, colorOf(item.color), r, c, valid);
+  }
+  if (FX.denied) {
+    const dn = FX.denied;
+    if (now - dn.t0 > 300) FX.denied = null;
+    else {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(L.gx, L.gy, L.cell * N, L.cell * N); ctx.clip();
+      ctx.fillStyle = 'rgba(255,60,60,' + (0.45 * (1 - (now - dn.t0) / 300)) + ')';
+      for (const [r, c] of dn.cells) ctx.fillRect(cellX(c), cellY(r), L.cell, L.cell);
+      ctx.restore();
+    }
+  }
+}
+
+function drawPieceAt(piece, hex, x, y, cell, baseCell, alpha) {
+  ctx.globalAlpha = alpha;
+  piece.cells.forEach(([r, c], i) => blit(hex, baseCell, theme.style === 'bevel' ? i % 4 : 0, x + c * cell, y + r * cell, cell, cell));
+  ctx.globalAlpha = 1;
+}
+
+function drawTray(now) {
+  const t = L.trayCell;
+  const held = Input.drag ? Input.drag.slot : -1;
+  G.tray.forEach((item, i) => {
+    if (!item) return;
+    const slot = L.slots[i], piece = PIECE_BY_ID[item.id];
+    const cx = slot.x + slot.w / 2, cy = slot.y + slot.h / 2;
+    if (Input.selected === i) {
+      ctx.save();
+      ctx.strokeStyle = theme.ui.accent; ctx.lineWidth = 2.5;
+      ctx.fillStyle = rgba(theme.ui.accent, 0.12);
+      roundRect(ctx, slot.x + 3, slot.y + 3, slot.w - 6, slot.h - 6, theme.style === 'scanline' ? 2 : 12);
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+    if (i === held || FX.returning.some(k => k.slot === i)) {
+      // Reserve the slot with a faint outline while the piece is away.
+      drawPieceAt(piece, theme.gray, cx - piece.w * t / 2, cy - piece.h * t / 2, t, t, 0.16);
+      return;
+    }
+    const wait = now - FX.trayPop[i];
+    if (wait < 0) return;
+    let scale = 1;
+    if (wait < 260 && !reducedMotion()) { const p = wait / 260; scale = 0.4 + 0.6 * easeOut(p) + 0.14 * Math.sin(p * Math.PI); }
+    let wiggle = 0;
+    if (FX.denied && FX.denied.slot === i) {
+      const p = (now - FX.denied.t0) / 300;
+      if (p < 1 && !reducedMotion()) wiggle = Math.sin(p * 22) * 5 * (1 - p);
+    }
+    const c = t * scale;
+    drawPieceAt(piece, colorOf(item.color), cx - piece.w * c / 2 + wiggle, cy - piece.h * c / 2, c, t, 1);
+    if (Over.grayed) {
+      const g = clamp((now - Over.t0) / 260, 0, 1);
+      if (g > 0) drawPieceAt(piece, theme.gray, cx - piece.w * c / 2, cy - piece.h * c / 2, c, t, g);
+    }
+  });
+}
+
+/** Runs before drawing, so the frame after a piece lands shows it back in its slot. */
+function pruneReturning(now) {
+  const before = FX.returning.length;
+  FX.returning = FX.returning.filter(k => now < k.t0 + k.ms);
+  if (FX.returning.length !== before) dirty = true;
+}
+
+function drawReturning(now) {
+  for (const k of FX.returning) {
+    const p = easeOut(clamp((now - k.t0) / k.ms, 0, 1));
+    const piece = PIECE_BY_ID[k.id];
+    const slot = L.slots[k.slot];
+    const size = lerp(L.cell, L.trayCell, p);
+    const cx = lerp(k.x, slot.x + slot.w / 2, p), cy = lerp(k.y, slot.y + slot.h / 2, p);
+    drawPieceAt(piece, colorOf(k.color), cx - piece.w * size / 2, cy - piece.h * size / 2, size, L.cell, 1);
+  }
+}
+
+function drawDragged(now) {
+  const d = Input.drag;
+  if (!d) return;
+  const piece = PIECE_BY_ID[d.id];
+  const p = easeOut(clamp((now - d.t0) / 130, 0, 1));
+  const size = lerp(L.trayCell, L.cell, p);
+  const lift = lerp(0, d.lift, p);
+  const cx = d.x, cy = d.y - lift;
+  ctx.save();
+  if (theme.style !== 'glow') { ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 8; }
+  drawPieceAt(piece, colorOf(d.color), cx - piece.w * size / 2, cy - piece.h * size / 2, size, L.cell, d.ghost ? 0.72 : 1);
+  ctx.restore();
+}
+
+function drawFirstMoveHint() {
+  if (G.moves > 0 || Input.drag || Input.selected !== null || !Logic.isBoardEmpty(G.board)) return;
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '700 ' + Math.max(14, Math.round(L.cell * 0.42)) + 'px ' + theme.font;
+  ctx.fillStyle = rgba(theme.ui.hud, 0.62);
+  ctx.fillText('Drag a piece onto the board', L.bx + L.bs / 2, L.by + L.bs / 2);
+  ctx.restore();
+}
+
+function draw(now) {
+  ctx.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.drawImage(layers.bg, 0, 0, L.W, L.H);
+  const off = shakeOffset(now);
+  ctx.save();
+  ctx.translate(off.x, off.y);
+  const m = L.margin;
+  ctx.drawImage(layers.board, L.bx - m, L.by - m, L.bs + m * 2, L.bs + m * 2);
+  drawCells(now);
+  drawClears(now);
+  drawPreview(now);
+  drawFirstMoveHint();
+  ctx.restore();
+  drawTray(now);
+  drawParticles();
+  drawFloats(now);
+  drawReturning(now);
+  drawDragged(now);
+}
+
+const isAnimating = now =>
+  !!(Input.drag || Input.hover || FX.placed || FX.clears.length || FX.particles.length || FX.floats.length ||
+     FX.shake || FX.returning.length || FX.denied || Over.active || FX.trayPop.some(t => now < t + 300));
+
+/* Mini scene used by the theme cards and the color preview. */
+const SAMPLE_BOARD = [
+  [0, 0, 0, 0, 0, 0, 0, 0], [0, 2, 2, 0, 0, 4, 0, 0], [0, 2, 2, 0, 0, 4, 4, 0], [0, 0, 0, 7, 0, 0, 4, 0],
+  [3, 0, 7, 7, 7, 0, 0, 0], [3, 0, 0, 0, 0, 5, 5, 5], [3, 3, 6, 6, 0, 0, 1, 5], [0, 0, 6, 6, 8, 8, 1, 1],
+];
+
+function paintThemeCard(cv, t) {
+  const w = 200, h = 150, k = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = w * k; cv.height = h * k;
+  const c = cv.getContext('2d');
+  c.setTransform(k, 0, 0, k, 0, 0);
+  paintBackdrop(c, t, w, h);
+  const size = h - 16, pad = 3, cell = (size - pad * 2) / N, x = (w - size) / 2, y = 8;
+  paintBoard(c, t, x, y, size, pad, cell);
+  const pal = paletteFor(t);
+  // Show the player's actual board when there's enough on it to read as a preview.
+  const live = G && G.board.flat().filter(Boolean).length >= 6;
+  const board = live ? G.board : SAMPLE_BOARD;
+  for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+    if (board[r][col]) paintBlock(c, t, pal[(board[r][col] - 1) % pal.length], x + pad + col * cell, y + pad + r * cell, cell, (r * 5 + col * 3) % 4);
+  }
+}
+
+function paintColorsPreview() {
+  const cv = $('colorsPreview');
+  const w = cv.clientWidth || 360, h = cv.clientHeight || 92, k = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+  const c = cv.getContext('2d');
+  c.setTransform(k, 0, 0, k, 0, 0);
+  c.fillStyle = theme.board; c.fillRect(0, 0, w, h);
+  const cell = Math.min(24, (h - 16) / 3);
+  // One small shape per color, spread evenly so each slot is visible in context.
+  const shapes = ['square2-1', 'tee-1', 'line3-1', 'ess-1', 'corner3-1', 'zed-1', 'line2-2', 'corner3-3'];
+  const unit = w / shapes.length;
+  const scale = Math.min(cell, (unit - 6) / 3);   // One scale for all, sized to the widest shape.
+  shapes.forEach((id, i) => {
+    const p = PIECE_BY_ID[id];
+    const px = unit * i + (unit - p.w * scale) / 2, py = (h - p.h * scale) / 2;
+    p.cells.forEach(([r, col], n) => paintBlock(c, theme, palette[i % palette.length], px + col * scale, py + r * scale, scale, n % 4));
+  });
+}
+
+/* ==========================================================================
+   INPUT
+   One Pointer Events path for mouse, touch and pen. A press on a tray piece
+   becomes a drag past a small threshold, otherwise a tap-to-select.
+   ========================================================================== */
+const Input = {
+  pointer: null,    // { id, type, mode:'press'|'drag'|'board', slot, sx, sy }
+  drag: null,       // { slot, id, color, x, y, lift, t0, ghost, clears, pointerType }
+  selected: null,   // Tray slot chosen by tap.
+  hover: null,      // Board cell under the pointer while a piece is selected.
+};
+const DRAG_THRESHOLD = { mouse: 4, pen: 5, touch: 8 };
+
+function pointerPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+function hitSlot(p) {
+  for (let i = 0; i < L.slots.length; i++) {
+    const s = L.slots[i];
+    if (p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h) return i;
+  }
+  return -1;
+}
+function hitCell(p) {
+  const c = Math.floor((p.x - L.gx) / L.cell), r = Math.floor((p.y - L.gy) / L.cell);
+  return r >= 0 && r < N && c >= 0 && c < N ? { r, c } : null;
+}
+const inputLocked = () => G.over || Over.active || UI.stack.length > 0;
+
+function liftFor(type, piece) {
+  if (type !== 'touch') return 0;
+  return piece.h * L.cell / 2 + Math.max(52, L.cell * 1.25);
+}
+
+function updateDrag(p) {
+  const d = Input.drag;
+  d.x = p.x; d.y = p.y;
+  const piece = PIECE_BY_ID[d.id];
+  // Ghost uses the settled lift, not the animated one, so it doesn't jump during pick-up.
+  const left = d.x - piece.w * L.cell / 2, top = d.y - d.lift - piece.h * L.cell / 2;
+  d.ghost = Logic.nearestValid(G.board, piece, (top - L.gy) / L.cell, (left - L.gx) / L.cell);
+  d.clears = d.ghost ? Logic.previewClears(G.board, piece, d.ghost.r, d.ghost.c) : null;
+}
+
+function beginDrag(slot, p, type) {
+  const item = G.tray[slot], piece = PIECE_BY_ID[item.id];
+  FX.returning = FX.returning.filter(k => k.slot !== slot);
+  Input.selected = null; Input.hover = null;
+  Input.drag = { slot, id: item.id, color: item.color, x: p.x, y: p.y, lift: liftFor(type, piece), t0: performance.now(), ghost: null, clears: null, pointerType: type };
+  updateDrag(p);
+  Sound.pickup();
+}
+
+function sendBack(d) {
+  FX.returning.push({ slot: d.slot, id: d.id, color: d.color, x: d.x, y: d.y - d.lift, t0: performance.now(), ms: reducedMotion() ? 90 : 210 });
+}
+
+function endDrag(commit) {
+  const d = Input.drag;
+  Input.drag = null;
+  if (!d) return;
+  if (commit && d.ghost && !inputLocked()) { playMove(d.slot, d.ghost.r, d.ghost.c); return; }
+  sendBack(d);
+  if (commit && d.x >= L.bx && d.x <= L.bx + L.bs && d.y - d.lift >= L.by && d.y - d.lift <= L.by + L.bs) Sound.invalid();
+  dirty = true;
+}
+
+function endPointer() {
+  const ptr = Input.pointer;
+  Input.pointer = null;   // Cleared first: releasing fires lostpointercapture.
+  if (ptr) { try { canvas.releasePointerCapture(ptr.id); } catch (err) { /* Already released. */ } }
+}
+
+function selectSlot(slot) {
+  Input.selected = Input.selected === slot ? null : slot;
+  Input.hover = null;
+  if (Input.selected !== null) Sound.pickup();
+  dirty = true;
+}
+
+function tapBoard(cell) {
+  const slot = Input.selected;
+  if (slot === null || !G.tray[slot]) return;
+  const piece = PIECE_BY_ID[G.tray[slot].id];
+  if (Logic.canPlace(G.board, piece, cell.r, cell.c)) {
+    Input.selected = null; Input.hover = null;
+    playMove(slot, cell.r, cell.c);
+  } else {
+    FX.denied = { slot, t0: performance.now(), cells: piece.cells.map(([r, c]) => [cell.r + r, cell.c + c]) };
+    Input.hover = null;
+    Sound.invalid();
+    dirty = true;
+  }
+}
+
+function onPointerDown(e) {
+  Sound.unlock();
+  if (Input.pointer || e.button > 0 || inputLocked()) return;
+  const p = pointerPos(e);
+  const slot = hitSlot(p);
+  e.preventDefault();
+  if (slot >= 0 && G.tray[slot]) {
+    Input.pointer = { id: e.pointerId, type: e.pointerType || 'mouse', mode: 'press', slot, sx: p.x, sy: p.y };
+  } else {
+    const cell = hitCell(p);
+    if (cell && Input.selected !== null) {
+      Input.pointer = { id: e.pointerId, type: e.pointerType || 'mouse', mode: 'board' };
+      Input.hover = cell;
+    } else if (Input.selected !== null) {
+      Input.selected = null; Input.hover = null;
+    }
+    if (!Input.pointer) { dirty = true; return; }
+  }
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* Capture is a nicety; moves still arrive on the canvas. */ }
+  dirty = true;
+}
+
+function onPointerMove(e) {
+  const ptr = Input.pointer;
+  const p = pointerPos(e);
+  if (!ptr) {
+    if (e.pointerType === 'mouse' && !inputLocked()) {
+      const slot = hitSlot(p);
+      canvas.style.cursor = slot >= 0 && G.tray[slot] ? 'grab' : Input.selected !== null && hitCell(p) ? 'pointer' : 'default';
+      if (Input.selected !== null) {
+        const cell = hitCell(p);
+        const same = (cell && Input.hover && cell.r === Input.hover.r && cell.c === Input.hover.c) || (!cell && !Input.hover);
+        if (!same) { Input.hover = cell; dirty = true; }
+      }
+    }
+    return;
+  }
+  if (e.pointerId !== ptr.id) return;
+  e.preventDefault();
+  if (ptr.mode === 'press') {
+    const limit = DRAG_THRESHOLD[ptr.type] || 6;
+    if (Math.hypot(p.x - ptr.sx, p.y - ptr.sy) >= limit) {
+      ptr.mode = 'drag';
+      canvas.style.cursor = 'grabbing';
+      beginDrag(ptr.slot, p, ptr.type);
+    }
+  } else if (ptr.mode === 'drag' && Input.drag) {
+    updateDrag(p);
+  } else if (ptr.mode === 'board') {
+    Input.hover = hitCell(p);
+  }
+}
+
+function onPointerUp(e) {
+  const ptr = Input.pointer;
+  if (!ptr || e.pointerId !== ptr.id) return;
+  e.preventDefault();
+  const p = pointerPos(e);
+  if (ptr.mode === 'press') {
+    if (!inputLocked()) selectSlot(ptr.slot);
+  } else if (ptr.mode === 'drag') {
+    if (Input.drag) { updateDrag(p); endDrag(true); }
+    canvas.style.cursor = 'default';
+  } else if (ptr.mode === 'board') {
+    const cell = hitCell(p);
+    if (cell) tapBoard(cell);
+    if (e.pointerType !== 'mouse') Input.hover = null;
+  }
+  endPointer();
+}
+
+function cancelPointer() {
+  if (Input.drag) endDrag(false);
+  if (Input.pointer) endPointer();
+  canvas.style.cursor = 'default';
+  if (Input.hover) Input.hover = null;
+  dirty = true;
+}
+
+function bindInput() {
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', cancelPointer);
+  canvas.addEventListener('pointerleave', e => {
+    if (!Input.pointer && e.pointerType === 'mouse' && Input.hover) { Input.hover = null; dirty = true; }
+  });
+  canvas.addEventListener('lostpointercapture', e => {
+    if (Input.pointer && e.pointerId === Input.pointer.id) cancelPointer();
+  });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('dragstart', e => e.preventDefault());
+  window.addEventListener('blur', cancelPointer);
+
+  // Older iOS Safari ignores touch-action for some gestures, so stop them here too. Dialogs keep scrolling.
+  $('app').addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturestart', e => e.preventDefault());
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !UI.stack.length && !Over.active) {
+      // Without preventDefault this same key press would cancel the dialog it just opened.
+      e.preventDefault();
+      if (Input.drag || Input.selected !== null) { cancelPointer(); Input.selected = null; } else if (!G.over) UI.open('dlgPause');
+      return;
+    }
+    if (inputLocked() || e.target instanceof HTMLInputElement) return;
+    if (e.key >= '1' && e.key <= '3') {
+      const slot = Number(e.key) - 1;
+      if (G.tray[slot]) { Sound.unlock(); selectSlot(slot); }
+    }
+  });
+}
+
+/* ==========================================================================
+   AUDIO
+   Everything is synthesized. iOS only treats touchend and click as a gesture
+   that can start audio (not pointerdown), so `unlock` runs on all of them.
+   ========================================================================== */
+const Sound = (() => {
+  let ac = null, master = null, noise = null;
+
+  function unlock() {
+    try {
+      if (!ac) {
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) return;
+        ac = new Ctor();
+        const comp = ac.createDynamicsCompressor();
+        master = ac.createGain();
+        master.gain.value = Store.data.muted ? 0 : 0.55;
+        master.connect(comp); comp.connect(ac.destination);
+        noise = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.25), ac.sampleRate);
+        const samples = noise.getChannelData(0);
+        for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+      }
+      if (ac.state !== 'running') { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); }
+    } catch (err) { /* No audio is fine. */ }
+  }
+
+  const ready = () => ac && master && !Store.data.muted && ac.state === 'running';
+
+  function tone(f0, f1, dur, vol, type, delay = 0) {
+    const t = ac.currentTime + delay;
+    const osc = ac.createOscillator(), gain = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain); gain.connect(master);
+    osc.start(t); osc.stop(t + dur + 0.02);
+  }
+
+  function hiss(dur, vol, cutoff, delay = 0) {
+    const t = ac.currentTime + delay;
+    const src = ac.createBufferSource(), gain = ac.createGain(), filter = ac.createBiquadFilter();
+    src.buffer = noise;
+    filter.type = 'lowpass'; filter.frequency.value = cutoff;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(filter); filter.connect(gain); gain.connect(master);
+    src.start(t); src.stop(t + dur + 0.02);
+  }
+
+  const play = fn => { if (ready()) { try { fn(); } catch (err) { /* A failed blip must never break play. */ } } };
+  const soft = () => (theme.wave === 'sawtooth' || theme.wave === 'square' ? 0.45 : 1);
+
+  return {
+    unlock,
+    setMuted(m) { if (master) master.gain.value = m ? 0 : 0.55; },
+    pickup() { play(() => tone(320, 560, 0.07, 0.11 * soft(), theme.wave)); },
+    place() { play(() => { tone(190, 90, 0.09, 0.2, 'triangle'); hiss(0.05, 0.07, 2400); }); },
+    invalid() { play(() => { tone(210, 140, 0.11, 0.14 * soft(), theme.wave); tone(150, 96, 0.14, 0.14 * soft(), theme.wave, 0.08); }); },
+    clear(lines, combo) {
+      play(() => {
+        const base = 392 * Math.pow(2, Math.min(combo, 18) / 12);    // Up a semitone per combo step.
+        const chord = [1, 1.25, 1.5, 2, 2.5, 3];
+        for (let i = 0; i < Math.min(chord.length, lines + 2); i++) {
+          const f = base * chord[i];
+          tone(f, f * 1.01, 0.2, 0.15 * soft(), theme.wave, i * 0.045);
+        }
+        hiss(0.16, 0.05, 5200);
+      });
+    },
+    boardClear() {
+      play(() => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, 0.26, 0.15 * soft(), theme.wave, 0.18 + i * 0.07)));
+    },
+    gameOver() {
+      play(() => [392, 349, 294, 220].forEach((f, i) => tone(f, f * 0.97, 0.34, 0.17 * soft(), theme.wave, i * 0.15)));
+    },
+  };
+})();
+
+/* ==========================================================================
+   UI
+   HUD, dialogs, settings. Dialogs run on a stack: one is open at a time and
+   closing it returns to the one beneath.
+   ========================================================================== */
+const UI = (() => {
+  const stack = [];
+  const dialogs = ['dlgPause', 'dlgConfirm', 'dlgSettings', 'dlgHelp', 'dlgOver'];
+
+  function open(id) {
+    cancelPointer();
+    Input.selected = null;
+    if (stack.length) $(stack[stack.length - 1]).close();
+    stack.push(id);
+    $(id).showModal();
+  }
+  function back() {
+    const id = stack.pop();
+    if (id) $(id).close();
+    if (stack.length) $(stack[stack.length - 1]).showModal();
+    dirty = true;
+  }
+  function closeAll() { while (stack.length) { $(stack.pop()).close(); } }
+
+  /* ---- HUD ---- */
+  let shownScore = 0, bestBaseline = 0;
+  const scoreEl = $('score'), bestEl = $('best');
+
+  function resetCounters() {
+    shownScore = G.score;
+    bestBaseline = Store.data.best;
+    scoreEl.textContent = shownScore;
+    bestEl.textContent = Store.data.best;
+  }
+
+  function tickScore(dt) {
+    if (shownScore === G.score) return;
+    const gap = G.score - shownScore;
+    if (gap < 0) { shownScore = G.score; }
+    else shownScore = Math.min(G.score, shownScore + Math.max(1, Math.ceil(gap * (1 - Math.exp(-dt * 8)))));
+    scoreEl.textContent = shownScore;
+    bestEl.textContent = Math.min(Store.data.best, Math.max(bestBaseline, shownScore));
+  }
+
+  function bumpScore() {
+    if (reducedMotion() || !scoreEl.animate) return;
+    scoreEl.animate([{ transform: 'scale(1.16)' }, { transform: 'scale(1)' }], { duration: 200, easing: 'ease-out' });
+  }
+
+  function refreshCombo() {
+    const chip = $('combo');
+    chip.classList.toggle('on', G.combo > 0);
+    if (G.combo > 0) {
+      $('comboText').textContent = 'Combo ' + G.combo + ' · ×' + Logic.comboMultiplier(G.combo);
+      const left = CONFIG.COMBO_GRACE - G.misses;
+      [...$('comboPips').children].forEach((pip, i) => pip.classList.toggle('live', i < left));
+    }
+  }
+
+  function refreshSound() {
+    const on = !Store.data.muted;
+    $('pSound').textContent = 'Sound: ' + (on ? 'On' : 'Off');
+    $('soundSwitch').setAttribute('aria-checked', String(on));
+  }
+
+  function toggleSound() {
+    Store.data.muted = !Store.data.muted;
+    Sound.unlock();
+    Sound.setMuted(Store.data.muted);
+    refreshSound();
+    Store.save();
+  }
+
+  /* ---- Settings tabs ---- */
+  const tabs = [['tabThemes', 'panelThemes'], ['tabColors', 'panelColors'], ['tabGeneral', 'panelGeneral']];
+
+  function showTab(tabId) {
+    for (const [t, p] of tabs) {
+      $(t).setAttribute('aria-selected', String(t === tabId));
+      $(p).hidden = t !== tabId;
+    }
+    if (tabId === 'tabThemes') paintAllCards();
+    if (tabId === 'tabColors') refreshColors();
+  }
+  function openSettings(tabId) {
+    open('dlgSettings');
+    showTab(tabId);
+  }
+
+  /* ---- Themes tab ---- */
+  const cards = new Map();
+
+  function buildThemeCards() {
+    for (const t of THEMES) {
+      const btn = document.createElement('button');
+      btn.className = 'theme-card transition hover:brightness-110';
+      btn.setAttribute('aria-pressed', 'false');
+      const cv = document.createElement('canvas');
+      cv.setAttribute('aria-hidden', 'true');
+      btn.append(cv, document.createTextNode(t.name));
+      btn.addEventListener('click', () => { applyTheme(t.id); Store.save(); });
+      $('themeGrid').append(btn);
+      cards.set(t.id, { btn, cv, theme: t });
+    }
+  }
+  function paintAllCards() {
+    for (const card of cards.values()) paintThemeCard(card.cv, card.theme);
+    refreshCards();
+  }
+  function refreshCards() {
+    for (const [id, card] of cards) card.btn.setAttribute('aria-pressed', String(id === theme.id));
+  }
+
+  /* ---- Block colors tab ---- */
+  const QUICK = ['#ff3b30', '#ff7a1a', '#ffb300', '#ffe600', '#a6e22e', '#34c759', '#00c9a7', '#00e5ff', '#2d9cff',
+                 '#3d5afe', '#7c4dff', '#c04dff', '#ff4dbb', '#ff8fae', '#c8843c', '#8a5a33', '#d9d9e3', '#6b7280'];
+  let activeSlot = 0;
+  const slotEls = [];
+
+  function buildColorEditor() {
+    theme.palette.forEach((_, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'slot transition';
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-label', 'Block color ' + (i + 1));
+      const cv = document.createElement('canvas');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      btn.append(cv, dot);
+      btn.addEventListener('click', () => { activeSlot = i; refreshColors(); });
+      $('slotRow').append(btn);
+      slotEls.push({ btn, cv });
+    });
+    for (const hex of QUICK) {
+      const sw = document.createElement('button');
+      sw.className = 'swatch transition hover:scale-110';
+      sw.style.background = hex;
+      sw.setAttribute('aria-label', 'Use ' + hex);
+      sw.addEventListener('click', () => setSlotColor(hex));
+      $('swatches').append(sw);
+    }
+    $('colorPicker').addEventListener('input', e => setSlotColor(e.target.value));
+    $('colorHex').addEventListener('input', e => {
+      let v = e.target.value.trim();
+      if (v && v[0] !== '#') v = '#' + v;
+      const valid = isHex(v);
+      e.target.setAttribute('aria-invalid', String(!valid && v.length > 0));
+      if (valid) setSlotColor(v, true);
+    });
+    $('colorHex').addEventListener('blur', refreshColors);
+    $('colorResetOne').addEventListener('click', () => {
+      writeCustom(activeSlot, null);
+      afterColorChange();
+    });
+    $('colorResetAll').addEventListener('click', () => {
+      delete Store.data.colors[theme.id];
+      afterColorChange();
+    });
+    $('colorShuffle').addEventListener('click', () => {
+      const shuffled = palette.slice();
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      Store.data.colors[theme.id] = shuffled;
+      afterColorChange();
+    });
+  }
+
+  function writeCustom(slot, hex) {
+    const list = Store.data.colors[theme.id] || theme.palette.map(() => null);
+    list[slot] = hex && hex.toLowerCase() !== theme.palette[slot] ? hex.toLowerCase() : null;
+    if (list.some(Boolean)) Store.data.colors[theme.id] = list;
+    else delete Store.data.colors[theme.id];
+  }
+
+  function setSlotColor(hex, keepField) {
+    writeCustom(activeSlot, hex);
+    afterColorChange(keepField);
+  }
+
+  function afterColorChange(keepField) {
+    palette = paletteFor(theme);
+    dirty = true;
+    refreshColors(keepField);
+    Store.save();
+  }
+
+  function refreshColors(keepField) {
+    $('colorsThemeName').textContent = theme.name;
+    const custom = Store.data.colors[theme.id];
+    slotEls.forEach(({ btn, cv }, i) => {
+      const k = Math.min(window.devicePixelRatio || 1, 2), s = 34;
+      cv.width = cv.height = s * k;
+      const c = cv.getContext('2d');
+      c.setTransform(k, 0, 0, k, 0, 0);
+      c.fillStyle = theme.empty; c.fillRect(0, 0, s, s);
+      paintBlock(c, theme, palette[i], 2, 2, s - 4, i % 4);
+      btn.setAttribute('aria-checked', String(i === activeSlot));
+      btn.classList.toggle('custom', !!(custom && custom[i]));
+    });
+    const hex = palette[activeSlot];
+    $('colorPicker').value = hex;
+    if (keepField !== true) { $('colorHex').value = hex.toUpperCase(); $('colorHex').removeAttribute('aria-invalid'); }
+    $('colorWarn').hidden = contrast(hex, theme.empty) >= 1.35;
+    paintColorsPreview();
+  }
+
+  /* ---- Wiring ---- */
+  function bind() {
+    $('btnPause').addEventListener('click', () => { if (!Over.active) open('dlgPause'); });
+    $('btnTheme').addEventListener('click', () => { if (!Over.active) openSettings('tabThemes'); });
+    $('pResume').addEventListener('click', back);
+    $('pRestart').addEventListener('click', () => open('dlgConfirm'));
+    $('pTheme').addEventListener('click', () => openSettings('tabThemes'));
+    $('pColors').addEventListener('click', () => openSettings('tabColors'));
+    $('pSound').addEventListener('click', toggleSound);
+    $('pHelp').addEventListener('click', () => open('dlgHelp'));
+    $('cCancel').addEventListener('click', back);
+    $('cRestart').addEventListener('click', () => { closeAll(); startNewGame(); });
+    $('sDone').addEventListener('click', back);
+    $('sHelp').addEventListener('click', () => open('dlgHelp'));
+    $('hClose').addEventListener('click', back);
+    $('ovAgain').addEventListener('click', () => { closeAll(); startNewGame(); });
+    $('soundSwitch').addEventListener('click', toggleSound);
+    for (const [t] of tabs) $(t).addEventListener('click', () => showTab(t));
+
+    for (const id of dialogs) {
+      const dlg = $(id);
+      // Esc goes back one level. The game-over dialog stays until Play Again.
+      dlg.addEventListener('cancel', e => { e.preventDefault(); if (id !== 'dlgOver') back(); });
+      // Clicks on the dialog element itself landed on the backdrop.
+      dlg.addEventListener('click', e => { if (e.target === dlg && id !== 'dlgOver') back(); });
+      // Browsers may close a dialog despite preventDefault on repeated Esc. Our own closes
+      // update the stack first, so a dialog still on top here closed without us.
+      dlg.addEventListener('close', () => {
+        if (stack[stack.length - 1] !== id || dlg.open) return;
+        if (id === 'dlgOver') dlg.showModal();
+        else { stack.pop(); if (stack.length) $(stack[stack.length - 1]).showModal(); dirty = true; }
+      });
+    }
+
+    // Pointers anywhere unlock audio, including dialogs and the HUD.
+    for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) {
+      window.addEventListener(type, Sound.unlock, { passive: true, capture: true });
+    }
+  }
+
+  function showGameOver() {
+    closeAll();
+    $('ovScore').textContent = G.score;
+    $('ovBest').textContent = Store.data.best;
+    $('ovBadge').hidden = !Store.data.beatBest;
+    open('dlgOver');
+  }
+
+  return {
+    stack, open, back, closeAll, tickScore, bumpScore, refreshCombo, refreshSound, resetCounters, refreshCards,
+    refreshColors, paintAllCards, showGameOver, buildThemeCards, buildColorEditor, bind, showTab, openSettings,
+    settingsVisible: tabId => stack[stack.length - 1] === 'dlgSettings' && $(tabId).getAttribute('aria-selected') === 'true',
+  };
+})();
+
+/* ==========================================================================
+   GAME FLOW
+   The bridge between pure logic and effects.
+   ========================================================================== */
+let G = null;   // Current game state.
+
+/* The pause between the last move and the game-over dialog. */
+const Over = {
+  active: false,      // Sequence running; input is locked.
+  grayed: false,      // Board stays gray behind the dialog until the next game.
+  t0: 0, settleAt: 0, modalAt: 0, soundDone: false,
+  start(now, wait) {
+    const reduced = reducedMotion();
+    this.active = true;
+    this.grayed = true;
+    this.soundDone = false;
+    this.t0 = now + wait;
+    this.settleAt = this.t0 + (reduced ? 120 : 300);
+    this.modalAt = this.settleAt + (reduced ? 350 : 760);
+  },
+  stop() { this.active = false; this.grayed = false; },
+  tick(now) {
+    if (!this.active) return;
+    if (!this.soundDone && now >= this.t0) { this.soundDone = true; Sound.gameOver(); }
+    if (now >= this.modalAt) { this.active = false; UI.showGameOver(); }
+  },
+};
+
+function persist() {
+  Store.data.game = G.over ? null : G;
+  Store.save();
+}
+
+function playMove(slot, r, c) {
+  const result = Logic.applyMove(G, slot, r, c, Math.random);
+  if (!result) { Sound.invalid(); return false; }
+  const { state, events: ev } = result;
+  G = state;
+
+  if (G.score > Store.data.best) {
+    Store.data.best = G.score;
+    Store.data.beatBest = true;
+  }
+  persist();
+  effectsForMove(ev);
+  UI.refreshCombo();
+  if (G.over) {
+    Input.selected = null; Input.hover = null;
+    Over.start(performance.now(), ev.lineCount ? 640 : 240);
+  }
+  dirty = true;
+  return true;
+}
+
+function effectsForMove(ev) {
+  const now = performance.now();
+  FX.placed = { keys: new Set(ev.placedCells.map(k => k.r * N + k.c)), t0: now };
+  Sound.place();
+  UI.bumpScore();
+
+  const midX = L.gx + (ev.c + ev.piece.w / 2) * L.cell;
+  const midY = L.gy + (ev.r + ev.piece.h / 2) * L.cell;
+
+  if (ev.lineCount) {
+    const cx = ev.cleared.reduce((sum, k) => sum + k.c, 0) / ev.cleared.length;
+    const cy = ev.cleared.reduce((sum, k) => sum + k.r, 0) / ev.cleared.length;
+    let maxDelay = 0;
+    const cells = ev.cleared.map(k => {
+      const delay = reducedMotion() ? 0 : Math.hypot(k.r - cy, k.c - cx) * STAGGER_MS;
+      maxDelay = Math.max(maxDelay, delay);
+      return { r: k.r, c: k.c, hex: colorOf(k.v - 1), delay, burst: false };
+    });
+    FX.clears.push({ cells, t0: now, end: now + maxDelay + FLASH_MS + SHRINK_MS + 30 });
+    if (!reducedMotion()) FX.shake = { t0: now, amp: Math.min(14, 2 + ev.lineCount * 2.6) };
+    Sound.clear(ev.lineCount, ev.combo);
+    if (ev.boardClear) Sound.boardClear();
+
+    // A board clear takes the middle of the board, so the rest moves to the top third.
+    const popX = ev.boardClear ? L.bx + L.bs / 2 : L.gx + (cx + 0.5) * L.cell;
+    let popY = ev.boardClear ? L.gy + L.cell * 3.2 : clamp(L.gy + (cy + 0.5) * L.cell, L.gy + L.cell * 3, L.gy + L.cell * 6.6);
+    const big = Math.max(20, L.cell * 0.66), mid = Math.max(16, L.cell * 0.5);
+    const names = { 2: 'Double!', 3: 'Triple!', 4: 'Quad!' };
+    addFloat('+' + (ev.points.total - ev.points.bonus), popX, popY, big, 0);
+    let delay = 90;
+    const step = () => { popY -= mid * 1.25; };
+    if (names[ev.lineCount] || ev.lineCount > 4) {
+      step();
+      addFloat(names[ev.lineCount] || ev.lineCount + ' Lines!', popX, popY, mid, delay, theme.ui.accent);
+      delay += 90;
+    }
+    if (ev.combo >= 2) {
+      step();
+      addFloat('Combo ×' + ev.combo + '!', popX, popY, mid, delay, theme.ui.accent);
+      delay += 90;
+    }
+    if (ev.boardClear) {
+      const size = Math.max(26, L.cell * 0.86);
+      addFloat('Board Clear!', L.bx + L.bs / 2, L.by + L.bs * 0.6, size, 180, theme.ui.accent);
+      addFloat('+' + ev.points.bonus, L.bx + L.bs / 2, L.by + L.bs * 0.6 + size * 1.15, big, 260);
+    }
+  } else {
+    addFloat('+' + ev.points.total, midX, midY, Math.max(15, L.cell * 0.42), 0);
+  }
+
+  if (ev.refilled) {
+    const start = now + (ev.lineCount ? 160 : 60);
+    FX.trayPop = [start, start + 70, start + 140];
+  }
+}
+
+function startNewGame() {
+  Over.stop();
+  cancelPointer();
+  Input.selected = null;
+  FX.clears = []; FX.placed = null; FX.floats = []; FX.particles = []; FX.returning = []; FX.denied = null; FX.shake = null;
+  G = Logic.newGame(Math.random);
+  Store.data.beatBest = false;
+  const now = performance.now();
+  FX.trayPop = [now, now + 70, now + 140];
+  UI.resetCounters();
+  UI.refreshCombo();
+  persist();
+  dirty = true;
+}
+
+function applyTheme(id) {
+  theme = THEME_BY_ID[id] || THEMES[0];
+  palette = paletteFor(theme);
+  Store.data.theme = theme.id;
+  const root = document.documentElement.style, ui = theme.ui;
+  const vars = { '--hud': ui.hud, '--hud-muted': ui.hudMuted, '--bg': ui.bg, '--panel': ui.panel, '--panel2': ui.panel2, '--fg': ui.fg, '--muted': ui.muted,
+    '--accent': ui.accent, '--on-accent': ui.onAccent, '--line': ui.line, '--radius': ui.radius, '--font': theme.font };
+  for (const key in vars) root.setProperty(key, vars[key]);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', ui.bg);
+  UI.refreshCards();
+  if (L.slots) rebuildLayers();
+  if (UI.settingsVisible('tabColors')) UI.refreshColors();
+  dirty = true;
+}
+
+/* ==========================================================================
+   INIT
+   ========================================================================== */
+let lastFrame = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - lastFrame) / 1000 || 0);
+  lastFrame = now;
+  UI.tickScore(dt);
+  stepParticles(dt);
+  pruneReturning(now);
+  Over.tick(now);
+  if (dirty || isAnimating(now)) { dirty = false; draw(now); }
+}
+
+function showTestReport() {
+  document.body.style.cssText = 'position:static;overflow:auto;height:auto;-webkit-user-select:text;user-select:text;' +
+    'background:#101018;color:#eee;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:16px';
+  document.documentElement.style.overflow = 'auto';
+  document.body.textContent = '';
+  const games = Math.max(1, Number(QUERY.get('games')) || 300);
+  const units = Tests.runUnits();
+  const fz = Tests.fuzz(games, Number(QUERY.get('seed')) || 1);
+  const passed = units.filter(u => u.pass).length;
+  const allGood = passed === units.length && !fz.failures.length;
+  const lines = ['Tessera logic tests: ' + (allGood ? 'ALL PASS' : 'FAILURES'), ''];
+  for (const u of units) lines.push((u.pass ? 'PASS  ' : 'FAIL  ') + u.name + (u.error ? '  -- ' + u.error : ''));
+  lines.push('', 'Fuzz: ' + JSON.stringify(Object.assign({}, fz, { failures: fz.failures.length })));
+  fz.failures.forEach(f => lines.push('FAIL  ' + f));
+  const pre = document.createElement('pre');
+  pre.id = 'testReport';
+  pre.textContent = lines.join('\n');
+  document.body.append(pre);
+  console.log(lines.join('\n'));
+}
+
+function exposeDebug() {
+  window.__tessera = {
+    get state() { return G; }, get layout() { return L; }, get input() { return Input; }, get fx() { return FX; },
+    get store() { return Store.data; }, get over() { return Over; }, get theme() { return theme; }, get palette() { return palette; },
+    setState(patch) { G = Object.assign({}, G, patch); persist(); UI.refreshCombo(); dirty = true; },
+    applyTheme, startNewGame, ui: UI, logic: Logic, pieces: PIECE_BY_ID,
+  };
+}
+
+function init() {
+  if (QUERY.has('test')) { showTestReport(); return; }
+
+  Store.load();
+  const restored = Store.data.game;
+  if (restored) {
+    G = restored;
+    if (!G.tray.some(Boolean)) {
+      G = Object.assign({}, G, { tray: Logic.generateTray(G.board, Math.random) });
+      G.over = !Logic.anyFits(G.board, G.tray);
+    }
+  } else {
+    G = Logic.newGame(Math.random);
+    Store.data.beatBest = false;
+  }
+
+  UI.buildThemeCards();
+  UI.buildColorEditor();
+  UI.bind();
+  bindInput();
+  applyTheme(Store.data.theme);
+  UI.refreshSound();
+  UI.resetCounters();
+  UI.refreshCombo();
+  computeLayout();
+  const start = performance.now();
+  FX.trayPop = [start, start + 70, start + 140];
+
+  const relayout = () => { cancelPointer(); computeLayout(); };
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', () => { relayout(); setTimeout(relayout, 250); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', relayout);
+  // The HUD changes height once Tailwind arrives, so watch it directly.
+  if (window.ResizeObserver) new ResizeObserver(() => computeLayout()).observe($('stage'));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelPointer(); else dirty = true; });
+
+  if (QUERY.has('debug')) exposeDebug();
+
+  if (G.over) { Store.data.game = null; Over.start(performance.now(), 400); }
+  persist();
+  requestAnimationFrame(frame);
+}
+
+init();
+})();
+</script>
+</body>
+</html>
