@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Slowwater Games</title>
+<meta name="description" content="Free games you play in your browser. Nothing to install.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2308161f'/%3E%3Cpath d='M16 5l11 11-11 11L5 16z' fill='%23ffc557'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&family=Saira+Stencil+One&display=swap">
+<style>
+/* Layout: a poster. One lamp-yellow field, a stencilled name, and each game hung on it with a shadow that arrives late. */
+:root{
+  --lamp:#ffc557; --ink:#08161f; --foam:#fffbef;
+  --display:'Saira Stencil One',Impact,'Arial Narrow',sans-serif;
+  --body:'Barlow Semi Condensed','Arial Narrow',system-ui,sans-serif;
+  --data:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --gutter:clamp(16px,4.5vw,64px);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;min-height:100vh;display:flex;flex-direction:column;
+  color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.35;-webkit-font-smoothing:antialiased;
+  background-color:var(--lamp);
+  /* The rings are the 5-second light rings from Stale Light, drawn on the wall */
+  background-image:repeating-radial-gradient(circle at 8% -12%,transparent 0 134px,rgba(8,22,31,.1) 134px 136px);
+}
+a{color:inherit}
+a:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.wrap{width:100%;max-width:1320px;margin-inline:auto;padding-left:max(var(--gutter),env(safe-area-inset-left,0px));padding-right:max(var(--gutter),env(safe-area-inset-right,0px))}
+
+.top{padding-block:clamp(26px,5vw,56px) clamp(22px,3.6vw,44px);display:grid;gap:10px}
+h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(46px,11.4vw,158px);line-height:.92;letter-spacing:.002em;text-wrap:balance;text-shadow:.055em 0 0 rgba(8,22,31,.14),.11em 0 0 rgba(8,22,31,.06)}
+.tag{margin:0;font-size:clamp(20px,2.3vw,27px);line-height:1.2;font-weight:500;max-width:32em;text-wrap:balance}
+
+main{flex:1}
+.shelf{display:grid;gap:clamp(48px,6vw,84px);padding-bottom:clamp(52px,7vw,96px)}
+.rest{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:clamp(48px,5vw,72px) clamp(32px,4vw,60px)}
+.game{display:grid;gap:clamp(30px,3vw,38px);align-content:start;min-width:0}
+.feature{grid-template-columns:minmax(0,1.72fr) minmax(0,1fr);gap:clamp(30px,4vw,60px);align-items:center}
+
+.cover{position:relative;display:block;isolation:isolate}
+.cover::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--ink);transform:translate(14px,14px);transition:transform .5s cubic-bezier(.2,.7,.2,1) .16s}
+.cover img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;background:#0f5f86;border:3px solid var(--ink);transition:transform .14s ease-out}
+.cover:hover img,.cover:focus-visible img{transform:translate(-6px,-6px)}
+.cover:hover::before,.cover:focus-visible::before{transform:translate(22px,22px)}
+
+.info{display:grid;gap:14px;justify-items:start;min-width:0}
+h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(32px,3.4vw,44px);line-height:1;text-wrap:balance}
+.feature h2{font-size:clamp(36px,4.5vw,60px)}
+h2 a{text-decoration:none}
+.blurb{margin:0;font-size:clamp(19px,1.6vw,21px);line-height:1.3;max-width:30em}
+.facts{margin:0;width:100%;display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 16px;font-size:17px;border-top:2px solid var(--ink)}
+.facts dt,.facts dd{margin:0;padding-block:5px;border-bottom:1px solid rgba(8,22,31,.3)}
+.facts dt{font-family:var(--data);font-size:12.5px;font-weight:600;letter-spacing:.02em;display:flex;align-items:center}
+.play{display:inline-block;margin-top:4px;padding:13px 30px 12px;background:var(--ink);color:var(--lamp);font-family:var(--display);font-size:23px;line-height:1;text-decoration:none;transition:background-color .12s,color .12s}
+.play:hover{background:var(--foam);color:var(--ink);box-shadow:inset 0 0 0 3px var(--ink)}
+
+.foot{border-top:2px solid var(--ink);padding-block:16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:4px 24px;justify-content:space-between;font-size:16px}
+.foot p{margin:0}
+
+@media (max-width:860px){
+  .feature{grid-template-columns:minmax(0,1fr);gap:26px}
+  .cover::before{transform:translate(9px,9px)}
+  .cover:hover::before,.cover:focus-visible::before{transform:translate(14px,14px)}
+  .play{width:100%;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){.cover::before,.cover img,.play{transition:none}}
+</style>
+</head>
+<body>
+  <!-- This page is generated. To change the games on it, edit games.json and run: node build.js -->
+  <header class="wrap top">
+    <h1>Slowwater Games</h1>
+    <p class="tag">Free games you play in your browser. Nothing to install.</p>
+  </header>
+
+  <main class="wrap">
+    <section class="shelf" aria-label="Games">
+      <article class="game feature">
+        <a class="cover" href="stale-light/" aria-label="Play Stale Light">
+          <img src="stale-light/cover.jpg" width="1600" height="900" alt="Low-poly blue and red warships trading fire around a lighthouse island on a bright turquoise sea.">
+        </a>
+        <div class="info">
+          <h2><a href="stale-light/">Stale Light</a></h2>
+          <p class="blurb">Command a fleet in a strait where light crawls at 70 knots. Every ship you see is seconds out of date, and every order takes time to arrive.</p>
+          <dl class="facts">
+            <dt>TYPE</dt><dd>Real-time naval strategy</dd>
+            <dt>LENGTH</dt><dd>About 5 minutes a battle</dd>
+            <dt>PLAYS ON</dt><dd>Computer or phone</dd>
+            <dt>NEW HERE</dt><dd>Guided tutorial included</dd>
+          </dl>
+          <a class="play" href="stale-light/">Play now</a>
+        </div>
+      </article>
+      <div class="rest">
+      <article class="game">
+        <a class="cover" href="luftvejen/" aria-label="Play Luftvejen">
+          <img src="luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line." loading="lazy">
+        </a>
+        <div class="info">
+          <h2><a href="luftvejen/">Luftvejen</a></h2>
+          <p class="blurb">An endless road in the sky, and one button to drive it. Hold to turn right, let go to turn left, and drift through the bends without sliding off the edge.</p>
+          <dl class="facts">
+            <dt>TYPE</dt><dd>One-button drifting</dd>
+            <dt>LENGTH</dt><dd>A minute a run</dd>
+            <dt>PLAYS ON</dt><dd>Computer or phone</dd>
+            <dt>LANGUAGE</dt><dd>Danish</dd>
+          </dl>
+          <a class="play" href="luftvejen/">Play now</a>
+        </div>
+      </article>
+      <article class="game">
+        <a class="cover" href="flipklods/" aria-label="Play Flipklods">
+          <img src="flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy">
+        </a>
+        <div class="info">
+          <h2><a href="flipklods/">Flipklods</a></h2>
+          <p class="blurb">The block runs by itself. You decide whether it runs on the floor or the ceiling. Flip gravity to dodge spikes and holes, and see how far you get.</p>
+          <dl class="facts">
+            <dt>TYPE</dt><dd>One-button runner</dd>
+            <dt>LENGTH</dt><dd>Seconds to minutes a run</dd>
+            <dt>PLAYS ON</dt><dd>Computer or phone</dd>
+            <dt>LANGUAGE</dt><dd>Danish</dd>
+          </dl>
+          <a class="play" href="flipklods/">Play now</a>
+        </div>
+      </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>© 2026 Slowwater Games</p>
+    <p>Free to play in any modern browser.</p>
+  </footer>
+</body>
+</html>
