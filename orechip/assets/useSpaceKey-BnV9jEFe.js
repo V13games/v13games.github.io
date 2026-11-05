@@ -1,0 +1,1 @@
+import{Dn as e,kn as t}from"./Button-BX2atCjb.js";var n=t(e(),1);function r(e){(0,n.useEffect)(()=>{let t=t=>{t.code!==`Space`||t.repeat||t.target instanceof Element&&t.target.closest(`input, textarea, select, button, a, [role="radio"]`)||(t.preventDefault(),e())};return window.addEventListener(`keydown`,t),()=>window.removeEventListener(`keydown`,t)},[e])}export{r as t};
