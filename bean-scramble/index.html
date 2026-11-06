@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Bean Scramble</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -41,9 +41,6 @@
   .btn:focus-visible { outline: 3px solid var(--sea); outline-offset: 2px; }
   .btn.primary { background: var(--pop2); font-size: 22px; padding: 12px 22px; }
   .btn.hot { background: var(--pop); color: #fff; }
-  .needs-keys { display: none; margin: 0; color: #fff; font-weight: 800; text-shadow: 0 2px 0 var(--ink), 0 0 6px var(--ink); }
-  @media (pointer: coarse) { .needs-keys { display: block; } #s-menu .panel { display: none; } }
-  @media (pointer: coarse) and (max-height: 500px) { #s-menu .logo { display: none; } }
   .btn.small { font-size: 14px; padding: 6px 12px; border-radius: 10px; box-shadow: 0 3px 0 var(--ink); }
   .btn[disabled] { opacity: .5; cursor: not-allowed; }
   input[type=text] { font: inherit; font-weight: 900; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; border: 3px solid var(--ink); border-radius: 12px; padding: 8px 12px; width: 190px; color: var(--ink); background: #fff; user-select: text; -webkit-user-select: text; }
@@ -108,7 +105,6 @@
       <button class="btn primary hover:scale-105" data-act="party">Play</button>
       <button class="btn" data-act="locker">Locker</button>
       <button class="btn" data-act="howto">How to play</button>
-      <p class="needs-keys">This game needs a keyboard and mouse, so play it on a computer.</p>
       <div class="panel col shadow-2xl" style="padding:12px;box-shadow:0 4px 0 var(--ink)">
         <div class="stat tracking-wide" id="menu-stats"></div>
         <div class="muted" id="menu-best"></div>
@@ -3046,5 +3042,6 @@ requestAnimationFrame(t => { lastT = t; frame(t); });
     if (!window.__booted) { const l = document.getElementById('loading'); if (l) l.textContent = 'Could not load Three.js from cdn.jsdelivr.net. Check your connection, or run a local server (npx serve) and reload.'; }
   }, 9000));
 </script>
+<script src="touch.js"></script>
 </body>
 </html>
