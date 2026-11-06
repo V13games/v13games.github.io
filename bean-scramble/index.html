@@ -44,7 +44,11 @@
   .btn.small { font-size: 14px; padding: 6px 12px; border-radius: 10px; box-shadow: 0 3px 0 var(--ink); }
   .btn[disabled] { opacity: .5; cursor: not-allowed; }
   input[type=text] { font: inherit; font-weight: 900; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; border: 3px solid var(--ink); border-radius: 12px; padding: 8px 12px; width: 190px; color: var(--ink); background: #fff; user-select: text; -webkit-user-select: text; }
+  #pname { width: 100%; text-transform: none; letter-spacing: 0; font-size: 18px; }
   input[type=range] { width: 100%; accent-color: var(--pop); }
+  .rar { font-size: 11px; font-weight: 900; letter-spacing: .3px; border-radius: 999px; padding: 1px 7px; color: #fff; background: #5a5470; }
+  .rar.Rare { background: #2f7fd8; } .rar.Epic { background: #8e3bd8; } .rar.Mythic { background: #d8462f; } .rar.Legendary { background: #000; color: #d09cff; }
+  #locker-list { max-height: 46vh; overflow: auto; padding: 2px; touch-action: pan-y; }
   .err { color: #c6172b; font-weight: 800; min-height: 1.3em; font-size: 14px; }
   .tag { display: inline-block; background: var(--ink); color: #fff; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; letter-spacing: .4px; }
   kbd { display: inline-block; min-width: 26px; text-align: center; background: #fff; border: 2px solid var(--ink); border-bottom-width: 4px; border-radius: 7px; padding: 1px 6px; font: inherit; font-weight: 900; font-size: 13px; }
@@ -88,7 +92,7 @@
   #autotest { position: fixed; inset: 0; background: #14122b; color: #cdf; font: 13px/1.45 ui-monospace, Consolas, monospace; padding: 16px; overflow: auto; white-space: pre-wrap; user-select: text; -webkit-user-select: text; z-index: 9; }
   @media (max-width: 720px) { .grid4 { grid-template-columns: repeat(2, minmax(0,1fr)); } .panel { padding: 14px; } }
 </style>
-<meta name="description" content="Race seven bots through three wild 3D courses until one bean takes the crown.">
+<meta name="description" content="Race your friends online through twelve wild 3D maps until one bean takes the crown.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233a2b22'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -104,6 +108,7 @@
       <p style="color:#fff;font-weight:800;text-shadow:0 2px 0 var(--ink),0 0 6px var(--ink);font-size:17px">Eight beans. Three courses. One crown.</p>
       <button class="btn primary hover:scale-105" data-act="party">Play</button>
       <button class="btn" data-act="locker">Locker</button>
+      <button class="btn" data-act="settings">Settings</button>
       <button class="btn" data-act="howto">How to play</button>
       <div class="panel col shadow-2xl" style="padding:12px;box-shadow:0 4px 0 var(--ink)">
         <div class="stat tracking-wide" id="menu-stats"></div>
@@ -117,10 +122,12 @@
   <!-- PARTY -->
   <section id="s-party" class="screen center hidden">
     <div class="panel col shadow-2xl" style="width:min(460px,100%)">
-      <div class="row between"><h2>Party <span class="tag uppercase tracking-wide">with bots</span></h2><button class="btn small" data-act="menu">Back</button></div>
-      <p class="muted">This is offline play. Every other bean is a bot on this computer. A party code is a seed: the same code always gives you the same bot names, skins and personalities.</p>
-      <button class="btn primary hover:scale-105" data-act="create">Create Party</button>
-      <h3>Join Party</h3>
+      <div class="row between"><h2>Play</h2><button class="btn small" data-act="menu">Back</button></div>
+      <label class="stat" for="pname">Your name</label>
+      <input id="pname" type="text" maxlength="12" placeholder="Your name" autocomplete="off" spellcheck="false">
+      <button class="btn primary hover:scale-105" data-act="create">Play solo with bots</button>
+      <button class="btn hot" data-act="host">Create online party</button>
+      <h3>Join a friend</h3>
       <div class="row">
         <input id="code" type="text" placeholder="BEAN-1234" maxlength="9" aria-label="Party code" autocomplete="off" spellcheck="false">
         <button class="btn" data-act="join">Join</button>
@@ -133,13 +140,13 @@
   <section id="s-lobby" class="screen hidden" style="align-items:flex-end;justify-content:center">
     <div class="panel col shadow-2xl" style="width:min(820px,100%)">
       <div class="row between">
-        <div class="row"><h2>Party (with bots)</h2><span class="tag tracking-widest" id="lobby-code"></span></div>
+        <div class="row"><h2 id="lobby-title">Party</h2><span class="tag tracking-widest" id="lobby-code" style="font-size:16px"></span></div>
         <button class="btn small" data-act="party">Leave</button>
       </div>
       <div class="grid4" id="lobby-list"></div>
       <div class="row between">
-        <p class="muted">Offline: 7 seeded bots. Top 6, then 4, then 1 crown winner.</p>
-        <div class="row"><button class="btn" data-act="locker-lobby">Locker</button><button class="btn primary hover:scale-105" data-act="start">Start</button></div>
+        <p class="muted" id="lobby-note" style="flex:1 1 220px"></p>
+        <div class="row"><button class="btn" data-act="locker-lobby">Locker</button><button class="btn primary hover:scale-105" data-act="start" id="lobby-start">Start</button></div>
       </div>
     </div>
   </section>
@@ -170,7 +177,18 @@
         <div><kbd>F</kbd> held: fast-forward once you are done</div>
         <div><kbd>A</kbd> / <kbd>D</kbd>: next bean while spectating</div>
       </div>
-      <p class="muted">Each round only the first beans over the line go through. Fall off and you restart at your last checkpoint. In Goo Tower, if the goo has already swallowed your checkpoint, you are out.</p>
+      <p class="muted">Each round only the first beans over the line go through. Fall off and you restart at your last checkpoint. On goo maps, if the goo has already swallowed your checkpoint, you are out. The maps are drawn at random. The last round is always the crown.</p>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="s-settings" class="screen center hidden">
+    <div class="panel col shadow-2xl" style="width:min(420px,100%)">
+      <div class="row between"><h2>Settings</h2><button class="btn small" data-act="menu">Back</button></div>
+      <label class="stat" for="sens3">Camera sensitivity</label>
+      <input id="sens3" type="range" min="0.3" max="2.2" step="0.05">
+      <button class="btn" data-act="mute" id="set-sound">Sound on</button>
+      <button class="btn" id="touch-layout" hidden>Move touch buttons</button>
     </div>
   </section>
 
@@ -179,7 +197,7 @@
     <div id="hud-place" class="hudbox shadow-lg backdrop-blur-sm"></div>
     <div id="hud-qual" class="hudbox shadow-lg backdrop-blur-sm"></div>
     <div id="hud-time" class="hudbox shadow-lg backdrop-blur-sm"></div>
-    <div id="hud-code" class="hudbox shadow-lg backdrop-blur-sm"><small>Party (with bots)</small><span id="hud-code-v"></span></div>
+    <div id="hud-code" class="hudbox shadow-lg backdrop-blur-sm"><small>Party</small><span id="hud-code-v"></span></div>
     <div id="hud-level" class="hudbox shadow-lg backdrop-blur-sm"></div>
     <div id="hud-goo" class="hudbox hidden shadow-lg backdrop-blur-sm"></div>
     <div id="hud-help" class="hudbox shadow-lg backdrop-blur-sm">Click to lock mouse · Esc pause</div>
@@ -237,7 +255,7 @@
       <p id="end-sub"></p>
       <div class="row" style="justify-content:center">
         <button class="btn" data-act="quit">Main menu</button>
-        <button class="btn primary hover:scale-105" data-act="again">Play again</button>
+        <button class="btn primary hover:scale-105" data-act="again" id="end-again">Play again</button>
       </div>
     </div>
   </section>
@@ -271,7 +289,7 @@ const CONFIG = {
   respawnInvuln: 1.6,
   tileDropDelay: 0.26,
   countdown: 3,
-  rounds: [ { level: 0, slots: 6 }, { level: 1, slots: 4 }, { level: 2, slots: 1 } ],
+  rounds: [ { slots: 6 }, { slots: 4 }, { slots: 1, final: true } ],   // maps are drawn at random; the final is always the crown map
 };
 const COS_SLOPE = Math.cos(CONFIG.move.slopeLimitDeg * Math.PI / 180);
 const R = CONFIG.bean.radius, H = CONFIG.bean.height, SEG = H - 2 * R;
@@ -524,6 +542,8 @@ function makeBean(id, info) {
     cp: -1, finished: false, out: false, place: 0, finishTime: 0, progress: 0, pathSeg: 0,
     stats: { falls: 0, respawns: 0, knocks: 0, dives: 0, jumps: 0 },
     landImpact: 0, wantsCelebrate: false,
+    // online play: a remote bean is simulated on its owner's device and only drawn here
+    remote: false, netBuf: null, finSent: false,
   };
 }
 const ZERO_INPUT = { x: 0, z: 0, jump: false, dive: false };
@@ -531,7 +551,7 @@ const ZERO_INPUT = { x: 0, z: 0, jump: false, dive: false };
 function setState(b, s) { b.state = s; b.stateT = 0; }
 
 function knockBean(w, b, dx, dz, power, up, stun, source) {
-  if (b.invuln > 0 || b.finished || b.out) return false;
+  if (b.invuln > 0 || b.finished || b.out || b.remote) return false;
   b.v.x = dx * power; b.v.z = dz * power; b.v.y = up;
   b.grounded = false; b.ground = null; b.groundNext = null; b.coyote = 0; b.jumpBuf = 0;
   b.stunT = stun; b.invuln = CONFIG.knock.hitImmunity;
@@ -691,7 +711,8 @@ function stepBeanPairs(w) {
       if (d < 1e-4) { dx = 1; dz = 0; d = 1; d2 = 1; const ang = w.rng() * 6.28; dx = Math.cos(ang); dz = Math.sin(ang); }
       else { dx /= d; dz /= d; }
       const push = (D - Math.min(d, D)) * 0.5;
-      a.p.x -= dx * push; a.p.z -= dz * push; b.p.x += dx * push; b.p.z += dz * push;
+      if (!a.remote) { a.p.x -= dx * push; a.p.z -= dz * push; }
+      if (!b.remote) { b.p.x += dx * push; b.p.z += dz * push; }
       const rel = (a.v.x - b.v.x) * dx + (a.v.z - b.v.z) * dz; // >0 closing
       if (rel <= 0) continue;
       const aDive = a.state === 'dive', bDive = b.state === 'dive';
@@ -833,6 +854,25 @@ const HazardTypes = {
       },
     };
     return h;
+  },
+  platform(w, d) { // moving floor: glides a<->b and carries whoever stands on it
+    const col = w.addCol({ kind: 'box', c: d.a, he: [d.s[0] / 2, d.s[1] / 2, d.s[2] / 2], kinematic: true, mat: d.mat || 'floor2', view: false, castShadow: true, camBlock: false });
+    const om = 2 * Math.PI / d.period, a = d.a, b = d.b;
+    const h = {
+      cols: [col],
+      posAt: t => { const k = 0.5 - 0.5 * Math.cos(om * t + (d.phase || 0)); return V(lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)); },
+      update(t, dt) {
+        const p = h.posAt(t);
+        col.v.x = (p.x - col.c.x) / dt; col.v.y = (p.y - col.c.y) / dt; col.v.z = (p.z - col.c.z) / dt;
+        col.c.x = p.x; col.c.y = p.y; col.c.z = p.z; updateAabb(col);
+      },
+    };
+    return h;
+  },
+  turntable(w, d) { // spinning disc you have to walk across
+    const col = w.addCol({ kind: 'cyl', c: d.c, he: [d.r, d.h / 2, 0], kinematic: true, mat: 'disk', view: false, castShadow: true, camBlock: false });
+    col.w.y = d.speed;
+    return { cols: [col], update(t) { setPose(col, qAxis(0, 1, 0, d.speed * t + (d.phase || 0))); } };
   },
   pad(w, d) { // bounce pad: launches with a fixed velocity
     const col = w.addCol({ kind: 'box', c: d.c, he: [d.s[0] / 2, d.s[1] / 2, d.s[2] / 2], mat: 'pad', pad: d.launch, view: false });
@@ -1048,7 +1088,7 @@ function levelGooTower() {
     checkpoints: [cp(152, 'c1'), cp(354, 'c2'), cp(502, 'c3')],
     finish: { c: [0, Y_TOP + 1.5, 0], s: [14, 5, 14], round: 9 },
     finishArch: { c: [-4.5, Y_TOP, 0], yaw: 90 * DEG, w: 12, ring: { c: [0, Y_TOP, 0], r: 9 } },
-    decor: { islands: 16, range: [-90, 90], axis: 'ring', pillars: [] },
+    decor: { islands: 16, range: [-90, 90], axis: 'ring', pillars: [], clouds: false },
     nav, navStart: 'n0', path,
   };
 }
@@ -1109,7 +1149,256 @@ function levelShakyTiles() {
   };
 }
 
-const LEVELS = [levelRollerRumble(), levelGooTower(), levelShakyTiles()];
+/* ===== COURSE KIT =====
+   Most maps are straight runs built from the sections below. Each section lays its floor and hazards,
+   adds the gates the bots steer by and the progress path, then moves the cursor on. A map is a list of sections. */
+const SKY = o => ({ fogNear: 70, fogFar: 260, sun: 0xfff0dc, sunI: 2.6, hemiI: 1.3, trim: 0xffffff, seesaw: 0xffa62b, pad: 0xff4fa3, disk: 0xffc24d, ice: 0xbdf0ff,
+  tile: 0xffd9ec, tileSafe: 0x68e08a, tileCrack: 0xff6b5e, ...o });
+
+function course(o) {
+  const K = { z: 11, y: 0, minY: 0, n: 0, width: o.width || 14 };
+  const solids = [box([0, -0.5, -2], [22, 1, 26], { mat: 'floor' })], hazards = [], checkpoints = [], tileFields = [];
+  const nav = [['s0', 0, 0, 6, 7]], path = [[0, 0, -8], [0, 0, 11]];
+  const id = p => p + (K.n++);
+  const gate = (x, z, w = 4, next, opt) => { const n = id('g'); nav.push([n, x, K.y, z, w, next, opt]); return n; };
+  const on = len => { K.z += len; path.push([0, K.y, K.z]); };
+  const floor = (len, w, mat, extra = {}) => solids.push(box([0, K.y - 0.5, K.z + len / 2], [w, 1, len], { mat, ...extra }));
+  const rail = (x, z, len) => solids.push(box([x, K.y + 0.55, z], [0.3, 1.1, len], { mat: 'trim', camBlock: false }));
+
+  const S = {
+    deck(len, { w = K.width, mat = 'floor' } = {}) { floor(len, w, mat); gate(0, K.z + len * 0.7, Math.min(w / 2 - 1, 6)); on(len); },
+    /* a rest deck with a respawn point */
+    check({ len = 8, w = K.width } = {}) {
+      floor(len, w, 'floor');
+      const z = K.z + len / 2, n = gate(0, z, Math.min(w / 2 - 1, 5));
+      checkpoints.push({ c: [0, K.y + 2, z], s: [w, 8, 3], yaw: 0, respawn: [0, K.y + 0.02, z], nav: n });
+      on(len);
+    },
+    /* spinning drums across the track: go round the open side, or jump them */
+    drums(n) {
+      const len = n * 12 + 2, ids = []; floor(len, 16, 'floor2');
+      for (let i = 0; i <= n; i++) ids.push(id('a'));
+      for (let i = 0; i < n; i++) {
+        const z = K.z + 7 + i * 12, s = i % 2 ? 1 : -1, g = id('gap'), v = id('over');
+        hazards.push({ type: 'drum', id: id('d'), c: [s * 2.5, K.y, z], len: 11, r: 1.45, spin: i % 3 === 2 ? 3 : -3 });
+        nav.push([ids[i], 0, K.y, z - 5.5, 6, [g, v]], [g, -s * 5.5, K.y, z, 1.5, [ids[i + 1]]], [v, s * 2.5, K.y, z, 3.5, [ids[i + 1]], { jump: 2.5, risky: true }]);
+      }
+      nav.push([ids[n], 0, K.y, K.z + len - 1, 5]);
+      on(len);
+    },
+    /* two rolling logs, one per lane, in opposite phase */
+    rollers({ len = 26, w = 15 } = {}) {
+      floor(len, w, 'floor2');
+      const z0 = K.z + 3, z1 = K.z + len - 3, l = id('l'), r = id('r'), l2 = id('l'), r2 = id('r'), x = id('x');
+      for (const [sx, phase] of [[-3.65, 0], [3.65, Math.PI]]) hazards.push({ type: 'roller', id: id('r'), a: [sx, K.y + 1, z0], b: [sx, K.y + 1, z1], r: 1, len: 7.2, period: 5.6, phase });
+      nav.push([id('a'), 0, K.y, K.z + 0.5, 5, [l, r]], [l, -3.65, K.y, z0 + 1, 2, [l2]], [r, 3.65, K.y, z0 + 1, 2, [r2]], [l2, -3.65, K.y, z1 - 6, 2, [x]], [r2, 3.65, K.y, z1 - 6, 2, [x]], [x, 0, K.y, K.z + len - 0.5, 5]);
+      on(len);
+    },
+    /* wrecking balls swinging across a narrow bridge */
+    pendulums(n, { w = 8, period = 3.3, amp = 30, rails = true } = {}) {
+      const len = n * 9 + 2; floor(len, w, 'floor2');
+      if (rails) for (const s of [-1, 1]) rail(s * (w / 2 - 0.15), K.z + len / 2, len);
+      for (let i = 0; i < n; i++) {
+        const z = K.z + 5.5 + i * 9, h = id('w');
+        hazards.push({ type: 'pendulum', id: h, pivot: [0, K.y + 9, z], axis: [1, 0], len: 7.45, r: 1.35, amp, period, phase: i * 1.7, halfW: w / 2 });
+        nav.push([id('n'), 0, K.y, z, 2, undefined, { timed: h }]);
+      }
+      on(len);
+    },
+    /* blocks shooting in from alternate sides. The far side always stays open. */
+    pushers(n, { w = 10, period = 3.2 } = {}) {
+      const len = n * 8 + 2; floor(len, w, 'floor2');
+      const L = w * 0.62;
+      for (let i = 0; i < n; i++) {
+        const z = K.z + 5 + i * 8, s = i % 2 ? 1 : -1, h = id('p');
+        hazards.push({ type: 'pusher', id: h, yaw: 0, s: [L, 2.3, 3.2], period, phase: i * 1.1, a: [s * (w / 2 + L / 2 + 0.2), K.y + 1.15, z], b: [s * (w / 2 - L / 2), K.y + 1.15, z] });
+        nav.push([id('n'), -s * (w / 2 - 1.7), K.y, z, 1.2, undefined, { timed: h }]);
+      }
+      on(len);
+    },
+    /* crosswinds on a bridge: hug the side the wind comes from */
+    fans(n, { w = 9, speed = 5.5 } = {}) {
+      const len = n * 11 + 2; floor(len, w, 'floor2');
+      for (let i = 0; i < n; i++) {
+        const z = K.z + 6.5 + i * 11, s = i % 2 ? -1 : 1;
+        hazards.push({ type: 'fan', id: id('f'), c: [0, K.y + 2, z], s: [10, 5, w + 6], yaw: s > 0 ? 90 : -90, speed, at: [-s * (w / 2 + 1.4), K.y + 2.4, z] });
+        rail(s * (w / 2 - 0.15), z, 6);
+        nav.push([id('n'), -s * (w / 2 - 2), K.y, z - 4, 1.4], [id('n'), -s * (w / 2 - 2), K.y, z + 3, 1.4]);
+      }
+      on(len);
+    },
+    /* slippery slide, flat or downhill */
+    ice(len, { w = 12, drop = 0, rails = true } = {}) {
+      const y0 = K.y;
+      if (drop) solids.push(ramp([0, y0, K.z], [0, y0 - drop, K.z + len], w, { mat: 'ice', surface: 'ice', extra: 0.3 }));
+      else floor(len, w, 'ice', { surface: 'ice' });
+      K.y -= drop; K.minY = Math.min(K.minY, K.y);
+      if (rails && !drop) for (const s of [-1, 1]) rail(s * (w / 2 - 0.15), K.z + len / 2, len);
+      gate(0, K.z + len * 0.8, 3); on(len);
+    },
+    climb(len, rise, { w = 10 } = {}) {
+      solids.push(ramp([0, K.y, K.z], [0, K.y + rise, K.z + len], w, { mat: 'floor2', extra: 0.3 }));
+      K.y += rise; gate(0, K.z + len - 0.5, 3); on(len);
+    },
+    /* a staircase of jumps */
+    steps(n, { w = 12, h = 0.8, d = 3.2 } = {}) {
+      for (let i = 0; i < n; i++) { K.y += h; solids.push(box([0, K.y - 1, K.z + d / 2 + i * d], [w, 2, d], { mat: i % 2 ? 'floor' : 'floor2' })); }
+      gate(0, K.z + n * d - 1, 4); on(n * d);
+    },
+    /* bounce pads across open air, three lanes each */
+    pads(n, { rise = 0, w = 14 } = {}) {
+      for (let i = 0; i < n; i++) {
+        floor(7, w, 'floor');
+        const z = K.z + 4.5, opts = [id('pad'), id('pad'), id('pad')], after = id('land');
+        nav.push([id('a'), 0, K.y, K.z + 0.5, 5, opts]);
+        [-4.5, 0, 4.5].forEach((x, j) => {
+          hazards.push({ type: 'pad', c: [x, K.y + 0.03, z], s: [3.8, 0.1, 3.8], launch: [0, 17, rise ? 14 : 12] });
+          nav.push([opts[j], x, K.y, z, 1, [after]]);
+        });
+        K.z += 16; K.y += rise; path.push([0, K.y, K.z]);
+        nav.push([after, 0, K.y, K.z + 2, 5, undefined, { dyTol: 9 }]);
+      }
+    },
+    /* tipping planks: one wide, then two narrow */
+    seesaws(n) {
+      let z = K.z + 5;
+      for (let i = 0; i < n; i++, z += 10.5) {
+        if (i % 2 === 0) { hazards.push({ type: 'seesaw', id: id('s'), c: [0, K.y - 0.3, z], s: [12, 0.6, 9], axis: 'x', maxDeg: 13 }); nav.push([id('n'), 0, K.y, z, 3]); }
+        else {
+          const l = id('l'), r = id('r'), after = id('n');
+          for (const sx of [-3.75, 3.75]) hazards.push({ type: 'seesaw', id: id('s'), c: [sx, K.y - 0.3, z], s: [7, 0.6, 9], axis: 'x', maxDeg: 13 });
+          nav.push([id('n'), 0, K.y, z - 6, 3, [l, r]], [l, -3.75, K.y, z, 1.6, [after]], [r, 3.75, K.y, z, 1.6, [after]], [after, 0, K.y, z + 5.2, 2]);
+        }
+      }
+      on(n * 10.5 + 0.5);
+    },
+    /* spinning discs that drag you off line */
+    turntables(n, { r = 7, speed = 0.8 } = {}) {
+      for (let i = 0; i < n; i++) {
+        const z = K.z + 0.4 + r + i * (2 * r + 0.6);
+        hazards.push({ type: 'turntable', id: id('t'), c: [0, K.y - 0.5, z], r, h: 1, speed: i % 2 ? speed : -speed });
+        gate(0, z, 2.2);
+      }
+      on(n * (2 * r + 0.6) + 0.4);
+    },
+    /* a round floor with a long bar sweeping over it */
+    bars({ r = 13, speed = 1.25 } = {}) {
+      const z = K.z + r + 0.2, sl = id('sl'), sr = id('sr'), slm = id('sm'), srm = id('sm'), sle = id('se'), sre = id('se'), x = id('x');
+      solids.push(cyl([0, K.y - 0.5, z], r, 1, { mat: 'disk' }), cyl([0, K.y + 1.8, z], 1.3, 3.6, { mat: 'wall' }));
+      hazards.push({ type: 'sweeper', id: id('sw'), c: [0, K.y + 0.85, z], len: r - 0.4, t: 0.85, speed, phase: K.n });
+      nav.push([id('b'), 0, K.y, K.z - 0.5, 2, [sl, sr]], [sl, -7, K.y, z - 7, 2.2, [slm]], [sr, 7, K.y, z - 7, 2.2, [srm]], [slm, -7.5, K.y, z, 2.2, [sle]], [srm, 7.5, K.y, z, 2.2, [sre]],
+        [sle, -5, K.y, z + 8, 2, [x]], [sre, 5, K.y, z + 8, 2, [x]], [x, 0, K.y, z + r + 0.5, 2.5]);
+      on(2 * r + 0.4);
+    },
+    /* ferries running along the course across open gaps */
+    ferry(n, { gap = 14, period = 6.5 } = {}) {
+      for (let i = 0; i < n; i++) {
+        floor(5, 12, 'floor');
+        nav.push([id('n'), 0, K.y, K.z + 2.5, 3, undefined, i ? { edge: true } : undefined]);
+        K.z += 5; path.push([0, K.y, K.z]);
+        const h = id('fy');
+        hazards.push({ type: 'platform', id: h, s: [8, 1, 8], a: [0, K.y - 0.5, K.z + 4.3], b: [0, K.y - 0.5, K.z + gap - 4.3], period, phase: i * 1.6 });
+        nav.push([id('n'), 0, K.y, K.z + gap / 2, 1.5, undefined, { edge: true, ride: h }]);
+        K.z += gap; path.push([0, K.y, K.z]);
+      }
+      floor(5, 12, 'floor'); nav.push([id('n'), 0, K.y, K.z + 2.5, 3, undefined, { edge: true }]); on(5);
+    },
+    /* shuttles sliding across the course in a slot between decks */
+    shuttle(n, { slot = 14, span = 6.5, period = 9 } = {}) {
+      for (let i = 0; i < n; i++) {
+        floor(5, 14, 'floor');
+        nav.push([id('n'), 0, K.y, K.z + 2.5, 3, undefined, i ? { edge: true } : undefined]);
+        K.z += 5; path.push([0, K.y, K.z]);
+        const h = id('sh');
+        hazards.push({ type: 'platform', id: h, s: [8, 1, 9], a: [-span, K.y - 0.5, K.z + slot / 2], b: [span, K.y - 0.5, K.z + slot / 2], period, phase: i * 2.1 });
+        nav.push([id('n'), 0, K.y, K.z + slot / 2, 2, undefined, { edge: true, ride: h }]);
+        K.z += slot; path.push([0, K.y, K.z]);
+      }
+      floor(5, 14, 'floor'); nav.push([id('n'), 0, K.y, K.z + 2.5, 3, undefined, { edge: true }]); on(5);
+    },
+    /* a field where some tiles are fake */
+    tiles(cols, rows) {
+      const exit = id('i');
+      tileFields.push({ cols, rows, x0: -(cols - 1) * 1.5, z0: K.z + 1.5, pitch: 3, exit, size: 2.75, y: K.y, fake: 0.32 });
+      nav.push([id('t'), 0, K.y, K.z - 1, Math.min(6, K.width / 2 - 1), undefined, { tiles: tileFields.length - 1 }]);
+      on(rows * 3 + 0.5);
+      floor(8, cols * 3 + 4, 'floor'); nav.push([exit, 0, K.y, K.z + 4, 5]);
+      checkpoints.push({ c: [0, K.y + 2, K.z + 4], s: [cols * 3 + 4, 8, 3], yaw: 0, respawn: [0, K.y + 0.02, K.z + 4], nav: exit });
+      on(8);
+    },
+    /* walls with one gap each */
+    posts(n) {
+      const W = K.width, len = n * 8 + 2, gaps = [-3.5, 3, -1, 4, -4, 1.5, -2.5, 3.5], gw = 3.6; floor(len, W, 'floor2');
+      for (let i = 0; i < n; i++) {
+        const z = K.z + 5 + i * 8, g = gaps[(K.n + i) % gaps.length], l = g - gw / 2 + W / 2, r = W / 2 - g - gw / 2;
+        solids.push(box([-W / 2 + l / 2, K.y + 1.6, z], [l, 3.2, 0.9], { mat: 'wall', camBlock: false }), box([W / 2 - r / 2, K.y + 1.6, z], [r, 3.2, 0.9], { mat: 'wall', camBlock: false }));
+        nav.push([id('n'), g, K.y, z - 2.6, 1.1], [id('n'), g, K.y, z + 1.6, 1.1]);
+      }
+      on(len);
+    },
+  };
+  for (const [name, ...args] of o.sections) S[name](...args);
+
+  const fz = K.z + 6;
+  solids.push(box([0, K.y - 0.5, K.z + 8], [18, 1, 16], { mat: 'floor' }), box([0, K.y + 2.5, K.z + 16.4], [18, 6, 0.8], { mat: 'wall' }),
+    box([9.4, K.y + 1.5, K.z + 8], [0.8, 3, 16], { mat: 'wall' }), box([-9.4, K.y + 1.5, K.z + 8], [0.8, 3, 16], { mat: 'wall' }));
+  nav.push(['fin', 0, K.y, fz + 1, 6, []]); path.push([0, K.y, fz + 2]);
+  return {
+    id: o.id, name: o.name, tagline: o.tagline, timeLimit: o.timeLimit, killY: K.minY - 14, yaw: 0, theme: o.theme, goo: o.goo,
+    spawn: gridSpawn(0, 0.02, -5, 0, 1, 3.2, 3.6), solids, hazards, tileFields, checkpoints,
+    finish: { c: [0, K.y + 2, fz], s: [18, 8, 2] }, finishArch: { c: [0, K.y, fz], yaw: 0, w: 18 },
+    decor: { islands: 14, range: [-30, K.z + 30], axis: 'z', pillars: [] }, nav, navStart: 's0', path,
+  };
+}
+
+const swingStreet = () => course({
+  id: 'swing', name: 'Swing Street', tagline: 'Time the wrecking balls. Then time them faster.', timeLimit: 120,
+  theme: SKY({ skyTop: 0x3a2a7a, skyMid: 0xff8a5c, skyLow: 0xffd28a, fog: 0xffb08a, hemiSky: 0xffe0c8, hemiGround: 0x7a4a6a, floor: 0xffb545, floor2: 0x8f6bff, hazard: 0xff3d6e, stud: 0xffe14d, wall: 0x5a3fb0, island: 0xc06a8a }),
+  sections: [['deck', 8], ['pendulums', 4], ['check'], ['pushers', 4], ['check'], ['pendulums', 5, { period: 2.9 }], ['deck', 6], ['climb', 12, 4]],
+});
+const spinCycle = () => course({
+  id: 'spin', name: 'Spin Cycle', tagline: 'The floor is spinning. So is the bar. Try not to.', timeLimit: 130,
+  theme: SKY({ skyTop: 0x0d6e7a, skyMid: 0x5fe0d0, skyLow: 0xe8ffe0, fog: 0xa8efe0, hemiSky: 0xd8fff4, hemiGround: 0x4a8a7a, floor: 0xff9f6b, floor2: 0x3fc9b5, hazard: 0xff4f7b, stud: 0xfff36b, wall: 0x2a7f8f, island: 0x4fbf9a, disk: 0xffd166 }),
+  sections: [['deck', 8], ['turntables', 3], ['check'], ['bars'], ['check'], ['turntables', 3, { speed: 1.1 }], ['check'], ['bars', { speed: 1.5 }]],
+});
+const bounceBay = () => course({
+  id: 'bounce', name: 'Bounce Bay', tagline: 'Pads, planks and a long way down.', timeLimit: 120,
+  theme: SKY({ skyTop: 0x1f9bff, skyMid: 0x7fe8ff, skyLow: 0xfff2b0, fog: 0xbff2ff, hemiSky: 0xe0fbff, hemiGround: 0xc8a86a, floor: 0xffe08a, floor2: 0x2ec4b6, hazard: 0xff6b6b, stud: 0xffffff, wall: 0xff8fab, island: 0x8fdc7a }),
+  sections: [['deck', 8], ['pads', 3], ['check'], ['seesaws', 4], ['check'], ['pads', 3, { rise: 3 }], ['deck', 8]],
+});
+const frostbiteSlide = () => course({
+  id: 'frost', name: 'Frostbite Slide', tagline: 'No grip. No brakes. Good luck with the wind.', timeLimit: 130,
+  theme: SKY({ skyTop: 0x2a5fd0, skyMid: 0xbfe4ff, skyLow: 0xffffff, fog: 0xdff2ff, sun: 0xe8f4ff, hemiSky: 0xeaf6ff, hemiGround: 0x8aa8c8, floor: 0xe8f4ff, floor2: 0x7fbfff, hazard: 0x3f6bff, stud: 0xffffff, wall: 0x5a8fd8, island: 0xdfefff, ice: 0xa8e6ff }),
+  sections: [['deck', 8], ['ice', 30, { w: 13, drop: 6 }], ['check'], ['fans', 3], ['check'], ['ice', 26, { w: 12, drop: 5 }], ['check'], ['ice', 22, { w: 11 }], ['pushers', 3]],
+});
+const ferryHop = () => course({
+  id: 'ferry', name: 'Ferry Hop', tagline: 'Wait for your ride. Do not miss your ride.', timeLimit: 150,
+  theme: SKY({ skyTop: 0x120f3a, skyMid: 0x3a2f8f, skyLow: 0xff6fb5, fog: 0x4a3a9a, fogNear: 60, fogFar: 230, sun: 0xd8d0ff, sunI: 2.2, hemiSky: 0xb8b0ff, hemiGround: 0x3a2a6a, hemiI: 1.6, floor: 0xff7fb5, floor2: 0x7fe0ff, hazard: 0xff5fa0, stud: 0xfff36b, wall: 0x6a4fd8, island: 0x4a3f9a }),
+  sections: [['deck', 8], ['ferry', 2], ['check'], ['shuttle', 2], ['check'], ['ferry', 2, { period: 5.6 }]],
+});
+const galeGorge = () => course({
+  id: 'gale', name: 'Gale Gorge', tagline: 'Lean into the wind. The logs will not wait.', timeLimit: 120,
+  theme: SKY({ skyTop: 0xc0562a, skyMid: 0xf2a65a, skyLow: 0xffe3b0, fog: 0xf0c08a, hemiSky: 0xffe8c8, hemiGround: 0x8a5a3a, floor: 0xd98a4a, floor2: 0xf2c078, hazard: 0x3fb8af, stud: 0xffe66d, wall: 0x9a5a3a, island: 0xb87a4a }),
+  sections: [['deck', 8], ['fans', 4], ['check'], ['rollers'], ['check'], ['fans', 4, { speed: 6.5 }], ['climb', 14, 5]],
+});
+const picketPanic = () => course({
+  id: 'picket', name: 'Picket Panic', tagline: 'One gap in every wall. Everyone wants it.', timeLimit: 120,
+  theme: SKY({ skyTop: 0xff6fb5, skyMid: 0xffc2e2, skyLow: 0xfff6d8, fog: 0xffd8ec, hemiSky: 0xfff0f8, hemiGround: 0xc88aa8, floor: 0x9be564, floor2: 0xfff07a, hazard: 0xff4f8b, stud: 0xffffff, wall: 0x8f6bff, island: 0xff9fc8 }),
+  sections: [['posts', 5], ['check'], ['drums', 4], ['check'], ['posts', 4], ['pushers', 3]],
+});
+const floodStairs = () => course({
+  id: 'flood', name: 'Flood Stairs', tagline: 'Up, up, up. The goo is right behind you.', timeLimit: 130,
+  theme: SKY({ skyTop: 0x1f3a2a, skyMid: 0x4f8f5a, skyLow: 0xd8ff9a, fog: 0x8fbf7a, fogNear: 60, fogFar: 220, hemiSky: 0xdfffd8, hemiGround: 0x3a5a3a, hemiI: 1.45, floor: 0xffb545, floor2: 0xff7f6a, hazard: 0xe53dbd, stud: 0xfff36b, wall: 0x7446d6, island: 0x4f8f5a, goo: 0x7dff4f, goo2: 0x2fbf3f }),
+  goo: { y0: -7, rate: 0.2 },
+  sections: [['deck', 8], ['steps', 8], ['check'], ['climb', 16, 6], ['pendulums', 3], ['check'], ['steps', 8], ['check'], ['climb', 14, 5], ['pushers', 3], ['steps', 6]],
+});
+const trapFloor = () => course({
+  id: 'trap', name: 'Trap Floor', tagline: 'Trust nothing you can stand on.', timeLimit: 140,
+  theme: SKY({ skyTop: 0x7a1f5a, skyMid: 0xff6f91, skyLow: 0xffe1a8, fog: 0xffb09a, hemiSky: 0xffe0e8, hemiGround: 0x8a4a6a, floor: 0x5ad1c9, floor2: 0x7a7dff, hazard: 0xff3d6e, stud: 0xffd23f, wall: 0xff8f4d, island: 0xd88fb0 }),
+  sections: [['deck', 8], ['tiles', 6, 5], ['rollers'], ['check'], ['tiles', 5, 5], ['pushers', 2]],
+});
+
+const LEVELS = [levelRollerRumble(), levelGooTower(), swingStreet(), spinCycle(), bounceBay(), frostbiteSlide(), ferryHop(), galeGorge(), picketPanic(), floodStairs(), trapFloor(), levelShakyTiles()];
 
 /* World: instantiates a level definition into colliders, hazards, tiles and nav. */
 class World {
@@ -1151,8 +1440,8 @@ class World {
       tiles[r] = [];
       for (let c = 0; c < f.cols; c++) {
         const x = f.x0 + c * f.pitch, z = f.z0 + r * f.pitch;
-        const col_ = this.addCol({ kind: 'box', c: [x, -0.25, z], he: [f.size / 2, 0.25, f.size / 2], mat: 'tile', view: false });
-        const tile = { col: col_, row: r, column: c, field: index, state: 'unknown', timer: 0, fake: !safe.has(r * 100 + c) && rng() < 0.6, idx: -1 };
+        const col_ = this.addCol({ kind: 'box', c: [x, (f.y || 0) - 0.25, z], he: [f.size / 2, 0.25, f.size / 2], mat: 'tile', view: false });
+        const tile = { col: col_, row: r, column: c, field: index, state: 'unknown', timer: 0, fake: !safe.has(r * 100 + c) && rng() < (f.fake || 0.6), idx: -1 };
         col_.tile = tile; tiles[r][c] = tile;
       }
     }
@@ -1170,8 +1459,13 @@ class World {
   }
   substep(dt) {
     this.stepHazards(dt);
-    for (let i = 0; i < this.beans.length; i++) stepBean(this, this.beans[i], dt);
+    for (let i = 0; i < this.beans.length; i++) if (!this.beans[i].remote) stepBean(this, this.beans[i], dt);
     stepBeanPairs(this);
+  }
+  /* online: another player stepped on this tile on their device */
+  applyTile(field, row, column) {
+    const F = this.tileFields[field], t = F && F.tiles[row] && F.tiles[row][column];
+    if (t) stepTile(this, t, null);
   }
   snapshot() { // previous state for render interpolation
     for (const b of this.beans) { b.pp.x = b.p.x; b.pp.y = b.p.y; b.pp.z = b.p.z; b.pyaw = b.yaw; }
@@ -1268,7 +1562,8 @@ class BotBrain {
     const b = this.b;
     for (let guard = 0; guard < 5 && this.node; guard++) {
       const n = this.node, dx = b.p.x - n.x, dz = b.p.z - n.z, along = dx * n.nx + dz * n.nz, lat = dx * n.rx + dz * n.rz;
-      if (!(along > -0.5 && along < 14 && Math.abs(lat) < n.w + 3.5 && Math.abs(b.p.y - n.y) < n.dyTol)) break;
+      const riding = n.ride && b.grounded && b.ground && b.ground.owner && b.ground.owner.id === n.ride;   // already aboard: on to the next gate
+      if (!riding && !(along > -0.5 && along < 14 && Math.abs(lat) < n.w + 3.5 && Math.abs(b.p.y - n.y) < n.dyTol)) break;
       if (n.tiles !== undefined) { this.tile = n.tiles; this.plan = null; this.planT = 0; }
       const nx = this.pickNext(n); if (!nx) break;
       this.node = nx; this.enterNode(nx);
@@ -1419,13 +1714,20 @@ class BotBrain {
 
     // jump sensors: gap ahead, low obstacle ahead, rollers and sweeper arms
     if (b.grounded) {
-      const sp = Math.hypot(b.v.x, b.v.z), look = 0.45 + sp * 0.075;
+      const sp = Math.hypot(b.v.x, b.v.z), waits = this.node && this.node.edge, look = waits ? 1 + sp * 0.14 : 0.45 + sp * 0.075;   // braking for a ride takes room
       // two samples, so the thin seams between tiles do not read as a pit
       const hole = w.groundAt(b.p.x + dx * look, b.p.y + 1.1, b.p.z + dz * look, 3) === null && w.groundAt(b.p.x + dx * (look + 0.45), b.p.y + 1.1, b.p.z + dz * (look + 0.45), 3) === null;
       if (hole && !slowFor) {
+        const edge = this.node && this.node.edge;  // a gate that says: wait at the drop for a platform to arrive
         let land = false;
-        for (let d = 2.5; d <= 7.5; d += 1) if (w.groundAt(b.p.x + dx * d, b.p.y + 2, b.p.z + dz * d, 4) !== null) { land = true; break; }
-        if (land) wantJump = true; else { inp.x *= 0.15; inp.z *= 0.15; }
+        const ride = edge && this.node.ride && w.hazardById[this.node.ride];
+        if (ride) { // like a player, judge where the visibly moving platform will be on landing
+          const q = ride.posAt(w.t + 0.55), s = ride.def.s;
+          land = Math.abs(q.x - b.p.x) < s[0] / 2 - 1.2 && q.z - s[2] / 2 - b.p.z < 4.2 && q.z + s[2] / 2 > b.p.z;
+        } else for (let d = 2.5; d <= (edge ? 4.5 : 7.5); d += 1) if (w.groundAt(b.p.x + dx * d, b.p.y + 2, b.p.z + dz * d, 4) !== null) { land = true; break; }
+        if (land) wantJump = true;
+        else if (edge) { inp.x = 0; inp.z = 0; this.hold = 1; }
+        else { inp.x *= 0.15; inp.z *= 0.15; }
       }
       if (!wantJump && !slowFor && sp > 2.5) {
         const t = w.raycast(b.p.x, b.p.y + 0.45, b.p.z, dx, 0, dz, 1.0 + sp * 0.075);
@@ -1467,21 +1769,23 @@ class BotBrain {
 
 /* ------------------------------- RACE MANAGER ------------------------------- */
 class Race {
-  /* roster: [{ id, name, skin, isBot, pers }] */
-  constructor({ levelIndex, roster, seed, slots }) {
-    this.levelIndex = levelIndex; this.def = LEVELS[levelIndex]; this.seed = seed;
+  /* roster: [{ id, name, skin, isBot, pers }]. net: { role: 'host' | 'guest', myId } for online play.
+     Online, each device simulates its own bean. The host also runs the bots and referees the race. */
+  constructor({ levelIndex, roster, seed, slots, net = null }) {
+    this.levelIndex = levelIndex; this.def = LEVELS[levelIndex]; this.seed = seed; this.net = net; this.onGhosts = null;
     this.world = new World(this.def, seed ^ 0x5bd1e995);
     this.slots = slots; this.state = 'intro'; this.time = 0; this.cd = 0; this.lastCount = 0;
     this.qualified = []; this.eliminated = []; this.fallLog = []; this.bots = []; this.overT = 0; this.warned = false;
     const w = this.world, rngB = mulberry32(seed ^ 0x2f1a);
     w.locked = true;
     roster.forEach((info, i) => {
-      const b = makeBean(info.id, info);
+      const b = makeBean(info.id, info), guest = net && net.role === 'guest';
       const s = this.def.spawn[i % this.def.spawn.length];
       b.p.x = s[0]; b.p.y = s[1]; b.p.z = s[2]; b.yaw = b.pyaw = this.def.yaw || 0;
       b.pp.x = b.p.x; b.pp.y = b.p.y; b.pp.z = b.p.z; b.grounded = true; b.gn = V(0, 1, 0);
+      b.remote = !!net && info.id !== net.myId && (guest || !info.isBot);
       w.beans.push(b);
-      if (info.isBot) this.bots.push(new BotBrain(w, b, mulberry32(seed + i * 7919 + 13)));
+      if (info.isBot && !guest) this.bots.push(new BotBrain(w, b, mulberry32(seed + i * 7919 + 13)));
     });
     this.beans = w.beans;
     for (const b of this.beans) { b.pathSeg = pathSegNear(w, b.p.x, b.p.y, b.p.z); updateProgress(w, b); }
@@ -1493,6 +1797,7 @@ class Race {
   tick(dt) {
     const w = this.world;
     w.snapshot();
+    if (this.onGhosts) this.onGhosts();
     if (this.state === 'countdown') {
       this.cd -= dt;
       const n = Math.ceil(this.cd);
@@ -1510,9 +1815,10 @@ class Race {
   }
 
   raceLogic() {
-    const w = this.world, def = this.def, killY = w.goo ? w.goo.y : def.killY;
+    const w = this.world, def = this.def, killY = w.goo ? w.goo.y : def.killY, guest = this.net && this.net.role === 'guest';
     for (const b of this.beans) {
       if (b.out) continue;
+      if (b.remote) continue;               // its owner reports where it is and how it is doing
       updateProgress(w, b);
       if (b.finished) continue;
       // checkpoints (only forward)
@@ -1520,7 +1826,11 @@ class Race {
       for (let i = b.cp + 1; i < cps.length; i++) if (inVolume(cps[i], b.p)) {
         b.cp = i; w.emit('checkpoint', b.p.x, b.p.y, b.p.z, { bean: b, index: i, total: cps.length });
       }
-      if (inVolume(def.finish, b.p)) { this.finishBean(b); continue; }
+      if (inVolume(def.finish, b.p)) {
+        if (!guest) this.finishBean(b);
+        else if (!b.finSent) { b.finSent = true; w.emit('netFinish', b.p.x, b.p.y, b.p.z, { bean: b }); }   // the host decides the order
+        continue;
+      }
       if (b.p.y < killY) {
         b.stats.falls++;
         const touchedGoo = !!w.goo;
@@ -1531,6 +1841,7 @@ class Race {
     this.computePlaces();
     const left = def.timeLimit - this.time;
     if (!this.warned && left <= 10) { this.warned = true; w.emit('timeWarning', 0, 0, 0, {}); }
+    if (guest) return;                      // the host ends the round for everyone
     const active = this.beans.filter(b => !b.out && !b.finished);
     if (this.qualified.length >= this.slots || !active.length || left <= 0) this.endRound(left <= 0 ? 'time' : 'slots');
   }
@@ -1568,6 +1879,14 @@ class Race {
     this.state = 'over'; this.overT = 0; this.endReason = reason;
     this.world.emit('roundOver', 0, 0, 0, { reason, qualified: this.qualified.slice() });
   }
+  /* online guests: follow the host's finishing order and round end */
+  syncQualified(list) {
+    for (const [id, time] of list) {
+      const b = this.beans.find(x => x.id === id);
+      if (b && !b.finished && !b.out) { this.finishBean(b); b.finishTime = time; }
+    }
+  }
+  syncOver(reason, list) { if (this.state === 'over') return; this.syncQualified(list); this.endRound(reason); }
   computePlaces() {
     const list = this.beans.filter(b => !b.out).sort((a, b) => {
       if (a.finished !== b.finished) return a.finished ? -1 : 1;
@@ -1620,22 +1939,36 @@ function genBots(code, count = 7) {
   out.forEach((b, i) => { b.id = i + 1; });
   return out;
 }
+/* Which maps a show uses: random ones, no repeats, and always the crown map last. */
+function pickMaps(seed) {
+  const rng = mulberry32(seed ^ 0x51ed270b), crown = LEVELS.findIndex(l => l.finish.crown);
+  const pool = LEVELS.map((l, i) => i).filter(i => i !== crown);
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return [...pool.slice(0, CONFIG.rounds.length - 1), crown];
+}
 class Show {
-  constructor(code, playerName, playerSkin, nonce = 0) {
-    this.code = normalizeCode(code); this.seed = hashString(this.code) ^ Math.imul(nonce + 1, 0x9e3779b1);
-    this.round = 0; this.player = { id: 0, name: playerName, skin: playerSkin, isBot: false };
-    this.roster = [this.player, ...genBots(this.code)];
+  /* humans: [{ id, name, skin }], the real players. Bots fill the rest of the eight places. Every device
+     that builds a Show from the same code, humans and seed gets the same bots and the same maps. */
+  constructor(code, humans, { myId = 0, seed = null, nonce = 0 } = {}) {
+    this.code = normalizeCode(code); this.myId = myId;
+    this.seed = (seed !== null ? seed : hashString(this.code) ^ Math.imul(nonce + 1, 0x9e3779b1)) >>> 0;
+    this.maps = pickMaps(this.seed); this.round = 0;
+    const people = humans.map(h => ({ id: h.id, name: h.name, skin: h.skin, isBot: false }));
+    const bots = genBots(this.code, 8 - people.length);
+    bots.forEach((b, i) => { b.id = people.length + i; });
+    this.player = people.find(h => h.id === myId) || people[0];
+    this.roster = [...people, ...bots];
     this.alive = this.roster.slice(); this.playerAlive = true; this.winner = null;
   }
   roundDef() { return CONFIG.rounds[this.round]; }
-  makeRace() {
+  makeRace(net = null) {
     const rd = this.roundDef(), n = this.alive.length;
-    return new Race({ levelIndex: rd.level, roster: this.alive, seed: (this.seed + this.round * 104729) >>> 0, slots: Math.min(rd.slots, Math.max(1, n - 1)) });
+    return new Race({ levelIndex: this.maps[this.round], roster: this.alive, seed: (this.seed + this.round * 104729) >>> 0, slots: Math.min(rd.slots, Math.max(1, n - 1)), net });
   }
   finishRound(race) {
     const ids = new Set(race.qualified.map(b => b.id));
     this.alive = this.alive.filter(b => ids.has(b.id));
-    this.playerAlive = ids.has(0);
+    this.playerAlive = ids.has(this.myId);
     this.round++;
     if (this.round >= CONFIG.rounds.length || this.alive.length <= 0) {
       this.done = true; this.winner = race.qualified[0] ? this.roster.find(b => b.id === race.qualified[0].id) : null;
@@ -1652,7 +1985,7 @@ function botRoster(seedCode, n) {
 function histogram(v, w) { const h = {}; for (const x of v) { const k = Math.floor(x / w) * w; h[k] = (h[k] || 0) + 1; } return h; }
 /* Bot completability: one level, bots only, returns stats */
 function runLevelTest(levelIndex, code, count = 8, slots = null) {
-  const roster = botRoster(code, count), slotN = slots || CONFIG.rounds[levelIndex].slots;
+  const roster = botRoster(code, count), slotN = slots || (LEVELS[levelIndex].finish.crown ? 1 : 6);
   const race = new Race({ levelIndex, roster, seed: hashString(code) + levelIndex, slots: slotN });
   race.startNow();
   const dt = 1 / CONFIG.simHz, max = (race.def.timeLimit + 2) * CONFIG.simHz;
@@ -1668,7 +2001,7 @@ function runLevelTest(levelIndex, code, count = 8, slots = null) {
   };
 }
 function runShowTest(code) { // full show, bots only, shrinking field
-  const s = new Show(code, 'TestBot', 'classic');
+  const s = new Show(code, [{ id: 0, name: 'TestBot', skin: 'classic' }]);
   s.roster[0] = s.player = { ...genBots(code + 'x', 1)[0], id: 0, isBot: true }; s.alive = s.roster.slice();
   const log = []; let more = true;
   while (more) {
@@ -1763,7 +2096,7 @@ function controllerChecks() {
   return res;
 }
 
-return { CONFIG, LEVELS, World, Race, Show, BotBrain, makeBean, genBots, validCode, normalizeCode, randomCode, hashString, mulberry32, SKIN_IDS,
+return { CONFIG, LEVELS, World, Race, Show, BotBrain, makeBean, genBots, validCode, normalizeCode, randomCode, hashString, mulberry32, SKIN_IDS, pickMaps,
   runLevelTest, runShowTest, controllerChecks, inVolume, clamp, lerp, wrapPi };
 })();
 if (typeof module !== 'undefined') module.exports = BeanSim;
@@ -1790,13 +2123,58 @@ const SKINS = [
   { id: 'shark', name: 'Shark Fin', swatch: '#5c8fb0', req: { type: 'quals', n: 6 } },
   { id: 'ninja', name: 'Cyber Ninja', swatch: '#2b2e4a', req: { type: 'crowns', n: 1 } },
   { id: 'golden', name: 'Golden Crown', swatch: '#ffc531', req: { type: 'crowns', n: 3 } },
+  { id: 'ghost', name: 'Spooky Sheet', swatch: '#eef1ff', rar: 'Rare', req: { type: 'quals', n: 30 } },
+  { id: 'robot', name: 'Tin Bean', swatch: '#9aa7b8', rar: 'Rare', req: { type: 'crowns', n: 10 } },
+  { id: 'astro', name: 'Moonwalker', swatch: '#f2f4f8', rar: 'Epic', req: { type: 'shows', n: 100 } },
+  { id: 'frost', name: 'Frostbite', swatch: '#8fd8f5', rar: 'Epic', req: { type: 'maps' } },
+  { id: 'lava', name: 'Molten Core', swatch: '#ff6a1f', rar: 'Epic', req: { type: 'crowns', n: 25 } },
+  { id: 'dragon', name: 'Little Dragon', swatch: '#2f9e5b', rar: 'Mythic', req: { type: 'streak', n: 3 } },
+  { id: 'prism', name: 'Prism', swatch: 'conic-gradient(#ff4f8b,#ffc531,#2ecc71,#22c1d6,#8e6bff,#ff4f8b)', rar: 'Mythic', req: { type: 'crowns', n: 50 } },
+  { id: 'crystal', name: 'Crystal King', swatch: '#c77dff', rar: 'Mythic', req: { type: 'streak', n: 5 } },
+  { id: 'void', name: 'The Void', swatch: '#000', rar: 'Legendary', req: { type: 'all', list: [{ type: 'crowns', n: 100 }, { type: 'streak', n: 7 }] } },
 ];
 const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
-const reqText = r => !r ? 'Free' : r.type === 'quals' ? `Qualify ${r.n} time${r.n > 1 ? 's' : ''}` : `Win ${r.n} crown${r.n > 1 ? 's' : ''}`;
+const raceMaps = () => LEVELS.filter(l => !l.finish.crown);
+function reqText(r) {
+  if (!r) return 'Free';
+  const s = n => n > 1 ? 's' : '';
+  switch (r.type) {
+    case 'quals': return `Qualify ${r.n} time${s(r.n)}`;
+    case 'shows': return `Play ${r.n} shows`;
+    case 'crowns': return `Win ${r.n} crown${s(r.n)}`;
+    case 'streak': return `Win ${r.n} crowns in a row`;
+    case 'maps': return `Qualify on all ${raceMaps().length} race maps`;
+    case 'all': return r.list.map(reqText).join(' and ');
+  }
+  return '';
+}
+function reqMet(r, d) {
+  switch (r.type) {
+    case 'quals': return d.quals >= r.n;
+    case 'shows': return d.shows >= r.n;
+    case 'crowns': return d.crowns >= r.n;
+    case 'streak': return d.bestStreak >= r.n;
+    case 'maps': return raceMaps().every(l => d.maps.includes(l.id));
+    case 'all': return r.list.every(x => reqMet(x, d));
+  }
+  return false;
+}
+function reqProgress(r, d) { // 'so far' text shown under a locked skin
+  switch (r.type) {
+    case 'quals': return `${Math.min(d.quals, r.n)}/${r.n}`;
+    case 'shows': return `${Math.min(d.shows, r.n)}/${r.n}`;
+    case 'crowns': return `${Math.min(d.crowns, r.n)}/${r.n}`;
+    case 'streak': return `best ${d.bestStreak}`;
+    case 'maps': return `${raceMaps().filter(l => d.maps.includes(l.id)).length}/${raceMaps().length}`;
+    case 'all': return r.list.map(x => reqProgress(x, d)).join(', ');
+  }
+  return '';
+}
+const cleanName = s => String(s == null ? '' : s).replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 12);
 
 const Store = (() => {
   const KEY = 'beans.v1';
-  const defaults = () => ({ v: 1, skin: 'classic', unlocked: ['classic'], crowns: 0, shows: 0, quals: 0, best: {}, muted: false, sens: 1 });
+  const defaults = () => ({ v: 1, skin: 'classic', unlocked: ['classic'], crowns: 0, shows: 0, quals: 0, best: {}, muted: false, sens: 1, name: '', streak: 0, bestStreak: 0, maps: [] });
   let data = defaults(), persistent = true;
   const num = (v, d, min = 0, max = 1e9) => Number.isFinite(v) ? clamp(v, min, max) : d;
   function sanitize(p) {
@@ -1807,6 +2185,8 @@ const Store = (() => {
     d.skin = d.unlocked.includes(p.skin) ? p.skin : 'classic';
     d.crowns = num(p.crowns, 0); d.shows = num(p.shows, 0); d.quals = num(p.quals, 0);
     d.muted = !!p.muted; d.sens = num(p.sens, 1, 0.3, 2.2);
+    d.name = cleanName(p.name); d.streak = num(p.streak, 0); d.bestStreak = num(p.bestStreak, 0);
+    d.maps = Array.isArray(p.maps) ? LEVELS.map(l => l.id).filter(id => p.maps.includes(id)) : [];
     if (p.best && typeof p.best === 'object') for (const l of LEVELS) if (Number.isFinite(p.best[l.id])) d.best[l.id] = p.best[l.id];
     return d;
   }
@@ -1820,7 +2200,7 @@ const Store = (() => {
       const fresh = [];
       for (const s of SKINS) {
         if (data.unlocked.includes(s.id) || !s.req) continue;
-        if ((s.req.type === 'quals' ? data.quals : data.crowns) >= s.req.n) { data.unlocked.push(s.id); fresh.push(s); }
+        if (reqMet(s.req, data)) { data.unlocked.push(s.id); fresh.push(s); }
       }
       return fresh;
     },
@@ -2096,7 +2476,84 @@ const SKIN_BUILD = {
     for (let i = 0; i < 6; i++) { const m = mesh(GEO.sphereLo, mustard, 0.05, 0.2, 0.05); m.position.set((i % 2 ? 1 : -1) * 0.13, 0.04 - i * 0.14, 0.5); m.rotation.z = (i % 2 ? 1 : -1) * 1.05; b.acc.add(m); }
     for (let i = 0; i < 4; i++) { const m = mesh(GEO.sphereLo, mustard, 0.045, 0.2, 0.045); m.position.set((i % 2 ? 1 : -1) * 0.1, 0.92 - i * 0.03, -0.32 + i * 0.22); m.rotation.set(1.3, 0, (i % 2 ? 1 : -1) * 1.05); b.acc.add(m); }
   },
+  ghost(b) {
+    const sheet = skinMat('ghost', () => new THREE.MeshToonMaterial({ color: 0xf4f6ff, gradientMap, transparent: true, opacity: 0.82 }));
+    b.setBodyMat(sheet, sheet);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283, m = mesh(GEO.sphereLo, sheet, 0.17, 0.27, 0.17); m.position.set(Math.sin(a) * 0.43, -0.74, Math.cos(a) * 0.43); b.acc.add(m); }
+    const mouth = mesh(GEO.sphereLo, toon(0x26214a), 0.09, 0.12, 0.05); mouth.position.set(0, 0.1, 0.48); b.acc.add(mouth);
+  },
+  robot(b) {
+    b.setColors(0x9aa7b8, 0x6e7b8c); b.setPupil(toon(0x00e5ff, { emissive: 0x00a0c0 }));
+    const steel = toon(0x5d6480), lamp = toon(0xff4d4d, { emissive: 0xc01818 });
+    const grill = mesh(GEO.box, steel, 0.42, 0.12, 0.1); grill.position.set(0, 0.06, 0.46); b.acc.add(grill);
+    const stalk = mesh(GEO.cyl8, steel, 0.04, 0.34, 0.04); stalk.position.y = 1.08; b.acc.add(stalk);
+    const bulb = mesh(GEO.sphereLo, lamp, 0.1); bulb.position.y = 1.28; b.acc.add(bulb);
+    for (const s of [-1, 1]) { const bolt = mesh(GEO.cyl8, steel, 0.11, 0.14, 0.11); bolt.rotation.z = Math.PI / 2; bolt.position.set(s * 0.5, 0.4, 0); b.acc.add(bolt); }
+    for (const y of [-0.2, -0.45]) { const r = mesh(GEO.torus, steel, 0.5, 0.5, 0.26); r.rotation.x = Math.PI / 2; r.position.y = y; b.acc.add(r); }
+  },
+  astro(b) {
+    b.setColors(0xf2f4f8, 0xd8dde6);
+    const glass = mesh(GEO.sphere, toon(0x26214a), 0.45, 0.32, 0.22); glass.position.set(0, 0.4, 0.31); b.acc.add(glass);
+    const rim = mesh(GEO.torus, toon(0xffc531, { emissive: 0x8a6400 }), 0.47, 0.34, 0.5); rim.position.set(0, 0.4, 0.36); b.acc.add(rim);
+    const pack = mesh(GEO.box, toon(0xc8cfda), 0.6, 0.8, 0.26); pack.position.set(0, 0.02, -0.55); b.acc.add(pack);
+    const dot = mesh(GEO.sphereLo, toon(0xff4d4d, { emissive: 0xc01818 }), 0.07); dot.position.set(0.2, -0.16, 0.48); b.acc.add(dot);
+    const dot2 = mesh(GEO.sphereLo, toon(0x2ecc71, { emissive: 0x128040 }), 0.07); dot2.position.set(0, -0.16, 0.5); b.acc.add(dot2);
+  },
+  frost(b) {
+    b.setColors(0xbfeeff, 0x8fd8f5); b.setPupil(toon(0x1f5fbf));
+    const ice = toon(0xeafaff, { emissive: 0x6fbfe0, emissiveIntensity: 0.35 });
+    for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283, h = 0.42 + (i % 3) * 0.16, c = mesh(GEO.cone, ice, 0.13, h, 0.13); c.position.set(Math.sin(a) * 0.3, 0.92 + h * 0.3, Math.cos(a) * 0.3); b.acc.add(c); }
+    const scarf = mesh(GEO.torus, toon(0xff5f7a), 0.52, 0.52, 0.8); scarf.rotation.x = Math.PI / 2; scarf.position.y = 0.08; b.acc.add(scarf);
+    const tail = mesh(GEO.box, toon(0xff5f7a), 0.22, 0.5, 0.08); tail.position.set(0.3, -0.18, 0.46); b.acc.add(tail);
+  },
+  lava(b) {
+    b.setColors(0x2e2420, 0x1f1815); b.setPupil(toon(0xffb020, { emissive: 0xff7a00 }));
+    const glow = toon(0xff7a1f, { emissive: 0xff5a00 });
+    for (const [x, y, z, sx, sy, r] of [[0.3, 0.2, 0.38, 0.05, 0.3, 0.5], [-0.34, -0.1, 0.36, 0.05, 0.34, -0.6], [0.1, -0.32, 0.47, 0.05, 0.22, 1.1], [-0.12, 0.72, 0.3, 0.05, 0.2, 1.3], [0.42, -0.4, -0.22, 0.05, 0.32, 0.3], [-0.42, 0.26, -0.24, 0.05, 0.3, -0.4], [0.05, 0.1, -0.5, 0.05, 0.36, 0.2]]) {
+      const c = mesh(GEO.sphereLo, glow, sx, sy, 0.06); c.position.set(x, y, z); c.rotation.z = r; b.acc.add(c);
+    }
+  },
+  dragon(b) {
+    b.setColors(0x2f9e5b, 0x257a47); b.setPupil(toon(0xffd21f, { emissive: 0xc09000 }));
+    const belly = mesh(GEO.sphere, toon(0xcdeb8b), 0.38, 0.56, 0.14); belly.position.set(0, -0.16, 0.4); b.acc.add(belly);
+    const horn = toon(0xffe9b0), spine = toon(0xff7a3d), wing = toon(0x1f7a47);
+    for (const s of [-1, 1]) {
+      const h = mesh(GEO.cone, horn, 0.1, 0.42, 0.1); h.position.set(s * 0.26, 1.02, 0.02); h.rotation.z = -s * 0.35; b.acc.add(h);
+      const w = mesh(GEO.cone3, wing, 0.5, 0.9, 0.06); w.position.set(s * 0.6, 0.28, -0.36); w.rotation.set(0.3, s * 0.5, -s * 1.15); b.acc.add(w);
+    }
+    for (let i = 0; i < 5; i++) { const c = mesh(GEO.cone3, spine, 0.15, 0.3, 0.08); c.position.set(0, 0.82 - i * 0.34, -0.3 - (i === 0 ? 0 : 0.2)); c.rotation.set(-0.5, Math.PI / 2, 0); b.acc.add(c); }
+    const tail = mesh(GEO.cone, toon(0x2f9e5b), 0.2, 0.8, 0.2); tail.position.set(0, -0.62, -0.66); tail.rotation.x = -1.2; b.acc.add(tail);
+  },
+  prism(b) {
+    const band = skinMat('prism', () => {
+      const t = canvasTex(16, 128, (g, w, h) => { ['#ff4f8b', '#ff9a3d', '#ffe14d', '#2ecc71', '#22c1d6', '#8e6bff'].forEach((c, i, a) => { g.fillStyle = c; g.fillRect(0, i * h / a.length, w, h / a.length + 1); }); });
+      return new THREE.MeshToonMaterial({ map: t, gradientMap, emissive: 0x303030 });
+    });
+    b.setBodyMat(band, toon(0xffffff, { emissive: 0x404040 }));
+  },
+  crystal(b) {
+    const gem = skinMat('crystal', () => new THREE.MeshStandardMaterial({ color: 0xc77dff, metalness: 0.1, roughness: 0.18, flatShading: true, emissive: 0x5a189a, emissiveIntensity: 0.55 }));
+    b.setBodyMat(gem, gem); b.setPupil(toon(0xffffff, { emissive: 0xffffff }));
+    for (const [x, z, h, r] of [[0, 0, 0.7, 0], [0.26, 0.1, 0.46, -0.3], [-0.26, 0.08, 0.5, 0.3], [0.1, -0.26, 0.42, 0.1], [-0.12, 0.24, 0.36, -0.1]]) {
+      const c = mesh(GEO.cone, gem, 0.13, h, 0.13); c.position.set(x, 0.9 + h * 0.34, z); c.rotation.z = r; b.acc.add(c);
+    }
+    for (const s of [-1, 1]) { const c = mesh(GEO.cone, gem, 0.1, 0.42, 0.1); c.position.set(s * 0.54, 0.2, 0); c.rotation.z = -s * 1.1; b.acc.add(c); }
+  },
+  /* The Void: pure black, two glowing purple eyes, nothing else. */
+  void(b) {
+    const black = skinMat('voidBlack', () => new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    b.setBodyMat(black, black);
+    b.eyes.material = skinMat('voidEye', () => new THREE.MeshBasicMaterial({ color: 0xc05cff, toneMapped: false }));
+    b.pupils.visible = false;
+    const halo = skinMat('voidGlow', () => new THREE.SpriteMaterial({
+      map: canvasTex(64, 64, (g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2); r.addColorStop(0, 'rgba(214,150,255,1)'); r.addColorStop(0.35, 'rgba(160,60,255,.55)'); r.addColorStop(1, 'rgba(120,30,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, h); }),
+      blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false,
+    }));
+    for (const s of [-1, 1]) { const g = new THREE.Sprite(halo); g.scale.set(0.66, 0.66, 1); g.position.set(s * 0.19, 0, 0.5); b.eyes.add(g); }
+  },
 };
+const SKIN_MATS = new Map();
+function skinMat(key, make) { if (!SKIN_MATS.has(key)) SKIN_MATS.set(key, make()); return SKIN_MATS.get(key); }
 const crownGold = new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: 0.25, roughness: 0.3, emissive: 0xb07a00, emissiveIntensity: 0.8, side: THREE.DoubleSide });
 function buildCrown(s = 1) {
   const g = new THREE.Group(), gold = crownGold, ruby = toon(0xff2d6e, { emissive: 0x900030 });
@@ -2349,18 +2806,31 @@ class LevelView {
         for (let i = 0; i < 8; i++) { const s = mesh(GEO.ico, studMat, 0.22), a = i / 8 * 6.283; s.position.set(Math.cos(a) * d.r, Math.sin(a * 2) * 0.4, Math.sin(a) * d.r); ball.add(s); }
         mergeChildren(ball, this.owned);
         const rod = mesh(GEO.cyl8, steel, 0.11, d.len, 0.11); this.add(rod); this.add(ball);
-        const bl = 8.6, cx = d.pivot[0], cz = d.pivot[2], beam = mesh(GEO.box, steel, 0.6, 0.6, bl);
-        const u = d.axis, tow = 15.75; beam.position.set(u[0] * (tow + bl / 2 - 0.2), d.pivot[1] + 0.2, u[1] * (tow + bl / 2 - 0.2)); beam.rotation.y = Math.atan2(u[0], u[1]); beam.castShadow = true; this.add(beam);
+        const cx = d.pivot[0], cz = d.pivot[2];
+        if (d.halfW) { // a gantry straddling the bridge
+          const W = d.halfW + 1.3, top = d.pivot[1] + 0.2, foot = top - 22, beam = mesh(GEO.box, steel, W * 2 + 0.5, 0.5, 0.5); beam.position.set(cx, top, cz); beam.castShadow = true; this.add(beam);
+          for (const s of [-1, 1]) { const post = mesh(GEO.box, steel, 0.42, top - foot, 0.42); post.position.set(cx + s * W, (top + foot) / 2, cz); this.add(post); }
+        } else { // an arm reaching out from the tower
+          const bl = 8.6, beam = mesh(GEO.box, steel, 0.6, 0.6, bl), u = d.axis, tow = 15.75;
+          beam.position.set(u[0] * (tow + bl / 2 - 0.2), d.pivot[1] + 0.2, u[1] * (tow + bl / 2 - 0.2)); beam.rotation.y = Math.atan2(u[0], u[1]); beam.castShadow = true; this.add(beam);
+        }
         this.dyn.push({ pendulum: h, ball, rod, col, pivot: new THREE.Vector3(cx, d.pivot[1], cz), len: d.len });
       } else if (h.type === 'fan') {
-        const g = new THREE.Group(), a = d.ang * Math.PI / 180;
-        g.position.set(Math.sin(a) * (d.wallR + 0.35), d.y + 2.4, Math.cos(a) * (d.wallR + 0.35)); g.rotation.y = a;
+        const g = new THREE.Group(), a = (d.at ? d.yaw : d.ang) * Math.PI / 180;
+        if (d.at) g.position.set(d.at[0], d.at[1], d.at[2]); else g.position.set(Math.sin(a) * (d.wallR + 0.35), d.y + 2.4, Math.cos(a) * (d.wallR + 0.35));
+        g.rotation.y = a;
         const ring = mesh(GEO.torus, steel, 2.1); g.add(ring);
         const hub = mesh(GEO.sphereLo, toon(th.stud), 0.4, 0.4, 0.4); g.add(hub);
         const blades = new THREE.Group();
         for (let i = 0; i < 4; i++) { const pv = new THREE.Group(); pv.rotation.z = i / 4 * 6.283; const bl = mesh(GEO.box, toon(0xf2f2f2), 0.6, 1.95, 0.08); bl.position.y = 1; bl.rotation.y = 0.35; pv.add(bl); blades.add(pv); }
         mergeChildren(blades, this.owned); g.add(blades); this.add(g);
         this.fans.push({ blades, pos: g.position.clone(), zone: h.zone, emit: 0 });
+      } else if (h.type === 'platform') {
+        const p = mesh(GEO.box, this.matOf(d.mat || 'floor2'), d.s[0], d.s[1], d.s[2]); p.castShadow = true; p.receiveShadow = true; this.bindCol(p, col);
+      } else if (h.type === 'turntable') {
+        const g = new THREE.Group(), disc = mesh(GEO.cyl, this.matOf('disk'), d.r, d.h, d.r); disc.castShadow = true; disc.receiveShadow = true; g.add(disc);
+        for (let i = 0; i < 3; i++) { const s = mesh(GEO.box, toon(th.trim), d.r * 1.9, 0.05, 0.55); s.rotation.y = i / 3 * Math.PI; s.position.y = d.h / 2 + 0.03; g.add(s); }
+        this.bindCol(g, col);
       }
     }
   }
@@ -2456,12 +2926,20 @@ class LevelView {
       for (let k = 0; k < 3; k++) { const t = mesh(GEO.cone, toon(th.floor), 1.4, 4, 1.4); t.position.set((rng() - 0.5) * r, 2.6, (rng() - 0.5) * r * 0.7); g.add(t); }
       decoGroup.add(g);
     }
-    const nC = 26, cm = new THREE.InstancedMesh(GEO.ico, new THREE.MeshBasicMaterial({ color: 0xffffff }), nC * 3); cm.frustumCulled = false; this.owned.push(cm); this.ownMats.push(cm.material);
-    for (let i = 0; i < nC; i++) {
-      const cx = (rng() - 0.5) * 420, cy = -50 + rng() * 120, cz = lerp(dc.range[0] - 120, dc.range[1] + 120, rng());
-      for (let k = 0; k < 3; k++) { const s = 8 + rng() * 11; M4.compose(V0.set(cx + k * 12 - 12 + rng() * 4, cy + rng() * 3, cz + rng() * 6), Q0.setFromAxisAngle(UP, rng() * 6), V1.set(s * 1.5, s * 0.7, s)); cm.setMatrixAt(i * 3 + k, M4); }
+    // clouds stay well clear of the course, so one can never sit on the path. Goo Tower has none at all.
+    if (dc.clouds !== false) {
+      const nC = 26, cm = new THREE.InstancedMesh(GEO.ico, new THREE.MeshBasicMaterial({ color: 0xffffff }), nC * 3); cm.frustumCulled = false; this.owned.push(cm); this.ownMats.push(cm.material);
+      const segs = this.world.path.segs, inTheWay = (x, y, z) => segs.some(g => {
+        const dx = g.b[0] - g.a[0], dz = g.b[2] - g.a[2], l2 = dx * dx + dz * dz || 1, t = clamp(((x - g.a[0]) * dx + (z - g.a[2]) * dz) / l2, 0, 1);
+        return Math.hypot(x - g.a[0] - dx * t, z - g.a[2] - dz * t) < 46 && Math.abs(y - lerp(g.a[1], g.b[1], t)) < 36;
+      });
+      for (let i = 0; i < nC; i++) {
+        let cx = 0, cy = 0, cz = 0;
+        for (let tries = 0; tries < 8; tries++) { cx = (rng() - 0.5) * 420; cy = -50 + rng() * 120; cz = lerp(dc.range[0] - 120, dc.range[1] + 120, rng()); if (!inTheWay(cx, cy, cz)) break; if (tries === 7) cy = -400; }
+        for (let k = 0; k < 3; k++) { const s = 8 + rng() * 11; M4.compose(V0.set(cx + k * 12 - 12 + rng() * 4, cy + rng() * 3, cz + rng() * 6), Q0.setFromAxisAngle(UP, rng() * 6), V1.set(s * 1.5, s * 0.7, s)); cm.setMatrixAt(i * 3 + k, M4); }
+      }
+      this.add(cm);
     }
-    this.add(cm);
     for (const [x, y, z] of dc.pillars || []) { const p = mesh(GEO.cyl8, toon(0x8b90b0), 1.6, 34, 1.6); p.position.set(x, y - 17, z); decoGroup.add(p); }
     mergeChildren(decoGroup, this.owned); this.add(decoGroup);
   }
@@ -2487,7 +2965,7 @@ class LevelView {
       hum = Math.max(hum, clamp(1 - fd / 34, 0, 1));
       if (fd < 45 && (f.emit -= dt) < 0) { // visible wind streaks
         f.emit = 0.035; const z = f.zone, u = (Math.random() - 0.5) * 2, v = (Math.random() - 0.5) * 2, w = -0.9 + Math.random() * 0.4;
-        const px = z.c.x + z.dir.x * z.he.x * w + z.dir.z * z.he.z * u, pz = z.c.z + z.dir.z * z.he.x * w - z.dir.x * z.he.z * u;
+        const px = z.c.x + z.dir.x * z.he.z * w + z.dir.z * z.he.x * u, pz = z.c.z + z.dir.z * z.he.z * w - z.dir.x * z.he.x * u;
         Fx.dust.spawn({ life: 0.55, x: px, y: z.c.y + v * z.he.y * 0.5, z: pz, vx: z.dir.x * z.speed * 2.6, vy: 0, vz: z.dir.z * z.speed * 2.6, s: 0.09 }, 0xffffff);
       }
     }
@@ -2612,31 +3090,41 @@ const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const setText = (el, s) => { if (el.__t !== s) { el.__t = s; el.textContent = s; } };
 const UI = {
-  screens: ['menu', 'party', 'lobby', 'locker', 'howto', 'pause', 'out', 'round', 'end'],
+  screens: ['menu', 'party', 'lobby', 'locker', 'howto', 'settings', 'pause', 'out', 'round', 'end'],
   show(name) { for (const s of this.screens) $('#s-' + s).classList.toggle('hidden', s !== name); },
   hud(on) { $('#hud').classList.toggle('hidden', !on); },
   toggleMute() { Store.data.muted = !Store.data.muted; Store.save(); Sfx.setMuted(Store.data.muted); this.syncMute(); },
-  syncMute() { const b = $('#mute'); b.classList.remove('hidden'); b.textContent = Store.data.muted ? 'Sound off' : 'Sound on'; },
-  syncSens() { for (const id of ['#sens', '#sens2']) $(id).value = Store.data.sens; },
+  syncMute() {
+    const b = $('#mute'), text = Store.data.muted ? 'Sound off' : 'Sound on';
+    b.classList.remove('hidden'); b.textContent = text; $('#set-sound').textContent = text;
+  },
+  syncSens() { for (const id of ['#sens', '#sens2', '#sens3']) $(id).value = Store.data.sens; },
   menuStats() {
-    const d = Store.data;
+    const d = Store.data, done = LEVELS.filter(l => d.best[l.id]).length;
     $('#menu-stats').textContent = `Crowns ${d.crowns} · Shows ${d.shows} · Qualified ${d.quals}`;
-    const best = LEVELS.map(l => d.best[l.id] ? `${l.name}: ${ordinal(d.best[l.id])}` : null).filter(Boolean);
-    $('#menu-best').textContent = best.length ? 'Best finish: ' + best.join(', ') : 'No finishes yet. Go get one.';
+    $('#menu-best').textContent = done ? `Maps finished: ${done} of ${LEVELS.length}. Best crown streak: ${d.bestStreak}.` : 'No finishes yet. Go get one.';
   },
   lobby(show) {
-    $('#lobby-code').textContent = show.code;
+    const online = Net.active, hosting = Net.role === 'host', code = $('#lobby-code');
+    $('#lobby-title').textContent = online ? 'Online party' : 'Solo with bots';
+    code.textContent = show.code; code.classList.toggle('hidden', !online);
+    $('#lobby-start').classList.toggle('hidden', online && !hosting);
+    $('#lobby-note').textContent = !online ? 'Top 6, then top 4, then one crown. Maps are random.'
+      : hosting ? `Send your friends the code ${show.code}. They press Play, type it and press Join. Bots fill the empty places.`
+      : 'Waiting for the host to start. Bots fill the empty places.';
     $('#lobby-list').innerHTML = show.roster.map(b => {
-      const skin = skinById(b.skin), tier = b.isBot ? b.pers.tier : 'you';
-      return `<div class="card ${b.isBot ? '' : 'you'}"><span class="swatch" style="background:${skin.swatch}"></span><div style="min-width:0"><div class="ellipsis" style="font-weight:900">${esc(b.name)}</div><div class="muted ellipsis" style="font-size:12px">${esc(skin.name)}${b.isBot ? ' · ' + (tier === 'strong' ? 'sharp' : tier === 'mid' ? 'average' : 'wobbly') : ''}</div></div></div>`;
+      const skin = skinById(b.skin), tier = b.isBot ? b.pers.tier : '';
+      const label = b.isBot ? esc(skin.name) + ' · ' + (tier === 'strong' ? 'sharp' : tier === 'mid' ? 'average' : 'wobbly') : (b.id === show.myId ? 'You · ' : 'Friend · ') + esc(skin.name);
+      return `<div class="card ${b.isBot ? '' : 'you'}"><span class="swatch" style="background:${skin.swatch}"></span><div style="min-width:0"><div class="ellipsis" style="font-weight:900">${esc(b.name)}</div><div class="muted ellipsis" style="font-size:12px">${label}</div></div></div>`;
     }).join('');
   },
   locker() {
     const d = Store.data;
-    $('#locker-stats').textContent = `Qualified ${d.quals} · Crowns ${d.crowns}`;
+    $('#locker-stats').textContent = `Qualified ${d.quals} · Crowns ${d.crowns} · Best streak ${d.bestStreak}`;
     $('#locker-list').innerHTML = SKINS.map(s => {
-      const open = d.unlocked.includes(s.id);
-      return `<button class="card skin ${d.skin === s.id ? 'sel' : ''} ${open ? '' : 'locked'}" data-skin="${s.id}"><span class="swatch" style="background:${s.swatch}"></span><span style="flex:1;font-weight:900">${esc(s.name)}</span><span class="muted" style="font-size:12px">${d.skin === s.id ? 'Equipped' : open ? 'Unlocked' : '🔒 ' + esc(reqText(s.req))}</span></button>`;
+      const open = d.unlocked.includes(s.id), rar = s.rar ? `<span class="rar ${s.rar}">${s.rar}</span>` : '';
+      const note = d.skin === s.id ? 'Equipped' : open ? 'Unlocked' : '🔒 ' + esc(reqText(s.req)) + ' (' + esc(reqProgress(s.req, d)) + ')';
+      return `<button class="card skin ${d.skin === s.id ? 'sel' : ''} ${open ? '' : 'locked'}" data-skin="${s.id}"><span class="swatch" style="background:${s.swatch}"></span><span style="flex:1;min-width:0"><span style="font-weight:900">${esc(s.name)}</span> ${rar}<span class="muted" style="display:block;font-size:12px">${note}</span></span></button>`;
     }).join('');
   },
   popup(text, color) { const p = $('#popup'); p.textContent = text; p.style.background = color || ''; p.classList.add('show'); clearTimeout(this._pt); this._pt = setTimeout(() => p.classList.remove('show'), 1600); },
@@ -2667,37 +3155,254 @@ document.addEventListener('click', e => {
   const a = e.target.closest('[data-act]'); if (!a) return;
   Sfx.click(); Game.act(a.dataset.act);
 });
-for (const id of ['#sens', '#sens2']) $(id).addEventListener('input', e => { Store.data.sens = clamp(+e.target.value, 0.3, 2.2); UI.syncSens(); Store.save(); });
+for (const id of ['#sens', '#sens2', '#sens3']) $(id).addEventListener('input', e => { Store.data.sens = clamp(+e.target.value, 0.3, 2.2); UI.syncSens(); Store.save(); });
 $('#code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Game.act('join'); } });
 $('#code').addEventListener('input', () => { $('#code-err').textContent = ''; });
+$('#pname').value = Store.data.name;
+$('#pname').addEventListener('input', e => { Store.data.name = cleanName(e.target.value); Store.save(); });
+
+/* ------------------------------ ONLINE PARTY ----------------------------
+   Friends connect straight to each other over WebRTC. PeerJS's free public service only introduces
+   them, and nothing goes through a game server, because there isn't one. The host runs the bots and
+   referees (finishing order, round end). Every device simulates its own bean, so controls never lag,
+   and shares where it is. Hazards run on a shared clock, so everyone sees the same course. */
+const PEER_SRC = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+const peerName = code => 'slowwater-' + code.toLowerCase();
+const ST = ['run', 'dive', 'prone', 'stun'];
+const round2 = v => Math.round(v * 100) / 100;
+const allFinite = a => Array.isArray(a) && a.every(Number.isFinite);
+const Net = {
+  role: null, peer: null, hostConn: null, guests: new Map(), players: [], code: '', started: false, ready: new Set(), sendT: 0, pingT: 0, lat: 0.04,
+  get active() { return !!this.role; },
+  loadLib() {
+    if (window.Peer) return Promise.resolve();
+    return new Promise((res, rej) => {
+      const s = document.createElement('script'); s.src = PEER_SRC; s.onload = res; s.onerror = () => rej({ type: 'lib' });
+      document.head.appendChild(s);
+    });
+  },
+  message(e) {
+    switch (e && e.type) {
+      case 'peer-unavailable': return 'No party with that code. Check the code, and make sure your friend has the party open.';
+      case 'full': return 'That party is full.';
+      case 'busy': return 'That party has already started. Ask the host to finish the show, then join.';
+      case 'timeout': return 'Could not connect to that party. Try again, or try a different network.';
+      default: return 'Could not reach the party service. Check your internet and try again.';
+    }
+  },
+  async host(code) {
+    await this.loadLib();
+    for (let tries = 0; ; tries++) {
+      try { await this.openHost(tries ? randomCode() : code); return; }
+      catch (e) { if (!e || e.type !== 'unavailable-id' || tries >= 4) throw e; }
+    }
+  },
+  openHost(code) {
+    return new Promise((res, rej) => {
+      const peer = new window.Peer(peerName(code), { debug: 0 });
+      const timer = setTimeout(() => { peer.destroy(); rej({ type: 'timeout' }); }, 12000);
+      peer.on('open', () => {
+        clearTimeout(timer); this.peer = peer; this.role = 'host'; this.code = code; this.started = false; this.guests.clear();
+        this.players = [{ ...Game.me(0), name: cleanName(Store.data.name) || 'Host' }]; res();
+      });
+      peer.on('connection', c => this.onGuest(c));
+      peer.on('error', e => { if (!this.role) { clearTimeout(timer); peer.destroy(); rej(e); } });
+      peer.on('disconnected', () => { if (this.role && !peer.destroyed) try { peer.reconnect(); } catch (e) { /* players stay connected to each other */ } });
+    });
+  },
+  async join(code) {
+    await this.loadLib();
+    return new Promise((res, rej) => {
+      const peer = new window.Peer({ debug: 0 });
+      let settled = false;
+      const fail = e => { if (settled) return; settled = true; clearTimeout(timer); peer.destroy(); rej(e); };
+      const timer = setTimeout(() => fail({ type: 'timeout' }), 15000);
+      peer.on('error', fail);
+      peer.on('open', () => {
+        const c = peer.connect(peerName(code), { reliable: true, serialization: 'json' });
+        c.on('open', () => c.send({ t: 'hello', name: cleanName(Store.data.name), skin: Store.data.skin }));
+        c.on('data', d => {
+          if (!d || typeof d !== 'object') return;
+          if (d.t === 'nope') return fail({ type: d.why });
+          if (d.t === 'welcome') {
+            settled = true; clearTimeout(timer);
+            this.peer = peer; this.role = 'guest'; this.hostConn = c; this.code = code; Game.myId = d.id; Game.code = code; res();
+            return;
+          }
+          this.onHost(d);
+        });
+        c.on('close', () => { if (this.role === 'guest') this.hostLeft(); });
+      });
+    });
+  },
+  /* ---- host side ---- */
+  onGuest(c) {
+    c.on('data', d => { if (d && typeof d === 'object') this.fromGuest(c, d); });
+    c.on('close', () => this.guestLeft(c));
+    c.on('error', () => {});
+  },
+  fromGuest(c, d) {
+    const g = this.guests.get(c);
+    if (d.t === 'hello') {
+      if (this.started) { c.send({ t: 'nope', why: 'busy' }); return; }
+      const used = new Set(this.players.map(p => p.id)); let id = 1;
+      while (used.has(id)) id++;
+      if (id > 7) { c.send({ t: 'nope', why: 'full' }); return; }
+      const player = { id, name: cleanName(d.name) || 'Bean ' + id, skin: skinById(d.skin).id };
+      this.guests.set(c, player); this.players.push(player);
+      c.send({ t: 'welcome', id });
+      this.lobby();
+      return;
+    }
+    if (!g) return;
+    const race = Game.race, bean = race && race.beans.find(b => b.id === g.id);
+    switch (d.t) {
+      case 'me': g.name = cleanName(d.name) || g.name; g.skin = skinById(d.skin).id; if (!this.started) this.lobby(); break;
+      case 'ping': c.send({ t: 'pong', c: d.c }); break;
+      case 'ready': this.ready.add(g.id); this.tryGo(); break;
+      case 'p': if (bean && allFinite(d.b) && d.b.length === 12) this.buffer(bean, d.b, 0); break;
+      case 'fin': if (bean && !bean.finished && !bean.out && race.state === 'race') race.finishBean(bean); break;
+      case 'elim': if (bean && !bean.finished) race.eliminate(bean, 'goo'); break;
+      case 'tile': if (race && allFinite([d.f, d.r, d.c])) { race.world.applyTile(d.f, d.r, d.c); this.broadcast({ t: 'tile', f: d.f, r: d.r, c: d.c }, c); } break;
+    }
+  },
+  guestLeft(c) {
+    const g = this.guests.get(c); if (!g) return;
+    this.guests.delete(c); this.players = this.players.filter(p => p !== g);
+    if (!this.started) { this.lobby(); return; }
+    const race = Game.race, b = race && race.beans.find(x => x.id === g.id);
+    if (b && !b.finished && !b.out) race.eliminate(b, 'left');
+    this.tryGo();
+  },
+  broadcast(msg, except) { for (const c of this.guests.keys()) if (c !== except && c.open) c.send(msg); },
+  lobby() {
+    this.broadcast({ t: 'lobby', players: this.players, code: this.code });
+    Game.netLobby();
+  },
+  tryGo() {
+    const race = Game.race;
+    if (!race || !this.introDone || race.state !== 'intro') return;
+    for (const g of this.guests.values()) if (!this.ready.has(g.id)) return;
+    this.go();
+  },
+  go() {
+    const race = Game.race; if (!race || race.state !== 'intro') return;
+    this.broadcast({ t: 'go' }); $('#intro').classList.add('hidden'); race.startCountdown();
+  },
+  /* ---- guest side ---- */
+  send(msg) { if (this.hostConn && this.hostConn.open) this.hostConn.send(msg); },
+  onHost(d) {
+    const race = Game.race;
+    switch (d.t) {
+      case 'lobby': this.players = (d.players || []).map(p => ({ id: p.id, name: cleanName(p.name) || 'Bean', skin: skinById(p.skin).id })); Game.code = d.code; Game.netLobby(); break;
+      case 'show': Game.code = d.code; Game.enterShow(d.seed >>> 0, d.players.map(p => ({ id: p.id, name: cleanName(p.name) || 'Bean', skin: skinById(p.skin).id }))); break;
+      case 'round': if (Game.resultsT !== -2 && race) Game.showResults(); if (Game.show && !Game.show.done) Game.beginRound(); break;
+      case 'go': if (race && race.state === 'intro') { $('#intro').classList.add('hidden'); race.startCountdown(); } break;
+      case 'pong': this.lat = clamp((performance.now() - d.c) / 2000, 0, 0.5); break;
+      case 'tile': if (race) race.world.applyTile(d.f, d.r, d.c); break;
+      case 's': if (race) this.snapshot(race, d); break;
+      case 'over': if (race) race.syncOver(d.reason, d.q); break;
+      case 'bye': this.hostLeft(); break;
+    }
+  },
+  snapshot(race, d) {
+    for (const a of d.b) {
+      if (a[0] === Game.myId) continue;
+      const b = race.beans.find(x => x.id === a[0]);
+      if (b) this.buffer(b, a, 1);
+    }
+    const w = race.world, off = d.T + this.lat - w.t;
+    w.t += Math.abs(off) > 0.6 ? off : off * 0.08;       // keep hazards on the host's clock
+    race.time = d.rt;
+    if (w.goo && Number.isFinite(d.g)) w.goo.y = d.g;
+    race.syncQualified(d.q);
+    for (const id of d.o) { const b = race.beans.find(x => x.id === id); if (b && !b.out && b.id !== Game.myId) race.eliminate(b, 'goo'); }
+  },
+  hostLeft() {
+    if (this.role !== 'guest') return;
+    this.close(); Game.myId = 0; Game.toParty();
+    $('#code-err').textContent = 'The host left, so the party has ended.';
+  },
+  /* ---- both ---- */
+  state(b) { return [round2(b.p.x), round2(b.p.y), round2(b.p.z), round2(b.yaw), round2(b.v.x), round2(b.v.y), round2(b.v.z), Math.max(0, ST.indexOf(b.state)), b.grounded ? 1 : 0, round2(b.tumbleX), round2(b.tumbleZ), round2(b.progress)]; },
+  /* remember where a remote bean was, so it can be drawn smoothly a moment behind real time */
+  buffer(b, a, from) {
+    const B = b.netBuf || (b.netBuf = []);
+    B.push({ t: performance.now(), x: a[from], y: a[from + 1], z: a[from + 2], yaw: a[from + 3], vx: a[from + 4], vy: a[from + 5], vz: a[from + 6], st: ST[a[from + 7]] || 'run', g: !!a[from + 8], tx: a[from + 9], tz: a[from + 10], pr: a[from + 11] });
+    if (B.length > 8) B.shift();
+  },
+  ghosts(race) {
+    const rt = performance.now() - 130;
+    for (const b of race.beans) {
+      const B = b.netBuf; if (!b.remote || !B || !B.length) continue;
+      let i = 0; while (i < B.length - 1 && B[i].t < rt) i++;
+      const s1 = B[i], s0 = B[Math.max(0, i - 1)];
+      const far = Math.hypot(s1.x - s0.x, s1.y - s0.y, s1.z - s0.z) > 7;      // a respawn: jump, do not glide
+      const k = s0 === s1 || far ? 1 : clamp((rt - s0.t) / (s1.t - s0.t || 1), 0, 1);
+      b.p.x = lerp(s0.x, s1.x, k); b.p.y = lerp(s0.y, s1.y, k); b.p.z = lerp(s0.z, s1.z, k);
+      if (far) { b.pp.x = b.p.x; b.pp.y = b.p.y; b.pp.z = b.p.z; }
+      b.yaw = s0.yaw + BeanSim.wrapPi(s1.yaw - s0.yaw) * k;
+      b.v.x = lerp(s0.vx, s1.vx, k); b.v.y = lerp(s0.vy, s1.vy, k); b.v.z = lerp(s0.vz, s1.vz, k);
+      if (b.state !== s1.st) { b.state = s1.st; b.stateT = 0; } else b.stateT += FIXED;
+      b.grounded = s1.g; b.tumbleX = s1.tx; b.tumbleZ = s1.tz; b.progress = s1.pr;
+    }
+  },
+  tick(dt) {
+    const race = Game.race; if (!this.role || !race) return;
+    if (this.role === 'guest') { this.pingT -= dt; if (this.pingT <= 0) { this.pingT = 2; this.send({ t: 'ping', c: performance.now() }); } }
+    this.sendT -= dt; if (this.sendT > 0) return;
+    this.sendT = 0.05;
+    if (this.role === 'guest') {
+      const me = Game.player();
+      if (me && !me.out && !me.finished) this.send({ t: 'p', b: this.state(me) });
+      return;
+    }
+    const w = race.world;
+    this.broadcast({
+      t: 's', T: round2(w.t), rt: round2(race.time), g: w.goo ? round2(w.goo.y) : null,
+      b: race.beans.filter(b => !b.out && !b.finished).map(b => [b.id, ...this.state(b)]),
+      q: race.qualified.map(b => [b.id, round2(b.finishTime)]),
+      o: race.beans.filter(b => b.out).map(b => b.id),
+    });
+  },
+  tile(t) { const m = { t: 'tile', f: t.field, r: t.row, c: t.column }; if (this.role === 'guest') this.send(m); else if (this.role === 'host') this.broadcast(m); },
+  close() {
+    if (this.role === 'host') this.broadcast({ t: 'bye' });
+    const p = this.peer; this.peer = null; this.role = null; this.hostConn = null; this.guests.clear(); this.players = []; this.started = false;
+    if (p) setTimeout(() => { try { p.destroy(); } catch (e) { /* already gone */ } }, 150);
+  },
+};
+// A host switching tabs must not freeze the race for everyone else.
+setInterval(() => { if (document.hidden && Net.role === 'host' && Game.inRace()) step(0.1, false); }, 100);
 
 /* ------------------------------- GAME FLOW ------------------------------ */
 const FIXED = 1 / CONFIG.simHz;
 const Game = {
-  mode: 'menu', show: null, race: null, view: null, views: new Map(), paused: false, pausedAt: 0, acc: 0, focusId: 0, spectating: false, nonce: 0, resultsT: -1, returnTo: 'menu', auto: false, hudDone: false, debugBots: false,
+  mode: 'menu', show: null, race: null, view: null, views: new Map(), paused: false, overlay: false, pausedAt: 0, acc: 0, myId: 0, focusId: 0, spectating: false, nonce: 0, resultsT: -1, returnTo: 'menu', auto: false, hudDone: false, debugBots: false,
   inRace() { return this.mode === 'race'; },
-  player() { return this.race ? this.race.beans.find(b => b.id === 0 && !b.isBot) || null : null; },
+  me(id = this.myId) { return { id, name: cleanName(Store.data.name) || 'You', skin: Store.data.skin }; },
+  player() { return this.race ? this.race.beans.find(b => b.id === this.myId) || null : null; },
   focus() {
     if (!this.race) return null;
     let b = this.race.beans.find(x => x.id === this.focusId);
-    if (!b || b.out) { const a = this.activeBeans(); b = a[0] || this.race.beans.find(x => x.finished) || this.race.beans[0]; if (b) this.focusId = b.id; this.syncSpec(); }
+    const moveOn = b && this.spectating && b.finished && this.racing().length;
+    if (!b || b.out || moveOn) { const a = this.racing().length ? this.racing() : this.activeBeans(); b = a[0] || this.race.beans.find(x => x.finished) || this.race.beans[0]; if (b) this.focusId = b.id; this.syncSpec(); }
     return b;
   },
   activeBeans() { return this.race.beans.filter(b => !b.out).sort((a, b) => a.place - b.place); },
+  racing() { return this.activeBeans().filter(b => !b.finished); },
   act(a) {
     switch (a) {
       case 'menu': this.toMenu(); break;
-      case 'party': this.toParty(); break;
+      case 'party': Net.close(); this.myId = 0; this.toParty(); break;
       case 'locker': this.toLocker('menu'); break;
       case 'locker-lobby': this.toLocker('lobby'); break;
       case 'locker-back': this.returnTo === 'lobby' ? this.toLobby() : this.toMenu(); break;
       case 'howto': UI.show('howto'); break;
+      case 'settings': UI.syncSens(); UI.show('settings'); break;
       case 'create': this.openParty(randomCode()); break;
-      case 'join': {
-        const v = normalizeCode($('#code').value);
-        if (!validCode(v)) { $('#code-err').textContent = 'Codes look like BEAN-1234 (BEAN, a dash, four digits).'; return; }
-        this.openParty(v); break;
-      }
+      case 'host': this.hostParty(); break;
+      case 'join': this.joinParty(); break;
       case 'start': this.startShow(); break;
       case 'resume': this.resume(); break;
       case 'quit': this.quit(); break;
@@ -2706,23 +3411,52 @@ const Game = {
       case 'spec-prev': this.cycleSpec(-1); break;
       case 'spec-next': this.cycleSpec(1); break;
       case 'next-round': this.nextRound(); break;
-      case 'again': this.openParty(this.show ? this.show.code : randomCode()); break;
+      case 'again':
+        if (Net.role === 'guest') return;
+        if (Net.active) { Net.started = false; this.clearRace(); UI.hud(false); Net.lobby(); }
+        else this.openParty(this.show ? this.show.code : randomCode());
+        break;
     }
   },
+  menuBeans() { const open = SKINS.filter(s => Store.data.unlocked.includes(s.id)); return (open.length >= 6 ? open.slice(-6) : SKINS.slice(0, 6)).map(s => ({ skin: s.id })); },
   toMenu() {
     this.clearRace(); this.mode = 'menu'; UI.hud(false); UI.show('menu'); UI.menuStats();
-    Stage.setBeans(SKINS.map(s => ({ skin: s.id })), 'row');
+    Stage.setBeans(this.menuBeans(), 'row');
   },
-  toParty() { this.clearRace(); this.mode = 'menu'; UI.hud(false); UI.show('party'); if (!Stage.beans.length) Stage.setBeans(SKINS.map(s => ({ skin: s.id })), 'row'); $('#code-err').textContent = ''; },
+  toParty() { this.clearRace(); this.mode = 'menu'; UI.hud(false); UI.show('party'); if (this.layoutIsNotRow()) Stage.setBeans(this.menuBeans(), 'row'); $('#code-err').textContent = ''; },
+  layoutIsNotRow() { return !Stage.beans.length || Stage.layout !== 'row'; },
   openParty(code) { this.code = code; this.toLobby(); },
+  async hostParty() {
+    const err = $('#code-err'); err.textContent = 'Creating your party…';
+    try { this.myId = 0; await Net.host(randomCode()); err.textContent = ''; this.code = Net.code; this.netLobby(); }
+    catch (e) { Net.close(); err.textContent = Net.message(e); }
+  },
+  async joinParty() {
+    const raw = $('#code').value.trim(), v = normalizeCode(/^\d{4}$/.test(raw) ? 'BEAN-' + raw : raw), err = $('#code-err');
+    if (!validCode(v)) { err.textContent = 'Codes look like BEAN-1234.'; return; }
+    err.textContent = 'Looking for the party…';
+    try { await Net.join(v); err.textContent = ''; }
+    catch (e) { Net.close(); this.myId = 0; err.textContent = Net.message(e); }
+  },
+  /* the online lobby: someone joined, left or changed skin */
+  netLobby() {
+    if (this.mode === 'locker') return;
+    if (this.mode === 'race') { this.clearRace(); UI.hud(false); }
+    this.toLobby();
+  },
   toLobby() {
-    this.mode = 'lobby'; const show = new Show(this.code, 'You', Store.data.skin, this.nonce);
+    this.mode = 'lobby'; const humans = Net.active ? Net.players : [this.me(0)];
+    const show = new Show(this.code, humans.length ? humans : [this.me()], { myId: this.myId, nonce: this.nonce });
     this.show = show; UI.show('lobby'); UI.lobby(show);
     Stage.setBeans(show.roster.map(b => ({ skin: b.skin, tint: b.isBot && b.skin === 'classic' ? b.tint : null })), 'arc');
   },
   toLocker(from) { this.returnTo = from; this.mode = 'locker'; UI.show('locker'); UI.locker(); Stage.setBeans([{ skin: Store.data.skin }], 'solo'); Stage.beans[0].x = 0; Stage.beans[0].yaw = 0.2; },
   pickSkin(id) {
-    if (Store.data.unlocked.includes(id)) { Store.data.skin = id; Store.save(); }
+    if (Store.data.unlocked.includes(id)) {
+      Store.data.skin = id; Store.save();
+      if (Net.role === 'guest') Net.send({ t: 'me', name: cleanName(Store.data.name), skin: id });
+      else if (Net.role === 'host' && Net.players[0]) { Net.players[0].skin = id; Net.broadcast({ t: 'lobby', players: Net.players, code: Net.code }); }
+    }
     UI.locker(); Stage.setBeans([{ skin: id }], 'solo'); Stage.beans[0].yaw = 0.2;
     if (!Store.data.unlocked.includes(id)) $('#locker-stats').textContent = `Preview only. ${reqText(skinById(id).req)} to unlock.`;
   },
@@ -2731,28 +3465,35 @@ const Game = {
     this.views = new Map();
     for (const b of this.show.roster) {
       const v = new BeanView(b.skin, b.isBot && b.skin === 'classic' ? b.tint : null);
-      if (b.isBot) { v.tag = nameSprite(b.name, false); v.root.add(v.tag); }
+      if (b.id !== this.myId) { v.tag = nameSprite(b.name, false); v.root.add(v.tag); }
       this.views.set(b.id, v);
     }
   },
   startShow() {
+    if (Net.role === 'guest') return;
     this.nonce++;
-    this.show = new Show(this.code, 'You', Store.data.skin, this.nonce);
-    this.buildViews(); this.spectating = false; this.focusId = 0; this.beginRound();
+    const seed = (Math.random() * 4294967296) >>> 0, humans = Net.active ? Net.players : [this.me(0)];
+    if (Net.active) { Net.started = true; Net.broadcast({ t: 'show', seed, code: this.code, players: humans }); }
+    this.enterShow(seed, humans);
+  },
+  enterShow(seed, humans) {
+    this.show = new Show(this.code, humans, { myId: this.myId, seed });
+    this.buildViews(); this.spectating = false; this.focusId = this.myId; this.beginRound();
   },
   clearRace() {
     if (this.view) this.view.dispose();
-    this.view = null; this.race = null; this.paused = false; clearTimeout(this._nt); clearTimeout(this._ct);
+    this.view = null; this.race = null; this.paused = false; this.overlay = false; clearTimeout(this._nt); clearTimeout(this._ct); clearTimeout(this._qt); clearTimeout(this._at); clearTimeout(this._gt);
     if (document.pointerLockElement) document.exitPointerLock();
     Sfx.setHum(0); $('#big').innerHTML = ''; $('#intro').classList.add('hidden'); $('#spec').classList.add('hidden');
     Input.clear();
   },
   beginRound() {
     this.clearRace(); this.mode = 'race'; this.resultsT = -1; this.acc = 0; this.hudDone = false;
-    const show = this.show, race = this.race = show.makeRace();
+    const show = this.show, race = this.race = show.makeRace(Net.active ? { role: Net.role, myId: this.myId } : null);
+    if (Net.active) race.onGhosts = () => Net.ghosts(race);
     if (this.onRaceMade) this.onRaceMade(race);
     this.view = new LevelView(race, this.views, this.focusId);
-    if (!show.playerAlive) { this.spectating = true; this.focusId = race.beans[0].id; }
+    this.spectating = !show.playerAlive; this.focusId = show.playerAlive ? this.myId : race.beans[0].id;
     const f = this.focus(); Cam.reset(f.p, race.def.yaw || 0);
     race.tick(FIXED); race.world.events.length = 0;
     UI.show(null); UI.hud(true);
@@ -2763,7 +3504,12 @@ const Game = {
     intro.innerHTML = `<div class="muted">Round ${show.round + 1} of ${CONFIG.rounds.length}</div><h2 style="font-size:38px">${esc(race.def.name)}</h2><p>${esc(race.def.tagline)}</p><p style="font-weight:900;margin-top:6px">${esc(q)}</p>`;
     this.syncSpec();
     const delay = this.fast ? 60 : 2300;
-    this._nt = setTimeout(() => { intro.classList.add('hidden'); if (this.race === race) race.startCountdown(); }, delay);
+    if (Net.role === 'guest') Net.send({ t: 'ready' });      // the host's "go" starts everyone's countdown together
+    else if (Net.role === 'host') {
+      Net.ready = new Set(); Net.introDone = false;
+      this._nt = setTimeout(() => { Net.introDone = true; Net.tryGo(); }, delay);
+      this._gt = setTimeout(() => Net.go(), delay + 6000);    // never wait forever for a slow phone
+    } else this._nt = setTimeout(() => { intro.classList.add('hidden'); if (this.race === race) race.startCountdown(); }, delay);
   },
   syncSpec() {
     const spec = $('#spec'); const on = this.spectating && this.mode === 'race';
@@ -2771,9 +3517,9 @@ const Game = {
     if (on && this.race) { const b = this.race.beans.find(x => x.id === this.focusId); setText($('#spec-name'), b ? `Spectating ${b.name}` : 'Spectating'); }
     if (this.mode === 'race') $('#hud-help').textContent = this.spectating ? 'A / D next bean · hold F fast-forward' : 'Click to lock mouse · Esc pause';
   },
-  startSpectate() { UI.show(null); this.spectating = true; this.syncSpec(); if (this.acc < 0) this.acc = 0; },
+  startSpectate() { if (!this.paused && !this.overlay) UI.show(null); this.spectating = true; this.syncSpec(); if (this.acc < 0) this.acc = 0; },
   cycleSpec(dir) {
-    const a = this.activeBeans(); if (!a.length) return;
+    const a = this.racing().length ? this.racing() : this.activeBeans(); if (!a.length) return;
     const i = a.findIndex(b => b.id === this.focusId);
     this.focusId = a[(i + dir + a.length) % a.length].id; this.syncSpec();
   },
@@ -2784,24 +3530,27 @@ const Game = {
   },
   pause() {
     if (!this.inRace() || this.paused || this.resultsT === -2) return;
-    if (!$('#s-out').classList.contains('hidden')) return;
-    this.paused = true; this.pausedAt = performance.now(); Input.clear(); Sfx.setHum(0); UI.show('pause');
+    if (!$('#s-out').classList.contains('hidden') || this.overlay) return;
+    Input.clear(); UI.show('pause');
     if (document.pointerLockElement) document.exitPointerLock();
+    if (Net.active) { this.overlay = true; this.pausedAt = performance.now(); return; }   // a race with friends cannot stop for one player
+    this.paused = true; this.pausedAt = performance.now(); Sfx.setHum(0);
   },
   resume() {
-    if (!this.paused) return;
-    this.paused = false; this.lastT = performance.now(); UI.show(null);
+    if (!this.paused && !this.overlay) return;
+    this.paused = false; this.overlay = false; this.lastT = performance.now(); UI.show(null);
     try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* click the canvas instead */ }
   },
   autoPause() { if (this.inRace() && this.race && this.race.state !== 'over' && !this.noAutoPause) this.pause(); },
   onLockLost() { if (this.inRace() && !this.paused && this.race && this.race.state !== 'over' && !this.noAutoPause) this.pause(); },
   onEscape() {
     if (!this.inRace()) { if (this.mode === 'locker') this.act('locker-back'); return; }
-    if (this.paused) { if (performance.now() - this.pausedAt > 300) this.resume(); } else this.pause();
+    if (this.paused || this.overlay) { if (performance.now() - this.pausedAt > 300) this.resume(); } else this.pause();
   },
-  quit() { this.toMenu(); },
+  quit() { Net.close(); this.myId = 0; this.toMenu(); },
   applyPlayerInput() {
     const p = this.player(); if (!p || p.finished || p.out || this.auto) { Input.jump = Input.dive = false; return; }
+    if (this.overlay) { p.input.x = 0; p.input.z = 0; Input.jump = Input.dive = false; return; }
     const { f, r } = Input.axis(), s = Math.sin(Cam.yaw), c = Math.cos(Cam.yaw);
     p.input.x = s * f - c * r; p.input.z = c * f + s * r;
     if (Input.jump) { p.input.jump = true; Input.jump = false; }
@@ -2824,9 +3573,10 @@ const Game = {
         case 'bump': Sfx.squeak(vol); break;
         case 'knock': Sfx.thud(vol); Fx.impact(ev.x, ev.y, ev.z, ev.power > 12 ? 9 : 6); if (mine) Cam.addShake(0.42); else if (dist < 10) Cam.addShake(0.2); break;
         case 'bounce': Sfx.boing(vol); bv.impulse(0.36); view.pulsePad(ev.x, ev.z); if (mine) Cam.addShake(0.16); break;
-        case 'tileCrack': Sfx.crack(mine ? 1 : vol); break;
+        case 'tileCrack': Sfx.crack(mine ? 1 : vol); if (b) Net.tile(ev.tile); break;
         case 'tileDrop': Sfx.drop(clamp(1 - dist / 30, 0, 1) * 0.7); break;
-        case 'tileSafe': Sfx.plink(vol); break;
+        case 'tileSafe': Sfx.plink(vol); if (b) Net.tile(ev.tile); break;
+        case 'netFinish': Net.send({ t: 'fin' }); break;
         case 'fall': if (mine) Sfx.goo(); if (ev.goo) Fx.puff(ev.x, w.goo.y, ev.z, 10, race.def.theme.goo, 4); break;
         case 'respawn': Fx.puff(ev.x, ev.y, ev.z, 6, 0xffffff, 2); break;
         case 'checkpoint': if (mine) { Sfx.checkpoint(); UI.popup(`Checkpoint ${ev.index + 1} / ${ev.total}`); view.flag(ev.index); } break;
@@ -2842,20 +3592,29 @@ const Game = {
   },
   onQualified(ev) {
     const b = ev.bean, def = this.race.def;
-    Fx.confettiBurst(b.p.x, b.p.y + 1, b.p.z, b.id === 0 && !b.isBot ? 170 : 40);
+    Fx.confettiBurst(b.p.x, b.p.y + 1, b.p.z, b.id === this.myId ? 170 : 40);
     if (ev.crown) { this.views.get(b.id).giveCrown(); if (this.view.crownProp) this.view.crownProp.visible = false; }
-    if (b.id === 0 && !b.isBot) {
+    if (b.id === this.myId) {
       const d = Store.data;
       d.quals++; if (!d.best[def.id] || ev.place < d.best[def.id]) d.best[def.id] = ev.place;
+      if (!d.maps.includes(def.id)) d.maps.push(def.id);
       if (!ev.crown) { Sfx.jingle(); UI.big(`QUALIFIED!<small>${ordinal(ev.place)} place</small>`, 2600); }
       for (const s of Store.unlockNew()) UI.toast(`Unlocked ${s.name}!`);
       Store.save();
+      // finished early: after a moment's celebration, watch whoever is still racing
+      const race = this.race;
+      this._qt = setTimeout(() => {
+        if (this.race !== race || race.state !== 'race' || this.spectating) return;
+        const a = this.racing(); if (!a.length) return;
+        this.focusId = a[0].id; this.startSpectate();
+      }, this.fast ? 50 : 2400);
     } else if (!this.spectating && ev.place <= this.race.slots) UI.popup(`${b.name} qualified (${ev.place}/${this.race.slots})`, '#6b5bd2');
   },
   onEliminated(ev) {
     const b = ev.bean;
-    if (b.id === 0 && !b.isBot) {
+    if (b.id === this.myId) {
       Sfx.sad();
+      if (ev.reason === 'goo') Net.send({ t: 'elim' });
       const why = { goo: 'The goo swallowed your last checkpoint.', time: 'The clock ran out.', slots: 'All the qualifying spots were taken.' }[ev.reason] || '';
       $('#out-why').textContent = why;
       if (ev.reason === 'goo') { // mid-race: offer spectating right away
@@ -2865,13 +3624,15 @@ const Game = {
     }
   },
   onRoundOver(ev) {
+    if (Net.role === 'host') Net.broadcast({ t: 'over', reason: ev.reason, q: this.race.qualified.map(b => [b.id, round2(b.finishTime)]) });
     this.resultsT = this.fast ? 0.1 : 2.6;
     if (ev.reason === 'time') UI.big('TIME!', 1500);
     else if (this.race.def.finish.crown && ev.qualified[0]) { /* show-end screen handles it */ }
     else UI.big('ROUND OVER', 1500);
   },
   showResults() {
-    const race = this.race, show = this.show, you = race.beans.find(b => b.id === 0 && !b.isBot), last = show.round === CONFIG.rounds.length - 1;
+    const race = this.race, show = this.show, you = race.beans.find(b => b.id === this.myId), last = show.round === CONFIG.rounds.length - 1;
+    this.overlay = false; clearTimeout(this._qt);
     if (you) { // best finish per level, qualified or not
       const place = you.finished ? race.qualified.indexOf(you) + 1 : you.place, id = race.def.id, d = Store.data;
       if (place && (!d.best[id] || place < d.best[id])) { d.best[id] = place; Store.save(); }
@@ -2888,18 +3649,29 @@ const Game = {
       const skin = skinById(b.skin);
       return `<div class="card ${b.isBot ? '' : 'you'}"><span class="swatch" style="background:${skin.swatch}"></span><span class="ellipsis" style="flex:1;font-weight:900">${esc(b.name)}</span><span class="muted" style="font-size:12px">${b.finished ? ordinal(i + 1) + ' · ' + b.finishTime.toFixed(1) + 's' : 'Out'}</span></div>`;
     }).join('');
-    $('#round-next').textContent = show.playerAlive ? 'Next round' : 'Watch next round';
+    const next = $('#round-next'), guest = Net.role === 'guest';
+    next.textContent = guest ? 'Waiting for the host…' : show.playerAlive ? 'Next round' : 'Watch next round';
+    next.disabled = guest;
+    if (Net.role === 'host') this._at = setTimeout(() => this.nextRound(), 12000);   // keep the party moving
     this.resultsT = -2; UI.show('round');
   },
-  nextRound() { this.beginRound(); },
+  nextRound() {
+    if (Net.role === 'guest') return;
+    clearTimeout(this._at);
+    if (Net.role === 'host') Net.broadcast({ t: 'round' });
+    this.beginRound();
+  },
   endShow(race) {
-    const show = this.show, d = Store.data, w = show.winner, you = w && w.id === 0 && !w.isBot;
-    d.shows++; if (you) d.crowns++;
+    const show = this.show, d = Store.data, w = show.winner, you = w && w.id === this.myId;
+    d.shows++;
+    if (you) { d.crowns++; d.streak++; d.bestStreak = Math.max(d.bestStreak, d.streak); } else d.streak = 0;
     const fresh = Store.unlockNew(); Store.save();
     this.resultsT = -2; this.spectating = false; $('#spec').classList.add('hidden');
     UI.show('end');
+    const again = $('#end-again'), guest = Net.role === 'guest';
+    again.disabled = guest; again.textContent = guest ? 'Waiting for the host…' : 'Play again';
     $('#end-title').textContent = you ? 'YOU WON THE CROWN!' : w ? `${w.name} won the crown` : 'Nobody reached the crown';
-    $('#end-sub').textContent = (you ? 'The bean of legend. Crowns won: ' + d.crowns + '.' : 'Better luck next show.') + (fresh.length ? ' Unlocked: ' + fresh.map(s => s.name).join(', ') + '.' : '');
+    $('#end-sub').textContent = (you ? `The bean of legend. Crowns won: ${d.crowns}. Streak: ${d.streak}.` : 'Better luck next show.') + (fresh.length ? ' Unlocked: ' + fresh.map(s => s.name).join(', ') + '.' : '');
     if (w) { const b = race.beans.find(x => x.id === w.id); if (b) { this.focusId = b.id; this.views.get(b.id).giveCrown(); Fx.confettiBurst(b.p.x, b.p.y + 1, b.p.z, 220, 9); Cam.wantDist = 7; } }
     if (you) Sfx.cheer(); else Sfx.sad();
     this._ct = setInterval(() => { if (this.resultsT !== -2 || !this.race) return clearInterval(this._ct); const f = this.focus(); if (f) Fx.confettiBurst(f.p.x, f.p.y + 1, f.p.z, 60, 8); }, 1300);
@@ -2932,12 +3704,13 @@ function step(dt, render = true) {
     const race = Game.race, you = Game.player();
     if (!Game.paused) {
       const done = !you || you.finished || you.out || !Game.show.playerAlive;
-      const speed = (done && Input.keys.has('KeyF') ? 4 : 1) * (Game.timeScale || 1);
+      const speed = (done && !Net.active && Input.keys.has('KeyF') ? 4 : 1) * (Game.timeScale || 1);
       Game.acc += dt * speed;
       let n = 0;
       while (Game.acc >= FIXED && n < 20 * (Game.timeScale || 1)) { Game.applyPlayerInput(); race.tick(FIXED); Game.acc -= FIXED; n++; if (race.world.events.length > 60) Game.handleEvents(); }
       if (Game.acc >= FIXED) Game.acc = 0;
       Game.handleEvents();
+      if (Game.race) Net.tick(dt);
       if (Game.resultsT > 0) { Game.resultsT -= dt; if (Game.resultsT <= 0) Game.showResults(); }
     }
     if (!Game.race) return;
@@ -2989,9 +3762,9 @@ async function runAutotest() {
 }
 /* ?perf=<levelIndex>: 8-bean race, spectating, logs average fps */
 function runPerf(levelIndex) {
-  Game.code = 'BEAN-7777'; Game.noAutoPause = true; Game.noAdapt = params.has('noadapt'); Game.show = new Show(Game.code, 'Bot', 'classic');
-  Game.show.playerAlive = false; Game.show.round = levelIndex; Game.show.roster[0] = Game.show.player = { ...genBots('BEAN-7778', 1)[0], id: 0, isBot: true }; Game.show.alive = Game.show.roster.slice();
-  CONFIG.rounds[levelIndex] = { level: levelIndex, slots: 8 };
+  Game.code = 'BEAN-7777'; Game.noAutoPause = true; Game.noAdapt = params.has('noadapt'); Game.show = new Show(Game.code, [{ id: 0, name: 'Bot', skin: 'classic' }]);
+  Game.show.playerAlive = false; Game.show.round = 0; Game.show.maps = [levelIndex]; Game.show.roster[0] = Game.show.player = { ...genBots('BEAN-7778', 1)[0], id: 0, isBot: true }; Game.show.alive = Game.show.roster.slice();
+  CONFIG.rounds[0] = { slots: 8 };
   Game.buildViews(); Game.fast = true; Game.beginRound();
   const start = performance.now(); let samples = 0, tot = 0, lastF = 0, worst = 1e9;
   const it = setInterval(() => {
@@ -3005,10 +3778,11 @@ function runPerf(levelIndex) {
   }, 500);
 }
 window.__game = {
-  Game, Store, Input, Cam, Quality, renderer, fpsLog,
+  Game, Store, Input, Cam, Quality, Net, Stage, renderer, fpsLog,
+
   autoplay(on = true) { // let a strong bot brain drive the player's bean, for flow testing
     Game.auto = on; Game.onRaceMade = race => {
-      if (!Game.auto) return; const p = race.beans.find(b => b.id === 0 && !b.isBot); if (!p) return;
+      if (!Game.auto) return; const p = race.beans.find(b => b.id === Game.myId); if (!p) return;
       p.pers = { skill: 0.97, aggression: 0, reaction: 0.1, mistake: 0.02, miss: 0.01, tier: 'strong' };
       race.bots.push(new BotBrain(race.world, p, BeanSim.mulberry32(99)));
     };
