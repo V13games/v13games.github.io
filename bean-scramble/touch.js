@@ -63,6 +63,44 @@
     '#t-edit .t-item.held{outline:3px solid #22c1d6;outline-offset:2px}'
   ].join('\n');
 
+  function stop(e) { e.preventDefault(); }
+
+  /* iPhone and iPad Safari ignore the page's "no zooming" setting, so tapping JUMP twice quickly,
+     or a thumb on the joystick plus a tap on JUMP (which looks like a pinch), zoomed the whole page in.
+     These block the browser's zoom gestures. Text boxes and scrolling lists work as before. */
+  function noZoom() {
+    var opts = { passive: false };
+    // pinching: Safari sends these on iPhone and iPad only
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (type) { document.addEventListener(type, stop, opts); });
+    // two fingers moving at once
+    document.addEventListener('touchmove', function (e) { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, opts);
+    document.addEventListener('dblclick', stop, opts);
+
+    // A quick second tap is Safari's double-tap zoom. Cancel it, and press the button for the player,
+    // since cancelling it also cancels the button press.
+    // Times come from the touches themselves, not the clock, so a busy moment in the game cannot blur two taps together.
+    var starts = {}, lastTap = -1e9;
+    document.addEventListener('touchstart', function (e) {
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        starts[t.identifier] = { x: t.clientX, y: t.clientY, at: e.timeStamp };
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', function (e) {
+      var t = e.changedTouches[0], s = t && starts[t.identifier], now = e.timeStamp;
+      for (var i = 0; i < e.changedTouches.length; i++) delete starts[e.changedTouches[i].identifier];
+      // only short taps count; a swipe through a list or a held thumb is not a double tap
+      if (!s || now - s.at > 500 || Math.hypot(t.clientX - s.x, t.clientY - s.y) > 12) return;
+      var quick = now - lastTap < 450;
+      lastTap = now;
+      var el = e.target && e.target.closest ? e.target : null;
+      if (!quick || !el || el.closest('input, textarea, select')) return;
+      e.preventDefault();
+      var hit = el.closest('button, a[href], label, [data-act], [data-skin]');
+      if (hit && !hit.disabled && !(layer && layer.contains(hit))) hit.click();
+    }, opts);
+  }
+
   function enable() {
     if (enabled) return;
     enabled = true;
@@ -70,6 +108,7 @@
     var style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
+    noZoom();
     var wait = setInterval(function () {
       if (window.__game && window.__booted) { clearInterval(wait); api = window.__game; build(); }
     }, 100);
@@ -233,6 +272,7 @@
       el.style.left = (spot.p[0] * innerWidth - spot.size / 2) + 'px';
       el.style.top = (spot.p[1] * innerHeight - spot.size / 2) + 'px';
       editor.appendChild(el);
+      el.addEventListener('touchstart', stop, { passive: false });
       el.addEventListener('pointerdown', function (e) {
         e.preventDefault(); el.classList.add('held');
         try { el.setPointerCapture(e.pointerId); } catch (err) { /* the finger already left */ }
@@ -295,7 +335,9 @@
     layer.addEventListener('pointermove', onMove);
     layer.addEventListener('pointerup', onUp);
     layer.addEventListener('pointercancel', onUp);
-    layer.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    layer.addEventListener('contextmenu', stop);
+    // The controls only use pointer events, so the browser gets no say in what a finger does here: no zoom, no scroll.
+    layer.addEventListener('touchstart', stop, { passive: false });
 
     // The joystick stands in for the arrow keys. A plugged-in keyboard keeps working.
     var keyAxis = Input.axis.bind(Input);
