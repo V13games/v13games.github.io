@@ -5,176 +5,199 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Slowwater Games</title>
 <meta name="description" content="Free games you play in your browser. Nothing to install.">
-<meta name="theme-color" content="#241b17">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233a2b22'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#09090b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,0..100&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: a lamp-lit room by slow water. Warm dark walls, one soft glow, and the games are the bright things in it. */
+/* Layout: a quiet black gallery. The newest game gets the spotlight; every game sits in one grid you can filter. */
 :root{
-  --bg:#2b1f19; --raised:#3a2b22; --line:rgba(245,234,217,.15);
-  --cream:#f7eddd; --soft:#d6c6b1; --honey:#f2b661; --honey-light:#f8cb87; --honey-ink:#2b1c0f;
-  --sage:#c5d3ae; --sage-tint:rgba(174,194,147,.15);
-  --head:'Fraunces',Georgia,'Times New Roman',serif;
-  --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --gutter:clamp(16px,4vw,48px);
-  --lamp:calc(50% + 270px) 390px;
+  --bg:#09090b; --panel:#111113; --panel-2:#17171a; --line:#232327; --line-2:#36363c;
+  --text:#f4f4f5; --muted:#a1a1aa; --dim:#71717a; --accent:#f2b661; --accent-2:#f7c983; --accent-ink:#1c1306;
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --gutter:clamp(16px,4vw,40px);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
-body{
-  margin:0;min-height:100vh;display:flex;flex-direction:column;
-  color:var(--cream);font-family:var(--body);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased;
-  background:radial-gradient(900px 640px at var(--lamp),rgba(242,172,88,.3),transparent 72%) no-repeat,var(--bg);
-}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;position:relative;background:var(--bg);color:var(--text);font:400 16px/1.55 var(--font);-webkit-font-smoothing:antialiased}
+/* a faint dot grid that fades out down the page */
+body::before{content:"";position:absolute;inset:0 0 auto;height:620px;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.3px);background-size:22px 22px;
+  -webkit-mask-image:linear-gradient(#000 0%,transparent 100%);mask-image:linear-gradient(#000 0%,transparent 100%)}
 a{color:inherit}
-a:focus-visible{outline:3px solid var(--honey);outline-offset:3px}
-h1,h2,h3{margin:0;font-family:var(--head);font-weight:600;font-variation-settings:'SOFT' 100;text-wrap:balance}
-.wrap{width:100%;max-width:1200px;margin-inline:auto;padding-left:max(var(--gutter),env(safe-area-inset-left,0px));padding-right:max(var(--gutter),env(safe-area-inset-right,0px))}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+.wrap{position:relative;width:100%;max-width:1180px;margin-inline:auto;padding-left:max(var(--gutter),env(safe-area-inset-left,0px));padding-right:max(var(--gutter),env(safe-area-inset-right,0px))}
 
-.nav{padding-block:clamp(18px,3vw,28px)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
-.brand img{display:block;border-radius:8px}
+/* top bar */
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em;text-decoration:none}
+.brand img{display:block;border-radius:7px}
+.nav-links{display:flex;align-items:center;gap:22px}
+.nav-links a:not(.btn){color:var(--muted);text-decoration:none;font-size:15px;font-weight:500;transition:color .15s}
+.nav-links a:not(.btn):hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 18px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:15px;line-height:1.3;text-decoration:none;transition:background-color .15s}
+.btn:hover,.spot:hover .btn{background:var(--accent-2)}
 
-main{flex:1}
-.hero{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);gap:clamp(32px,5vw,72px);align-items:center;padding-block:clamp(20px,5vw,60px) clamp(48px,7vw,88px)}
-h1{font-size:clamp(42px,5.8vw,70px);line-height:1.06;letter-spacing:-.012em}
-.lede{margin:18px 0 0;font-size:clamp(18px,1.7vw,20px);color:var(--soft);max-width:26em;text-wrap:balance}
-.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
-.btn{display:inline-block;padding:12px 22px;border:1px solid var(--line);border-radius:12px;font-weight:800;line-height:1.3;text-decoration:none;transition:background-color .15s,border-color .15s}
-.btn:hover{background:rgba(245,234,217,.08)}
-.btn.main{background:var(--honey);border-color:var(--honey);color:var(--honey-ink)}
-.btn.main:hover{background:var(--honey-light);border-color:var(--honey-light)}
-.notes{display:flex;flex-wrap:wrap;gap:6px 0;list-style:none;margin:30px 0 0;padding:0;color:var(--soft);font-size:15px}
-.notes li+li{margin-left:14px;padding-left:14px;border-left:1px solid var(--line)}
+/* hero: a short welcome beside the newest game */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.95fr);gap:clamp(28px,5vw,64px);align-items:center;padding-block:clamp(40px,7vw,88px) clamp(40px,6vw,72px)}
+.eyebrow{margin:0 0 14px;color:var(--accent);font-size:14px;font-weight:600;letter-spacing:.01em}
+h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
+.lede{margin:18px 0 0;color:var(--muted);font-size:clamp(17px,1.5vw,19px);line-height:1.6;max-width:30em}
+.spot{display:block;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:18px;text-decoration:none;transition:border-color .2s}
+.spot:hover{border-color:var(--line-2)}
+.spot .frame{border-radius:10px}
+.spot-text{display:grid;gap:8px;justify-items:start;padding:16px 8px 8px}
+.spot-text h2{font-size:clamp(24px,2.4vw,28px)}
+.spot-text p{margin:0;color:var(--muted)}
+.spot-text .btn{margin-top:6px}
+.new{font-size:12px;font-weight:600;color:var(--accent);border:1px solid rgba(242,182,97,.35);background:rgba(242,182,97,.08);border-radius:999px;padding:2px 10px}
 
-.card{display:flex;flex-direction:column;min-width:0;background:var(--raised);border:1px solid var(--line);border-radius:18px;overflow:hidden;text-decoration:none;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
-.card:hover{transform:translateY(-3px);border-color:rgba(242,182,97,.55);box-shadow:0 14px 32px rgba(0,0,0,.32)}
-.card img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;background:#1b1411}
-.text{flex:1;display:flex;flex-direction:column;gap:8px;padding:16px 18px 18px}
-.head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.card h2,.card h3{font-size:23px;line-height:1.2;min-width:0}
-.go{flex:none;color:var(--honey);font-weight:800;font-size:16px}
-.text p{margin:0;color:var(--soft);font-size:16px;line-height:1.42}
-.tags{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:auto 0 0;padding:6px 0 0}
-.tags li{padding:2px 10px;border-radius:99px;background:var(--sage-tint);color:var(--sage);font-size:13px;font-weight:600}
-.feature .text{padding:20px 22px 22px}
-.feature h2{font-size:clamp(26px,2.6vw,30px)}
+/* the browser-window frame around each picture */
+.frame{overflow:hidden;background:var(--panel-2);border:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.bar i{flex:none;width:7px;height:7px;border-radius:50%;background:#3a3a40}
+.bar span{flex:1;min-width:0;margin-left:8px;padding:2px 10px;text-align:center;font-size:12px;color:var(--dim);background:#0c0c0e;border:1px solid var(--line);border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frame img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;background:#0c0c0e}
 
-.more{padding-bottom:clamp(48px,7vw,84px);scroll-margin-top:20px}
-.more>h2{font-size:clamp(26px,2.6vw,30px);margin-bottom:20px}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+/* all games */
+.games{padding-bottom:clamp(56px,8vw,96px);scroll-margin-top:16px}
+.filter{display:flex;align-items:center;gap:16px;margin-bottom:22px;min-width:0}
+.filter h2{flex:none;font-size:16px;font-weight:600;letter-spacing:0}
+.filter h2 span{color:var(--dim);margin-right:4px}
+.chips{display:flex;gap:8px;min-width:0;overflow-x:auto;scrollbar-width:none;padding:3px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;gap:8px;padding:6px 7px 6px 14px;border:1px solid var(--line-2);border-radius:999px;background:transparent;color:var(--muted);font:500 14px/1.3 var(--font);cursor:pointer;transition:color .15s,border-color .15s,background-color .15s}
+.chip:hover{color:var(--text)}
+.chip span{font-size:12px;color:var(--dim);background:var(--panel-2);border-radius:999px;padding:1px 8px}
+.chip[aria-pressed="true"]{color:var(--text);border-color:#5a5a62;background:var(--panel-2)}
+.chip[aria-pressed="true"] span{background:#26262b;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:20px}
+.card{display:flex;flex-direction:column;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;transition:border-color .2s,transform .2s}
+.card[hidden]{display:none}
+/* the newest game is already in the spotlight, so "All" does not show it twice */
+.grid[data-filter="all"] .card.is-new{display:none}
+.card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+.card .frame{border:0;border-bottom:1px solid var(--line)}
+.meta{flex:1;display:flex;flex-direction:column;gap:6px;padding:16px 18px 18px}
+.meta h3{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.meta p{margin:0;color:var(--muted);font-size:15px;line-height:1.5}
+.tags{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:auto 0 0;padding:8px 0 0}
+.tags li{padding:1px 9px;border:1px solid var(--line-2);border-radius:999px;color:var(--muted);font-size:12px;font-weight:500}
 
-.foot{color:var(--soft);font-size:15px}
-.foot p{margin:0;border-top:1px solid var(--line);padding-block:16px calc(16px + env(safe-area-inset-bottom,0px))}
+.foot{color:var(--dim);font-size:14px}
+.foot p{margin:0;padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
 
-@media (max-width:1080px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:860px){
-  :root{--lamp:50% 600px}
-  .hero{grid-template-columns:minmax(0,1fr)}
-}
-@media (max-width:560px){
-  .grid{grid-template-columns:minmax(0,1fr)}
-  .btn{flex:1 1 auto;text-align:center;white-space:nowrap}
-}
-@media (max-width:360px){.notes{font-size:14px}.notes li+li{margin-left:9px;padding-left:9px}}
-@media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  .card,.btn{transition:none}
-  .card:hover{transform:none}
-}
+@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:420px){.nav-links .link{display:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card,.btn,.spot,.chip{transition:none}.card:hover{transform:none}}
 </style>
 </head>
 <body>
   <!-- This page is generated. To change the games on it, edit games.json and run: node build.js -->
   <header class="wrap nav">
-    <div class="brand"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233a2b22'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="30" height="30" alt=""><span>Slowwater Games</span></div>
+    <a class="brand" href="./"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="28" height="28" alt=""><span>Slowwater Games</span></a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="link" href="#games">All games</a>
+      <a class="btn" href="bean-scramble/">Play newest</a>
+    </nav>
   </header>
 
-  <main class="wrap">
-    <section class="hero">
+  <main>
+    <section class="wrap hero">
       <div>
+        <p class="eyebrow">Free browser games</p>
         <h1>Pull up a chair and play.</h1>
-        <p class="lede">Free games you play right in your browser. Nothing to install.</p>
-        <div class="actions">
-          <a class="btn main" href="stale-light/">Play Stale Light</a>
-          <a class="btn" href="#more">More games</a>
-        </div>
-        <ul class="notes">
-          <li>8 games</li>
-          <li>Free to play</li>
-          <li>Computer or phone</li>
-        </ul>
+        <p class="lede">8 small games that run right in your browser, on a computer or a phone. Nothing to install.</p>
       </div>
-        <a class="card feature" href="stale-light/">
-          <img src="stale-light/cover.jpg" width="1600" height="900" alt="Low-poly blue and red warships trading fire around a lighthouse island on a bright turquoise sea.">
-          <div class="text">
-            <div class="head"><h2>Stale Light</h2><span class="go">Play</span></div>
-            <p>Command a fleet in a strait where light crawls at 70 knots. Every ship you see is seconds out of date, and every order takes time to arrive.</p>
-            <ul class="tags"><li>Naval strategy</li><li>5-minute battles</li><li>Guided tutorial</li></ul>
-          </div>
-        </a>
+      <a class="spot" href="bean-scramble/">
+        <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/bean-scramble</span></div><img src="bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky."></div>
+        <div class="spot-text">
+          <span class="new">Newest game</span>
+          <h2>Bean Scramble</h2>
+          <p>Race your friends online through twelve wild 3D maps until one bean takes the crown.</p>
+          <span class="btn">Play now</span>
+        </div>
+      </a>
     </section>
 
-    <section class="more" id="more" aria-labelledby="more-title">
-      <h2 id="more-title">More games</h2>
-      <div class="grid">
-        <a class="card" href="luftvejen/">
-          <img src="luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line." loading="lazy">
-          <div class="text">
-            <div class="head"><h3>Luftvejen</h3><span class="go">Play</span></div>
-            <p>An endless road in the sky, and one button to drive it.</p>
-            <ul class="tags"><li>Driving</li><li>Danish</li></ul>
+    <section class="wrap games" id="games" aria-labelledby="games-title">
+      <div class="filter">
+        <h2 id="games-title"><span>//</span>Games</h2>
+        <div class="chips" role="group" aria-label="Show games by type">
+          <button type="button" class="chip" data-genre="all" aria-pressed="true">All <span>8</span></button>
+          <button type="button" class="chip" data-genre="Arcade" aria-pressed="false">Arcade <span>3</span></button>
+          <button type="button" class="chip" data-genre="Puzzle" aria-pressed="false">Puzzle <span>2</span></button>
+          <button type="button" class="chip" data-genre="Casino" aria-pressed="false">Casino <span>1</span></button>
+          <button type="button" class="chip" data-genre="Party" aria-pressed="false">Party <span>1</span></button>
+          <button type="button" class="chip" data-genre="Strategy" aria-pressed="false">Strategy <span>1</span></button>
+        </div>
+      </div>
+      <div class="grid" data-filter="all">
+        <a class="card is-new" href="bean-scramble/" data-genre="Party">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/bean-scramble</span></div><img src="bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky." loading="lazy"></div>
+          <div class="meta">
+            <h3>Bean Scramble</h3>
+            <p>Race your friends online through twelve wild 3D maps until one bean takes the crown.</p>
+            <ul class="tags"><li>Online party race</li><li>Twelve maps</li></ul>
           </div>
         </a>
-        <a class="card" href="flipklods/">
-          <img src="flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy">
-          <div class="text">
-            <div class="head"><h3>Flipklods</h3><span class="go">Play</span></div>
-            <p>The block runs by itself. You choose floor or ceiling.</p>
-            <ul class="tags"><li>Runner</li><li>Danish</li></ul>
-          </div>
-        </a>
-        <a class="card" href="zigwave/">
-          <img src="zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy">
-          <div class="text">
-            <div class="head"><h3>ZIGWAVE</h3><span class="go">Play</span></div>
-            <p>Hold to rise, let go to dive, and thread a neon wave through tight corridors.</p>
-            <ul class="tags"><li>Reflex</li><li>Three levels</li></ul>
-          </div>
-        </a>
-        <a class="card" href="kodeord/">
-          <img src="kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy">
-          <div class="text">
-            <div class="head"><h3>Kodeord</h3><span class="go">Play</span></div>
-            <p>Guess the five-letter word in six tries. A new word every day, in Danish or English.</p>
-            <ul class="tags"><li>Word game</li><li>Danish or English</li></ul>
-          </div>
-        </a>
-        <a class="card" href="tessera/">
-          <img src="tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy">
-          <div class="text">
-            <div class="head"><h3>Tessera</h3><span class="go">Play</span></div>
-            <p>Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.</p>
-            <ul class="tags"><li>Block puzzle</li><li>Four themes</li></ul>
-          </div>
-        </a>
-        <a class="card" href="orechip/">
-          <img src="orechip/cover.jpg" width="1600" height="900" alt="A Mines round in OreChip Casino, with six green pixel gems uncovered and a yellow Cash out button beside the board." loading="lazy">
-          <div class="text">
-            <div class="head"><h3>OreChip Casino</h3><span class="go">Play</span></div>
+        <a class="card" href="orechip/" data-genre="Casino">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/orechip</span></div><img src="orechip/cover.jpg" width="1600" height="900" alt="A Mines round in OreChip Casino, with six green pixel gems uncovered and a yellow Cash out button beside the board." loading="lazy"></div>
+          <div class="meta">
+            <h3>OreChip Casino</h3>
             <p>Seventeen casino games played with free coins and no real money.</p>
             <ul class="tags"><li>Casino</li><li>Virtual coins only</li></ul>
           </div>
         </a>
-        <a class="card" href="bean-scramble/">
-          <img src="bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky." loading="lazy">
-          <div class="text">
-            <div class="head"><h3>Bean Scramble</h3><span class="go">Play</span></div>
-            <p>Race your friends online through twelve wild 3D maps until one bean takes the crown.</p>
-            <ul class="tags"><li>Online party race</li><li>Twelve maps</li></ul>
+        <a class="card" href="tessera/" data-genre="Puzzle">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/tessera</span></div><img src="tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div>
+          <div class="meta">
+            <h3>Tessera</h3>
+            <p>Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.</p>
+            <ul class="tags"><li>Block puzzle</li><li>Four themes</li></ul>
+          </div>
+        </a>
+        <a class="card" href="kodeord/" data-genre="Puzzle">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/kodeord</span></div><img src="kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy"></div>
+          <div class="meta">
+            <h3>Kodeord</h3>
+            <p>Guess the five-letter word in six tries. A new word every day, in Danish or English.</p>
+            <ul class="tags"><li>Word game</li><li>Danish or English</li></ul>
+          </div>
+        </a>
+        <a class="card" href="zigwave/" data-genre="Arcade">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/zigwave</span></div><img src="zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy"></div>
+          <div class="meta">
+            <h3>ZIGWAVE</h3>
+            <p>Hold to rise, let go to dive, and thread a neon wave through tight corridors.</p>
+            <ul class="tags"><li>Reflex</li><li>Three levels</li></ul>
+          </div>
+        </a>
+        <a class="card" href="flipklods/" data-genre="Arcade">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/flipklods</span></div><img src="flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div>
+          <div class="meta">
+            <h3>Flipklods</h3>
+            <p>The block runs by itself. You choose floor or ceiling.</p>
+            <ul class="tags"><li>Runner</li><li>Danish</li></ul>
+          </div>
+        </a>
+        <a class="card" href="luftvejen/" data-genre="Arcade">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/luftvejen</span></div><img src="luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line." loading="lazy"></div>
+          <div class="meta">
+            <h3>Luftvejen</h3>
+            <p>An endless road in the sky, and one button to drive it.</p>
+            <ul class="tags"><li>Driving</li><li>Danish</li></ul>
+          </div>
+        </a>
+        <a class="card" href="stale-light/" data-genre="Strategy">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/stale-light</span></div><img src="stale-light/cover.jpg" width="1600" height="900" alt="Low-poly blue and red warships trading fire around a lighthouse island on a bright turquoise sea." loading="lazy"></div>
+          <div class="meta">
+            <h3>Stale Light</h3>
+            <p>Command a fleet in a strait where light crawls at 70 knots. Every ship you see is seconds out of date, and every order takes time to arrive.</p>
+            <ul class="tags"><li>Naval strategy</li><li>5-minute battles</li><li>Guided tutorial</li></ul>
           </div>
         </a>
       </div>
@@ -184,5 +207,16 @@ h1{font-size:clamp(42px,5.8vw,70px);line-height:1.06;letter-spacing:-.012em}
   <footer class="wrap foot">
     <p>© 2026 Slowwater Games</p>
   </footer>
+  <script>
+    // Filter buttons: show one type of game, or all of them.
+    document.querySelectorAll('.chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var want = chip.dataset.genre;
+        document.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-pressed', String(c === chip)); });
+        document.querySelector('.grid').dataset.filter = want;
+        document.querySelectorAll('.grid .card').forEach(function (card) { card.hidden = want !== 'all' && card.dataset.genre !== want; });
+      });
+    });
+  </script>
 </body>
 </html>
