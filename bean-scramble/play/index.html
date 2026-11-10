@@ -2231,8 +2231,8 @@ const Store = (() => {
    only a slow PBKDF2 fingerprint of it is, so reading the page does not reveal it.
    To change the code, make a new random one, and replace salt and hash with its fingerprint. */
 const Secret = {
-  salt: 'eda3da07643b28187dc62b1cc463f253',
-  hash: '742992ae11afd53c7d3bdb02a24ea7c34ef8d37481477bc9d3be8d22e1995779',
+  salt: '705606f69ad0b5755e5c088d26264dfd',
+  hash: '4e3d09a2ba44fb2cdee9b1e1893c8f8d0ede5696297c241651b651c25225502a',
   rounds: 100000,
   norm: text => String(text || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
   async check(text) {
