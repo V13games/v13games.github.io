@@ -45,6 +45,13 @@
   .btn[disabled] { opacity: .5; cursor: not-allowed; }
   input[type=text] { font: inherit; font-weight: 900; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; border: 3px solid var(--ink); border-radius: 12px; padding: 8px 12px; width: 190px; color: var(--ink); background: #fff; user-select: text; -webkit-user-select: text; }
   #pname { width: 100%; text-transform: none; letter-spacing: 0; font-size: 18px; }
+  #secret { margin-top: 4px; }
+  #secret summary { cursor: pointer; font-weight: 800; font-size: 14px; opacity: .72; width: max-content; }
+  #secret summary:hover { opacity: 1; }
+  #secret-form { margin-top: 10px; flex-wrap: nowrap; }
+  #secret-code { flex: 1; min-width: 0; width: auto; font-size: 16px; letter-spacing: 1px; padding: 8px 10px; }
+  #secret-msg { margin: 8px 0 0; min-height: 1.2em; }
+  #secret-msg.good { opacity: 1; font-weight: 800; color: #1f8a4c; }
   input[type=range] { width: 100%; accent-color: var(--pop); }
   .rar { font-size: 11px; font-weight: 900; letter-spacing: .3px; border-radius: 999px; padding: 1px 7px; color: #fff; background: #5a5470; }
   .rar.Rare { background: #2f7fd8; } .rar.Epic { background: #8e3bd8; } .rar.Mythic { background: #d8462f; } .rar.Legendary { background: #000; color: #d09cff; }
@@ -189,6 +196,14 @@
       <input id="sens3" type="range" min="0.3" max="2.2" step="0.05">
       <button class="btn" data-act="mute" id="set-sound">Sound on</button>
       <button class="btn" id="touch-layout" hidden>Move touch buttons</button>
+      <details id="secret">
+        <summary>Have a code?</summary>
+        <form id="secret-form" class="row" autocomplete="off">
+          <input id="secret-code" type="text" placeholder="Enter code" aria-label="Secret code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40">
+          <button class="btn small" id="secret-go" type="submit">Redeem</button>
+        </form>
+        <p class="muted" id="secret-msg" aria-live="polite"></p>
+      </details>
     </div>
   </section>
 
@@ -2174,14 +2189,16 @@ const cleanName = s => String(s == null ? '' : s).replace(/[^\p{L}\p{N} _-]/gu, 
 
 const Store = (() => {
   const KEY = 'beans.v1';
-  const defaults = () => ({ v: 1, skin: 'classic', unlocked: ['classic'], crowns: 0, shows: 0, quals: 0, best: {}, muted: false, sens: 1, name: '', streak: 0, bestStreak: 0, maps: [] });
+  // `everything`: the secret code was entered on this device, so every skin is unlocked, including ones added later.
+  const defaults = () => ({ v: 1, skin: 'classic', unlocked: ['classic'], crowns: 0, shows: 0, quals: 0, best: {}, muted: false, sens: 1, name: '', streak: 0, bestStreak: 0, maps: [], everything: false });
   let data = defaults(), persistent = true;
   const num = (v, d, min = 0, max = 1e9) => Number.isFinite(v) ? clamp(v, min, max) : d;
   function sanitize(p) {
     const d = defaults();
     if (!p || typeof p !== 'object' || p.v !== 1) return d;
     const ids = SKINS.map(s => s.id);
-    d.unlocked = Array.from(new Set(['classic', ...(Array.isArray(p.unlocked) ? p.unlocked.filter(x => ids.includes(x)) : [])]));
+    d.everything = p.everything === true;
+    d.unlocked = d.everything ? ids.slice() : Array.from(new Set(['classic', ...(Array.isArray(p.unlocked) ? p.unlocked.filter(x => ids.includes(x)) : [])]));
     d.skin = d.unlocked.includes(p.skin) ? p.skin : 'classic';
     d.crowns = num(p.crowns, 0); d.shows = num(p.shows, 0); d.quals = num(p.quals, 0);
     d.muted = !!p.muted; d.sens = num(p.sens, 1, 0.3, 2.2);
@@ -2200,12 +2217,33 @@ const Store = (() => {
       const fresh = [];
       for (const s of SKINS) {
         if (data.unlocked.includes(s.id) || !s.req) continue;
-        if (reqMet(s.req, data)) { data.unlocked.push(s.id); fresh.push(s); }
+        if (data.everything || reqMet(s.req, data)) { data.unlocked.push(s.id); fresh.push(s); }
       }
       return fresh;
     },
+    /* the secret code: every skin, now and later. Stats stay real. */
+    unlockEverything() { data.everything = true; const fresh = this.unlockNew(); this.save(); return fresh; },
   };
 })();
+
+/* ---------------------------- SECRET CODE ----------------------------
+   Settings > "Have a code?" unlocks everything. The code itself is not in this file:
+   only a slow PBKDF2 fingerprint of it is, so reading the page does not reveal it.
+   To change the code, make a new random one, and replace salt and hash with its fingerprint. */
+const Secret = {
+  salt: 'eda3da07643b28187dc62b1cc463f253',
+  hash: '742992ae11afd53c7d3bdb02a24ea7c34ef8d37481477bc9d3be8d22e1995779',
+  rounds: 100000,
+  norm: text => String(text || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
+  async check(text) {
+    const code = this.norm(text);
+    if (code.length !== 24 || !(window.crypto && crypto.subtle)) return false;
+    const bytes = new Uint8Array(this.salt.match(/../g).map(h => parseInt(h, 16)));
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: bytes, iterations: this.rounds }, key, 256);
+    return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('') === this.hash;
+  },
+};
 
 /* ------------------------------- INPUT ------------------------------- */
 const Input = {
@@ -3160,6 +3198,23 @@ $('#code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.prevent
 $('#code').addEventListener('input', () => { $('#code-err').textContent = ''; });
 $('#pname').value = Store.data.name;
 $('#pname').addEventListener('input', e => { Store.data.name = cleanName(e.target.value); Store.save(); });
+// Settings > Have a code?
+const secretMsg = (text, good) => { const m = $('#secret-msg'); m.textContent = text; m.classList.toggle('good', !!good); };
+if (Store.data.everything) secretMsg('Everything is unlocked on this device.', true);
+$('#secret-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = $('#secret-code'), go = $('#secret-go');
+  if (!Secret.norm(input.value) || go.disabled) return;
+  go.disabled = true; secretMsg('Checking…');
+  let ok = false;
+  try { ok = await Secret.check(input.value); } catch (err) { ok = false; }
+  go.disabled = false;
+  if (!ok) { secretMsg('That code does not work.'); input.select(); return; }
+  input.value = ''; input.blur();
+  const fresh = Store.unlockEverything();
+  Sfx.unlock(); Sfx.jingle();
+  secretMsg(fresh.length ? `Everything unlocked! ${fresh.length} new skins are waiting in the Locker.` : 'Everything is unlocked on this device.', true);
+});
 
 /* ------------------------------ ONLINE PARTY ----------------------------
    Friends connect straight to each other over WebRTC. PeerJS's free public service only introduces
