@@ -1,24 +1,195 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./assets/orechip-CINMTBvT.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#16191d" />
-    <meta name="color-scheme" content="dark" />
-    <meta
-      name="description"
-      content="OreChip Casino: slots, blackjack, roulette and plinko with free virtual coins. No real money."
-    />
-    <title>OreChip Casino</title>
-    <script type="module" crossorigin src="./assets/index-DY6JHxgV.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/Button-BX2atCjb.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-DgSiF3Kt.css">
-  <meta name="description" content="Seventeen casino games played with free coins and no real money.">
+<html lang="en" style="--accent:#f5c451">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OreChip Casino · Slowwater Games</title>
+<meta name="description" content="Seventeen casino games played with free coins and no real money.">
+<meta name="theme-color" content="#09090b">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Slowwater Games">
+<meta property="og:title" content="OreChip Casino · Slowwater Games">
+<meta property="og:description" content="Seventeen casino games played with free coins and no real money.">
+<meta property="og:url" content="https://v13games.github.io/orechip/">
+<meta property="og:image" content="https://v13games.github.io/orechip/cover.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../site.css">
+<style>
+/* A game's own front page. The accent and the soft glow behind the top both come from the game. */
+.glow{position:absolute;inset:0 0 auto;height:min(820px,110vh);pointer-events:none;overflow:hidden;
+  -webkit-mask-image:linear-gradient(#000 35%,transparent 100%);mask-image:linear-gradient(#000 35%,transparent 100%)}
+.glow::before{content:"";position:absolute;inset:-12%;background:url(cover.jpg) center/cover no-repeat;filter:blur(80px) saturate(1.25);opacity:.26}
+
+.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:4px 0 0;list-style:none;font-size:14px;color:var(--dim)}
+.crumbs li+li::before{content:"/";margin-right:6px;color:#4a4a52}
+.crumbs a{color:var(--muted);text-decoration:none}
+.crumbs a:hover{color:var(--text)}
+.crumbs [aria-current]{color:var(--text)}
+
+.ghero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(28px,5vw,60px);align-items:center;padding-block:clamp(22px,4vw,44px) clamp(40px,6vw,72px)}
+.gcover{position:relative;display:block;padding:10px;background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:18px;text-decoration:none;transition:border-color .2s}
+.gcover:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.gcover .frame{border-radius:10px}
+.playmark{position:absolute;left:50%;top:calc(50% + 15px);width:72px;height:72px;margin:-36px 0 0 -36px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--accent) 92%,transparent);color:var(--accent-ink);box-shadow:0 10px 40px rgba(0,0,0,.45);transition:transform .2s}
+.gcover:hover .playmark{transform:scale(1.07)}
+.eyebrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;color:var(--accent);font-size:14px;font-weight:600}
+.eyebrow a{color:inherit;text-decoration:none}
+.eyebrow a:hover{text-decoration:underline;text-underline-offset:3px}
+h1{font-size:clamp(40px,5.6vw,64px);line-height:1.04;letter-spacing:-.035em;overflow-wrap:anywhere}
+.lede{margin:16px 0 0;color:var(--muted);font-size:clamp(17px,1.5vw,19px);line-height:1.6;max-width:32em}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.btn.big{padding:13px 26px;font-size:17px}
+.note{margin:14px 0 0;color:var(--dim);font-size:14px}
+.gintro .tags{margin-top:18px;padding:0}
+
+/* a divider as wide as the text, not the page padding */
+.divided::before{content:"";position:absolute;top:0;left:max(var(--gutter),env(safe-area-inset-left,0px));right:max(var(--gutter),env(safe-area-inset-right,0px));height:1px;background:var(--line)}
+.details{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start;padding-block:clamp(36px,5vw,56px)}
+.details h2{font-size:20px;letter-spacing:-.015em;margin-bottom:14px}
+.col-main{display:grid;gap:clamp(32px,4vw,44px)}
+.col-main p{margin:0 0 12px;color:#d4d4d8;font-size:17px;line-height:1.7;max-width:38em}
+.col-main section{scroll-margin-top:20px}
+.steps{display:grid;gap:12px;margin:0;padding:0;list-style:none;counter-reset:step}
+.steps li{counter-increment:step;display:grid;grid-template-columns:32px minmax(0,1fr);gap:14px;align-items:start;color:#d4d4d8;line-height:1.6}
+.steps li::before{content:counter(step);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-weight:600;font-size:14px}
+.steps li span{padding-top:4px}
+.col-side{display:grid;gap:16px}
+.panel{padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.panel h2{font-size:16px;margin-bottom:14px}
+.panel dl{display:grid;gap:14px;margin:0}
+.panel dt{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:600;font-size:14px}
+.panel dt svg{color:var(--accent);flex:none}
+.panel dd{margin:4px 0 0;color:var(--muted);font-size:15px;line-height:1.55}
+.facts div{display:grid;grid-template-columns:minmax(84px,.6fr) minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px solid var(--line)}
+.facts div:first-child{padding-top:0;border-top:0}
+.facts dt{color:var(--dim);font-weight:500}
+.facts dd{margin:0;color:var(--text)}
+.btn.wide{width:100%;padding:12px 18px}
+
+.more{padding-block:clamp(36px,5vw,56px) clamp(56px,8vw,88px)}
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:clamp(36px,5vw,52px)}
+.pg{display:grid;gap:2px;padding:16px 20px;background:var(--panel);border:1px solid var(--line);border-radius:14px;text-decoration:none;transition:border-color .2s;min-width:0}
+.pg:hover{border-color:var(--line-2)}
+.pg span{color:var(--dim);font-size:13px;font-weight:500}
+.pg b{font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg.next{text-align:right}
+.see-all{margin-left:auto;color:var(--muted);font-size:15px;font-weight:500;text-decoration:none;white-space:nowrap}
+.see-all:hover{color:var(--text)}
+
+@media (max-width:900px){.ghero,.details{grid-template-columns:minmax(0,1fr)}.ghero{gap:24px}}
+@media (max-width:520px){.pager{grid-template-columns:minmax(0,1fr)}.pg.next{text-align:left}.playmark{width:60px;height:60px;margin:-30px 0 0 -30px}}
+@media (prefers-reduced-motion:reduce){.gcover,.playmark,.pg{transition:none}.gcover:hover .playmark{transform:none}}
+</style>
 </head>
-  <body>
-    <a href="../" style="display:block;width:max-content;padding:8px 16px 6px;color:rgba(255,255,255,.72);font:500 13px/1.4 Poppins,system-ui,sans-serif;text-decoration:none">&lsaquo; All games</a>
-    <div id="root"></div>
-  </body>
+<body>
+  <!-- This page is generated from src/game.html and games.json. Run: node build.js -->
+  <div class="glow" aria-hidden="true"></div>
+  <header class="wrap nav">
+    <a class="brand" href="../"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="28" height="28" alt=""><span>Slowwater Games</span></a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="link" href="../#games">All games</a>
+      <a class="btn" href="play/">Play</a>
+    </nav>
+  </header>
+
+  <main>
+    <nav class="wrap crumbs" aria-label="You are here">
+      <ol><li><a href="../">Games</a></li><li><a href="../?genre=Casino#games">Casino</a></li><li aria-current="page">OreChip Casino</li></ol>
+    </nav>
+
+    <section class="wrap ghero">
+      <a class="gcover" href="play/" aria-label="Play OreChip Casino">
+        <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/orechip/play</span></div><img src="../orechip/cover.jpg" width="1600" height="900" alt="A Mines round in OreChip Casino, with six green pixel gems uncovered and a yellow Cash out button beside the board."></div>
+        <span class="playmark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>
+      </a>
+      <div class="gintro">
+        <p class="eyebrow"><a href="../?genre=Casino#games">Casino</a></p>
+        <h1>OreChip Casino</h1>
+        <p class="lede">Seventeen casino games played with free coins and no real money.</p>
+        <div class="actions">
+          <a class="btn big" href="play/"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Play now</a>
+          <a class="btn ghost big" href="#how">How to play</a>
+        </div>
+        <p class="note">Free, and it runs right in your browser.</p>
+        <ul class="tags" aria-label="Tags"><li><a href="../?tag=Virtual%20coins%20only#games" data-tag="Virtual coins only">Virtual coins only</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li></ul>
+      </div>
+    </section>
+
+    <div class="wrap details divided">
+      <div class="col-main">
+        <section aria-labelledby="about-title">
+          <h2 id="about-title">About the game</h2>
+          <p>A casino lobby with seventeen games, from Dice, Mines and Crash to Blockjack, Gem Roulette and Case Battles, all dressed in pixel-art gems and ingots.</p>
+          <p>It uses virtual coins only. There is no real money, nothing to buy and nothing to win. You start with 1,000 coins, get a daily bonus, and can top up for free when you run low.</p>
+        </section>
+        <section id="how" aria-labelledby="how-title">
+          <h2 id="how-title">How to play</h2>
+          <ol class="steps"><li><span>Pick a game and set your bet.</span></li><li><span>Every game explains its rules as you play.</span></li><li><span>Claim the daily bonus every 24 hours.</span></li><li><span>Drop below 100 coins and you can top up for free.</span></li></ol>
+        </section>
+      </div>
+      <aside class="col-side">
+        <section class="panel" aria-labelledby="controls-title">
+          <h2 id="controls-title">Controls</h2>
+          <dl>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Computer</dt><dd>Mouse, with keyboard shortcuts in some games.</dd></div>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Phone and tablet</dt><dd>Tap to play, on a phone or a tablet.</dd></div>
+          </dl>
+        </section>
+        <section class="panel" aria-labelledby="facts-title">
+          <h2 id="facts-title">Good to know</h2>
+          <dl class="facts"><div><dt>Games</dt><dd>17</dd></div><div><dt>Money</dt><dd>Virtual coins only. No real money, ever.</dd></div><div><dt>Saved</dt><dd>Your coins, on this device</dd></div><div><dt>Language</dt><dd>English</dd></div></dl>
+        </section>
+        <a class="btn wide" href="play/">Play OreChip Casino</a>
+      </aside>
+    </div>
+
+    <section class="wrap more divided" aria-labelledby="more-title">
+      <nav class="pager" aria-label="Previous and next game">
+        <a class="pg" href="../bean-scramble/" rel="prev"><span>&lsaquo; Previous game</span><b>Bean Scramble</b></a>
+        <a class="pg next" href="../tessera/" rel="next"><span>Next game &rsaquo;</span><b>Tessera</b></a>
+      </nav>
+      <div class="title-row">
+        <h2 id="more-title"><span>//</span>More games</h2>
+        <a class="see-all" href="../#games">See all 8 &rarr;</a>
+      </div>
+      <div class="grid">
+        <article class="card" data-genre="Puzzle" data-tags="Thinking|Take your time|Endless">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/tessera</span></div><img src="../tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Puzzle</span>
+            <h3><a class="card-link" href="../tessera/">Tessera</a></h3>
+            <p>Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="../?tag=Endless#games" data-tag="Endless">Endless</a></li></ul>
+          </div>
+        </article>
+        <article class="card" data-genre="Puzzle" data-tags="Thinking|Take your time|In Danish">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/kodeord</span></div><img src="../kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Puzzle</span>
+            <h3><a class="card-link" href="../kodeord/">Kodeord</a></h3>
+            <p>Guess the five-letter word in six tries. A new word every day, in Danish or English.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="../?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
+          </div>
+        </article>
+        <article class="card" data-genre="Party" data-tags="Multiplayer|Vs computer|Reflexes|Unlockables|3D">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/bean-scramble</span></div><img src="../bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Party</span>
+            <h3><a class="card-link" href="../bean-scramble/">Bean Scramble</a></h3>
+            <p>Race your friends online through twelve wild 3D maps until one bean takes the crown.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="../?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li><li><a href="../?tag=3D#games" data-tag="3D">3D</a></li></ul>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>© 2026 Slowwater Games</p>
+  </footer>
+</body>
 </html>

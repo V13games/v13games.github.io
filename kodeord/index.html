@@ -1,1348 +1,195 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="--accent:#3fcf8e">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d1120">
-<meta name="description" content="Kodeord / Codeword: a daily five-letter word puzzle in Danish and English.">
-<link rel="icon" href="data:,">
-<title>Kodeord</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  /* Critical styles: everything needed to play and look right even if the Tailwind CDN fails. */
-  :root {
-    --bg: #0d1120; --bg-glow: #1b2547; --panel: #161c30; --panel-2: #1f2740; --line: #333d60;
-    --text: #eef1fa; --muted: #9ea8c3; --accent: #8c9bff;
-    --correct: #1f9e6e; --correct-ink: #ffffff;
-    --present: #e3ae32; --present-ink: #231802;
-    --absent: #2a3148; --absent-ink: #b4bcd2;
-    --key: #38436a; --key-ink: #f2f4fc;
-    --flip-ms: 480ms;
-    --font: "SF Pro Rounded", ui-rounded, "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
-  }
-  :root.contrast {
-    --correct: #f4772e; --correct-ink: #1c0a00;
-    --present: #57b4f5; --present-ink: #04192b;
-  }
-  [hidden] { display: none !important; }
-  *, *::before, *::after { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    background: radial-gradient(120% 70% at 50% -10%, var(--bg-glow) 0%, var(--bg) 62%) var(--bg) no-repeat;
-    color: var(--text);
-    font-family: var(--font);
-    overflow: hidden;
-    overscroll-behavior: none;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-  }
-  h1, h2, h3, p { margin: 0; }
-  h1, h2, h3 { font-size: 1.1em; }
-  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-
-  /* Page frame */
-  .app {
-    height: 100vh; height: 100dvh;
-    max-width: 520px; margin: 0 auto;
-    display: flex; flex-direction: column;
-    padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-  }
-  .topbar, .modebar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
-  .topbar { height: 48px; padding: 0 2px; }
-  .modebar { height: 38px; padding: 0 2px; }
-  .brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .brand-mark { display: grid; grid-template-columns: repeat(2, 9px); gap: 2px; flex: none; }
-  .brand-mark i { display: block; height: 9px; border-radius: 2.5px; background: var(--absent-ink); }
-  .brand-mark i:nth-child(1) { background: var(--correct); }
-  .brand-mark i:nth-child(4) { background: var(--present); }
-  @media (max-width: 430px) { .brand-mark { display: none; } }
-  .controls { display: flex; align-items: center; gap: 4px; }
-
-  /* Controls */
-  .seg { display: inline-flex; padding: 2px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
-  .seg-btn {
-    appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit;
-    font-size: 13px; font-weight: 700; min-height: 30px; padding: 0 10px; border-radius: 8px; cursor: pointer;
-    touch-action: manipulation;
-  }
-  .seg-btn[aria-pressed="true"] { background: var(--accent); color: #0b1020; }
-  .icon-btn {
-    appearance: none; display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px; background: transparent;
-    color: var(--text); cursor: pointer; touch-action: manipulation;
-  }
-  .icon-btn svg { width: 21px; height: 21px; display: block; }
-  .icon-btn[aria-pressed="true"] { background: var(--panel-2); color: var(--correct); }
-  .btn {
-    appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font: inherit;
-    font-size: 13px; font-weight: 700; min-height: 32px; padding: 0 12px; border-radius: 9px; cursor: pointer;
-    touch-action: manipulation;
-  }
-  .btn-primary { background: var(--accent); border-color: var(--accent); color: #0b1020; }
-  .btn-link { min-height: 24px; padding: 0 9px; border-radius: 7px; font-size: 12px; }
-  .status { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 28px; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  /* Board */
-  .board-wrap { flex: 1 1 auto; min-height: 0; container-type: size; display: flex; align-items: center; justify-content: center; }
-  .board {
-    --gap: 6px;
-    --tile: min(calc((100cqw - 4 * var(--gap)) / 5), calc((100cqh - 5 * var(--gap)) / 6), 68px);
-    display: grid; grid-template-rows: repeat(6, var(--tile)); gap: var(--gap);
-  }
-  .row { display: grid; grid-template-columns: repeat(5, var(--tile)); gap: var(--gap); }
-  .tile {
-    display: flex; align-items: center; justify-content: center;
-    width: var(--tile); height: var(--tile); border-radius: 22%;
-    font-size: calc(var(--tile) * .52); font-weight: 800; line-height: 1;
-    background: rgba(255, 255, 255, .03);
-    border: 2px solid var(--panel-2);
-    color: var(--text); user-select: none; -webkit-user-select: none;
-  }
-  .tile[data-state="tbd"] { border-color: var(--muted); background: var(--panel); }
-  .tile[data-state="correct"] { background: var(--correct); border-color: var(--correct); color: var(--correct-ink); }
-  .tile[data-state="present"] { background: var(--present); border-color: var(--present); color: var(--present-ink); }
-  .tile[data-state="absent"]  { background: var(--absent);  border-color: var(--absent);  color: var(--absent-ink); }
-
-  /* Keyboard */
-  .keyboard { flex: none; display: flex; flex-direction: column; gap: 5px; margin-top: 6px; user-select: none; -webkit-user-select: none; }
-  .kb-row { display: flex; gap: 4px; justify-content: center; }
-  .key {
-    appearance: none; flex: 1 1 0; min-width: 0; height: clamp(42px, 7.6vh, 58px); padding: 0; border: 0; border-radius: 9px;
-    background: var(--key); color: var(--key-ink); font: inherit; font-size: clamp(14px, 4.4vw, 18px); font-weight: 700;
-    cursor: pointer; touch-action: manipulation;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .key-wide { flex: 1.65 1 0; font-size: 12px; letter-spacing: .02em; }
-  .key svg { width: 22px; height: 22px; }
-  .key-gap { flex: .5 1 0; }
-  .key[data-state="correct"] { background: var(--correct); color: var(--correct-ink); }
-  .key[data-state="present"] { background: var(--present); color: var(--present-ink); }
-  .key[data-state="absent"]  { background: #1a2034; color: #76809c; }
-  @media (hover: hover) {
-    .key:hover, .btn:hover, .icon-btn:hover { filter: brightness(1.14); }
-    .icon-btn:hover { background: var(--panel-2); }
-  }
-
-  /* Toast */
-  .toasts { position: fixed; z-index: 60; top: 96px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; padding: 0 16px; }
-  .toast { background: var(--text); color: #0d1120; padding: 9px 14px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); text-align: center; animation: toast-in .16s ease-out both; }
-
-  /* Modal */
-  .overlay { position: fixed; z-index: 50; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(6, 9, 18, .72); }
-  .dialog {
-    position: relative; width: 100%; max-width: 420px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; color: var(--text);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .5); animation: dialog-in .18s ease-out both;
-  }
-  .dialog:focus { outline: none; }
-  .dialog-close { position: absolute; top: 10px; right: 10px; }
-  .ex-row { display: flex; gap: 4px; margin: 14px 0 6px; --tile: 34px; }
-  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
-  .stat-grid > div > span { display: block; }
-  .dist-row { display: grid; grid-template-columns: 14px 1fr; align-items: center; gap: 6px; }
-  .dist-track { display: block; }
-  .dist-bar {
-    display: flex; align-items: center; justify-content: flex-end; min-width: 26px; height: 22px; padding: 0 7px;
-    border-radius: 0 4px 4px 0; background: var(--key); color: var(--key-ink); font-size: 12px;
-  }
-  .dist-row[data-current="true"] .dist-bar { background: var(--correct); color: var(--correct-ink); }
-  .result-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .result-box strong { display: block; }
-
-  /* Animations */
-  @keyframes pop { 0% { transform: scale(.88); } 45% { transform: scale(1.1); } 100% { transform: scale(1); } }
-  @keyframes flip { 0% { transform: rotateX(0); } 50% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
-  @keyframes shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-7px); } 40%, 60% { transform: translateX(7px); } }
-  @keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-34%); } 65% { transform: translateY(6%); } 82% { transform: translateY(-9%); } }
-  @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  @keyframes dialog-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
-  .tile.pop { animation: pop 110ms ease-out; }
-  .tile.flip { animation: flip var(--flip-ms) ease-in-out both; }
-  .tile.hop { animation: hop 620ms ease-in-out both; }
-  .row.shake { animation: shake 460ms ease-in-out; }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-  }
-
-  /* Short screens: drop the status line; on landscape phones put board and keyboard side by side. */
-  @media (max-height: 560px) { .status { height: 22px; } .topbar { height: 42px; } .modebar { height: 34px; } }
-  @media (max-height: 480px) and (min-width: 560px) {
-    .app { max-width: 860px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto minmax(0, 1fr); column-gap: 14px; }
-    .topbar { grid-column: 1 / 3; }
-    .modebar { grid-column: 2; grid-row: 2; }
-    .status { grid-column: 2; grid-row: 3; align-self: start; }
-    .board-wrap { grid-column: 1; grid-row: 2 / 4; }
-    .keyboard { grid-column: 2; grid-row: 3; align-self: end; margin: 0; }
-    .key { height: 40px; }
-    .key:not(.key-wide) { font-size: 14px; }
-    .toasts { top: 8px; }
-  }
-</style>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kodeord · Slowwater Games</title>
 <meta name="description" content="Guess the five-letter word in six tries. A new word every day, in Danish or English.">
+<meta name="theme-color" content="#09090b">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Slowwater Games">
+<meta property="og:title" content="Kodeord · Slowwater Games">
+<meta property="og:description" content="Guess the five-letter word in six tries. A new word every day, in Danish or English.">
+<meta property="og:url" content="https://v13games.github.io/kodeord/">
+<meta property="og:image" content="https://v13games.github.io/kodeord/cover.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../site.css">
+<style>
+/* A game's own front page. The accent and the soft glow behind the top both come from the game. */
+.glow{position:absolute;inset:0 0 auto;height:min(820px,110vh);pointer-events:none;overflow:hidden;
+  -webkit-mask-image:linear-gradient(#000 35%,transparent 100%);mask-image:linear-gradient(#000 35%,transparent 100%)}
+.glow::before{content:"";position:absolute;inset:-12%;background:url(cover.jpg) center/cover no-repeat;filter:blur(80px) saturate(1.25);opacity:.26}
+
+.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:4px 0 0;list-style:none;font-size:14px;color:var(--dim)}
+.crumbs li+li::before{content:"/";margin-right:6px;color:#4a4a52}
+.crumbs a{color:var(--muted);text-decoration:none}
+.crumbs a:hover{color:var(--text)}
+.crumbs [aria-current]{color:var(--text)}
+
+.ghero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(28px,5vw,60px);align-items:center;padding-block:clamp(22px,4vw,44px) clamp(40px,6vw,72px)}
+.gcover{position:relative;display:block;padding:10px;background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:18px;text-decoration:none;transition:border-color .2s}
+.gcover:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.gcover .frame{border-radius:10px}
+.playmark{position:absolute;left:50%;top:calc(50% + 15px);width:72px;height:72px;margin:-36px 0 0 -36px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--accent) 92%,transparent);color:var(--accent-ink);box-shadow:0 10px 40px rgba(0,0,0,.45);transition:transform .2s}
+.gcover:hover .playmark{transform:scale(1.07)}
+.eyebrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;color:var(--accent);font-size:14px;font-weight:600}
+.eyebrow a{color:inherit;text-decoration:none}
+.eyebrow a:hover{text-decoration:underline;text-underline-offset:3px}
+h1{font-size:clamp(40px,5.6vw,64px);line-height:1.04;letter-spacing:-.035em;overflow-wrap:anywhere}
+.lede{margin:16px 0 0;color:var(--muted);font-size:clamp(17px,1.5vw,19px);line-height:1.6;max-width:32em}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.btn.big{padding:13px 26px;font-size:17px}
+.note{margin:14px 0 0;color:var(--dim);font-size:14px}
+.gintro .tags{margin-top:18px;padding:0}
+
+/* a divider as wide as the text, not the page padding */
+.divided::before{content:"";position:absolute;top:0;left:max(var(--gutter),env(safe-area-inset-left,0px));right:max(var(--gutter),env(safe-area-inset-right,0px));height:1px;background:var(--line)}
+.details{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start;padding-block:clamp(36px,5vw,56px)}
+.details h2{font-size:20px;letter-spacing:-.015em;margin-bottom:14px}
+.col-main{display:grid;gap:clamp(32px,4vw,44px)}
+.col-main p{margin:0 0 12px;color:#d4d4d8;font-size:17px;line-height:1.7;max-width:38em}
+.col-main section{scroll-margin-top:20px}
+.steps{display:grid;gap:12px;margin:0;padding:0;list-style:none;counter-reset:step}
+.steps li{counter-increment:step;display:grid;grid-template-columns:32px minmax(0,1fr);gap:14px;align-items:start;color:#d4d4d8;line-height:1.6}
+.steps li::before{content:counter(step);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-weight:600;font-size:14px}
+.steps li span{padding-top:4px}
+.col-side{display:grid;gap:16px}
+.panel{padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.panel h2{font-size:16px;margin-bottom:14px}
+.panel dl{display:grid;gap:14px;margin:0}
+.panel dt{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:600;font-size:14px}
+.panel dt svg{color:var(--accent);flex:none}
+.panel dd{margin:4px 0 0;color:var(--muted);font-size:15px;line-height:1.55}
+.facts div{display:grid;grid-template-columns:minmax(84px,.6fr) minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px solid var(--line)}
+.facts div:first-child{padding-top:0;border-top:0}
+.facts dt{color:var(--dim);font-weight:500}
+.facts dd{margin:0;color:var(--text)}
+.btn.wide{width:100%;padding:12px 18px}
+
+.more{padding-block:clamp(36px,5vw,56px) clamp(56px,8vw,88px)}
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:clamp(36px,5vw,52px)}
+.pg{display:grid;gap:2px;padding:16px 20px;background:var(--panel);border:1px solid var(--line);border-radius:14px;text-decoration:none;transition:border-color .2s;min-width:0}
+.pg:hover{border-color:var(--line-2)}
+.pg span{color:var(--dim);font-size:13px;font-weight:500}
+.pg b{font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg.next{text-align:right}
+.see-all{margin-left:auto;color:var(--muted);font-size:15px;font-weight:500;text-decoration:none;white-space:nowrap}
+.see-all:hover{color:var(--text)}
+
+@media (max-width:900px){.ghero,.details{grid-template-columns:minmax(0,1fr)}.ghero{gap:24px}}
+@media (max-width:520px){.pager{grid-template-columns:minmax(0,1fr)}.pg.next{text-align:left}.playmark{width:60px;height:60px;margin:-30px 0 0 -30px}}
+@media (prefers-reduced-motion:reduce){.gcover,.playmark,.pg{transition:none}.gcover:hover .playmark{transform:none}}
+</style>
 </head>
 <body>
-  <div id="app" class="app">
-    <header class="topbar">
-      <div class="brand">
-        <a id="allGames" class="icon-btn" href="../" style="width:28px;margin-right:-4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
-        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <h1 id="brandName" class="text-[19px] font-extrabold tracking-wide truncate"></h1>
-      </div>
-      <div class="controls">
-        <div id="langSwitch" class="seg mr-1" role="group">
-          <button type="button" class="seg-btn" data-lang="da" aria-pressed="false">DA</button>
-          <button type="button" class="seg-btn" data-lang="en" aria-pressed="false">EN</button>
+  <!-- This page is generated from src/game.html and games.json. Run: node build.js -->
+  <div class="glow" aria-hidden="true"></div>
+  <header class="wrap nav">
+    <a class="brand" href="../"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="28" height="28" alt=""><span>Slowwater Games</span></a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="link" href="../#games">All games</a>
+      <a class="btn" href="play/">Play</a>
+    </nav>
+  </header>
+
+  <main>
+    <nav class="wrap crumbs" aria-label="You are here">
+      <ol><li><a href="../">Games</a></li><li><a href="../?genre=Puzzle#games">Puzzle</a></li><li aria-current="page">Kodeord</li></ol>
+    </nav>
+
+    <section class="wrap ghero">
+      <a class="gcover" href="play/" aria-label="Play Kodeord">
+        <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/kodeord/play</span></div><img src="../kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE."></div>
+        <span class="playmark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>
+      </a>
+      <div class="gintro">
+        <p class="eyebrow"><a href="../?genre=Puzzle#games">Puzzle</a></p>
+        <h1>Kodeord</h1>
+        <p class="lede">Guess the five-letter word in six tries. A new word every day, in Danish or English.</p>
+        <div class="actions">
+          <a class="btn big" href="play/"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Play now</a>
+          <a class="btn ghost big" href="#how">How to play</a>
         </div>
-        <button type="button" id="btnHelp" class="icon-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.3 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.3-2.7 4"/><path d="M12 17.4h.01"/></svg>
-        </button>
-        <button type="button" id="btnStats" class="icon-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-7"/><path d="M12 20V5"/><path d="M19 20V10"/></svg>
-        </button>
-        <button type="button" id="btnContrast" class="icon-btn" aria-pressed="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M12 2.8a9.2 9.2 0 0 1 0 18.4z" fill="currentColor"/></svg>
-        </button>
+        <p class="note">Free, and it runs right in your browser.</p>
+        <ul class="tags" aria-label="Tags"><li><a href="../?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="../?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
       </div>
-    </header>
+    </section>
 
-    <div class="modebar">
-      <div id="modeSwitch" class="seg" role="group">
-        <button type="button" class="seg-btn" data-mode="daily" aria-pressed="false"></button>
-        <button type="button" class="seg-btn" data-mode="practice" aria-pressed="false"></button>
+    <div class="wrap details divided">
+      <div class="col-main">
+        <section aria-labelledby="about-title">
+          <h2 id="about-title">About the game</h2>
+          <p>Guess the hidden five-letter word in six tries. After each guess the tiles change colour to show which letters are right, which are in the word somewhere else, and which are not in it at all.</p>
+          <p>There is a new daily word in Danish and one in English, plus practice games whenever you want more. Your streaks and statistics are kept on this device.</p>
+        </section>
+        <section id="how" aria-labelledby="how-title">
+          <h2 id="how-title">How to play</h2>
+          <ol class="steps"><li><span>Type a five-letter word and press Enter.</span></li><li><span>Green: the right letter in the right spot. Yellow: in the word, but somewhere else. Dark: not in the word.</span></li><li><span>You have six guesses. A new daily word comes every day.</span></li><li><span>Switch between Danish and English at the top. Practice games do not count in your stats.</span></li></ol>
+        </section>
       </div>
-      <span id="dayNo" class="text-[13px] font-bold tabular-nums text-[color:var(--muted)]"></span>
-      <button type="button" id="btnNew" class="btn"></button>
+      <aside class="col-side">
+        <section class="panel" aria-labelledby="controls-title">
+          <h2 id="controls-title">Controls</h2>
+          <dl>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Computer</dt><dd>Type on your keyboard. Enter guesses, Backspace deletes.</dd></div>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Phone and tablet</dt><dd>Use the keyboard on the screen.</dd></div>
+          </dl>
+        </section>
+        <section class="panel" aria-labelledby="facts-title">
+          <h2 id="facts-title">Good to know</h2>
+          <dl class="facts"><div><dt>Players</dt><dd>1</dd></div><div><dt>A game</dt><dd>A few minutes a day</dd></div><div><dt>Saved</dt><dd>Streaks and statistics, on this device</dd></div><div><dt>Language</dt><dd>Danish or English</dd></div></dl>
+        </section>
+        <a class="btn wide" href="play/">Play Kodeord</a>
+      </aside>
     </div>
 
-    <div class="status text-[13px] tabular-nums whitespace-nowrap text-[color:var(--muted)]">
-      <span id="statusText" class="truncate"></span>
-      <button type="button" id="btnShareInline" class="btn btn-link"></button>
-    </div>
-
-    <main class="board-wrap">
-      <div id="board" class="board" role="group"></div>
-    </main>
-
-    <div id="keyboard" class="keyboard" role="group"></div>
-  </div>
-
-  <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="true"></div>
-  <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-
-  <div id="overlay" class="overlay" hidden>
-    <div id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" tabindex="-1">
-      <button type="button" id="dialogClose" class="icon-btn dialog-close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-      <h2 id="dialogTitle" class="text-[19px] font-extrabold mb-3 pr-9"></h2>
-      <div id="dialogBody"></div>
-    </div>
-  </div>
-
-<script>
-'use strict';
-
-/* ==========================================================================
-   WORD LISTS
-   Answers are hand-curated. The allowed lists add five-letter forms from
-   Stavekontrolden 1.5 (Danish, (c) Foreningen for frit tilgaengelige
-   sprogvaerktoejer, GPL/LGPL/MPL) and the SCOWL-based en_US/en_GB dictionaries.
-   ========================================================================== */
-// <WORDS> (generated by tools/build-words.mjs; do not edit by hand)
-const WORDS = {
-  da: {
-    answers: "AFTEN AGURK ALDER ALENE ALTID ANDEN ANDRE ANKEL ARMEN ATLAS BAGER BAGTE BAKKE BANAN BANEN BANKE BEDRE BEDST BEHOV BENET BILEN BILER BJERG BLADE BLANK BLIND BLIVE BLÆSE BLÆST BLØDE BOGEN BOLIG BOLLE BONDE BONUS BORDE BORTE BRAND BREDE BREVE BROEN BROER BRUGE BRUGT BRUNE BRUSE BRYST BUTIK BYDER BYGGE BYRDE BÅDEN BÆGER BÆLTE BÆNKE BØGER BØLGE BØNNE CREME CYKEL DAGEN DAMEN DAMER DAMPE DANSE DELER DELTE DENNE DERES DETTE DIGTE DRAGE DRENG DRIVE DRØMT DUFTE DUKKE DYBDE DYNER DYRET DÆKKE DØREN EFTER ELLER ELSKE EMNER ENDDA ENDER ENDNU ENGEL ENGLE ENKEL ETAGE EVNER FADER FALDE FALSK FARER FARVE FASTE FEBER FEJLE FEJRE FERIE FERSK FESTE FIGUR FINDE FIRMA FISKE FJERN FJORD FLADE FLERE FLINK FLUER FLUGT FLYDE FLYET FLYVE FLØDE FOLDE FORAN FORDI FORME FORUD FORÅR FRISK FRONT FROST FRUGT FRYSE FUGLE FULDE FYLDE FYLDT FYRRE FÅRET FÆDRE FÆRGE FÆRRE FØDER FØLER FØLGE FØLTE FØRER FØRST GADEN GADER GAMLE GAVEN GAVER GEMME GERNE GIFTE GIVER GLADE GLIDE GLÆDE GRADE GRAVE GRENE GRINE GROVE GRUND GRÆDE GRØFT GRØNT GULVE GUMME GYNGE GÅDEN GÅDER GÅRDE GÆRDE HADER HAGEN HALER HALSE HALVE HAREN HARER HASTE HAVDE HAVEN HAVER HEDER HELST HELTE HENTE HERRE HESTE HJELM HJORT HOLDE HOLDT HOPPE HOSTE HOTEL HOVED HUDEN HUGGE HULER HUMOR HUNDE HUSET HUSKE HVEDE HVEPS HVIDE HVILE HYGGE HYLDE HYRDE HYTTE HÅBER HÅBET HÅRET HÆFTE HÆLDE HÆNDE HÆNGE HØJDE HØJRE HØJST HØNER HØRER HØRTE HØSTE IDEEN IDEER ILDEN INDEN INGEN JAGER JAGTE JAKKE JERES JOGGE JUBEL JULEN JÆGER KABEL KAFFE KAGEN KAGER KALDE KALDT KALVE KAMEL KAMPE KANAL KANDE KANEL KANIN KAPPE KARRY KASSE KASTE KATTE KEDEL KEGLE KIGGE KILDE KIRKE KJOLE KLAGE KLARE KLART KLIMA KLODE KLOGE KNIVE KNUDE KNUSE KNÆET KOGER KOGTE KOKKE KOLDE KOMME KONEN KONER KONGE KONTO KORTE KOSTE KRAFT KRAGE KRAVE KREDS KRIGE KRONE KRUSE KRYDS KRÆVE KUGLE KULDE KUNDE KUNST KURVE KYSSE KÆMPE KØBER KØBTE KØLER KØLIG KØRER KØRTE LAGEN LAMPE LANDE LANGE LANGT LAVER LAVET LEDER LEGEN LEGER LEGET LEJER LEJRE LETTE LEVER LEVET LIGGE LIGNE LILLE LINJE LISTE LIVET LOKAL LOMME LOPPE LOVEN LOVER LOVET LUFTE LUGTE LUKKE LUNGE LYDER LYGTE LYKKE LYSER LYSET LÅNER LÅNTE LÆBER LÆGEN LÆGER LÆGGE LÆNGE LÆRER LÆRTE LÆSER LÆSTE LØBER LØBET LØFTE LØSER LØSNE LØSTE LØVER MADEN MAGER MALER MALET MANGE MANGO MAPPE MASKE MASSE MATCH MAVEN MAVER MEGET MELDE MELON MENER MENTE METAL METER MIDTE MILDE MINDE MINUS MISTE MODEL MODEN MODIG MOTOR MULIG MUNDE MUNKE MURER MUSEN MUSIK MYNTE MYRER MÅDEN MÅDER MÅGER MÅLER MÅLET MÅLTE MÅNED MÅNEN MÅTTE MÆRKE MØBEL MØDER MØDET MØDTE MØLLE NAKKE NATUR NAVNE NEGLE NETOP NISSE NOGEN NOGET NOGLE NOTER NUDEL NYDER NYHED NYTTE NÅLEN NÅLER NÆSER NÆSTE NÆVNE NØGEN NØGLE OFFER OMEGN ONKEL OPERA ORDEN ORDET OSTEN OVNEN PAKKE PANDE PAPIR PARAT PARTI PASSE PASTA PEBER PENGE PENNE PIGEN PIGER PILLE PIZZA PLADE PLADS PLØJE POSEN POSER PRINS PRISE PRØVE PUDEN PUDER PUDSE PUMPE PUNKT PUSTE PYNTE PÅSKE PÆREN PÆRER RADIO RAKTE RAMME RAMTE RASKE REDDE REDEN REGEL REGNE REJER REJSE RENSE RIDER RINGE ROLIG ROLLE ROMAN ROSEN ROSER RUDEN RUDER RULLE RUNDE RYDDE RYGER RYGTE RYSTE RYTME RÅBER RÅBTE RÅDER RÅDET RÆKKE RÆVEN RØGEN RØGET RØMME RØRER RØRTE SAGDE SAGEN SAGER SAKSE SALAT SALEN SAMLE SAMME SANDE SANGE SAVNE SEJLE SENDE SENGE SERIE SIDDE SIDEN SIDER SIDST SIGER SIGTE SILKE SIRUP SKABE SKADE SKALA SKARP SKIBE SKILT SKIND SKJUL SKOLE SKOVE SKRIG SKRUE SKYDE SKYER SKYLD SKÅLE SKÆRE SKÆRM SKÆVE SKØRT SLIPS SLUGE SLÆDE SLÆGT SMAGE SMART SMIDE SMILE SMØRE SNART SNAVS SNEEN SNEGL SNYDE SNØRE SOLEN SOLGT SORTE SOVER SOVET SPADE SPAND SPARE SPEJL SPIDS SPILD SPIRE SPISE SPORT SPROG SPØGE STALD STAND START STAVE STEDE STEGE STEGT STEJL STENE STIGE STOLE STOLT STORE STORK STORM STORT STRAF STRØM STUEN STUER STYRE STYRT STÆRK STØDE SULTE SUPPE SUSER SVAGE SVAMP SVANE SVARE SVEDE SVING SVÆRD SVÆRE SVÆVE SYNES SYNGE SÅDAN SÅRET SÆBEN SÆBER SÆDER SÆLGE SÆNKE SÆSON SÆTTE SØGER SØGTE TABEL TABER TABTE TAGER TAGET TAKKE TALER TALTE TANKE TANTE TAPET TASKE TEGNE TEKST TIDEN TIDER TIGER TIGGE TIMEN TIMER TJENE TJENT TOBAK TOGET TOLKE TOMAT TOMME TONER TOPPE TORSK TOTAL TRANG TRAVL TRIST TROLD TRONE TRÆDE TRÆER TRÆET TRÆNE TRØJE TRØST TUDSE TUNGE TUNGT TURDE TUREN TVIVL TYGGE TYKKE TYNDE TÅGEN TÅLER TÆLLE TÆNDE TÆNKE TÆPPE TÆRTE TØJET TØMME TØRRE TØRST UGLER ULVEN UNDER UNGEN UNGER URTER UVEJR VALGT VANDE VANTE VARER VARME VARMT VASKE VEJEN VENDE VENTE VESTE VIDEN VIDEO VIDST VILDE VILJE VINDE VINEN VINGE VIPPE VIRKE VISER VISTE VOKSE VORES VREDE VÅBEN VÅGEN VÅGNE VÅREN VÆGGE VÆLGE VÆLTE VÆRDI VÆRRE VÆRST YNGRE ÅBENT ÅBNER ÅBNET ÅNDEN ÅRENE ÅRLIG ÅRSAG ÆBLER ÆBLET ÆGGET ÆLDRE ÆLDST ÆNDER ÆNDRE ÆRLIG ÆRTER ØGLER ØKSER ØNSKE ØRKEN ØRNEN ØSTEN",
-    allowed: "ABBED ABEDE ABENS ABERS ABETS ABORT ADDER ADELS ADEPT ADLER ADLES ADLET ADLYD ADLØD ADRÆT ADVAR ADVIS AEDES AENDE AEROB AFART AFASI AFBAG AFBEN AFBUD AFBØD AFBØJ AFDEL AFDÆK AFDØD AFFAS AFFAT AFFED AFFEJ AFFYR AFFØD AFFØR AFGAS AFGAV AFGIK AFGIV AFGUD AFGÅR AFGÅS AFGÆR AFGØR AFHUG AFHÅR AFHØR AFISE AFKOD AFKOG AFKOM AFKØB AFKØL AFLAD AFLED AFLIR AFLIV AFLOK AFLUK AFLUR AFLUS AFLYS AFLYT AFLÅS AFLÆG AFLÆR AFLÆS AFLØB AFLØN AFLØS AFLØV AFMAL AFMAT AFMÅL AFNAK AFPAS AFPIL AFPÆL AFRET AFREV AFRIM AFRIV AFRYD AFSAT AFSAV AFSER AFSES AFSET AFSIG AFSKY AFSLÅ AFSON AFSTÅ AFSYR AFSÅS AFSÆB AFSÆT AFSØG AFTAG AFTAL AFTAP AFTEN AFTER AFTES AFTOG AFTOP AFTÆL AFTØR AFVEG AFVEJ AFVIG AFVIS AFVÆN AFÆSK AFÆTS AGAPE AGARS AGATS AGAVE AGEDE AGENS AGENT AGERE AGERN AGERS AGETS AGILE AGILS AGILT AGIOS AGNEN AGNER AGNES AGNET AGORA AGRAR AGREN AGRES AGTEN AGTER AGTES AGTET AGURK AHORN AIGUS AISES AJLEN AJLES AJOUR AKNEN AKNES AKRYL AKSEL AKSEN AKSER AKSES AKSET AKTEN AKTER AKTIE AKTIV AKTOR AKTØR ALARM ALBAS ALBES ALBUE ALBUM ALDER ALDES ALDRE ALENE ALENS ALERT ALFAS ALFEN ALFER ALFES ALGEN ALGER ALGES ALGOD ALHED ALHES ALHUS ALIAS ALIBI ALJES ALKEN ALKES ALKYD ALLER ALLES ALMEN ALMES ALMUE ALNES ALOEN ALOER ALOES ALPEN ALPER ALPES ALPIN ALRES ALRUM ALSES ALTAN ALTEN ALTER ALTES ALTET ALTID ALTRE ALTSÅ ALUNS ALVES ALVOR AMBEN AMBER AMBES AMBRA AMIDS AMMEN AMMER AMMES AMMET AMOKE AMOKS AMORF AMPEL AMPUL AMTER AMTET AMØBE ANALE ANALS ANALT ANDEL ANDEN ANDET ANDRE ANDUV ANEDE ANENS ANERS ANETS ANFØR ANGAV ANGER ANGIK ANGIV ANGLE ANGRE ANGST ANGÅR ANGÅS ANION ANJON ANKEL ANKEN ANKER ANKES ANKET ANKOM ANKRE ANLÆG ANLØB ANMAS ANMOD ANNAL ANNAM ANNOS ANNUA ANODE ANOMI ANRET ANRÅB ANSAT ANSER ANSES ANSET ANSLÅ ANSTÅ ANSÅS ANSÆT ANSØG ANTAG ANTAL ANTIK ANTOG ANTYD ANVIS ANÆMI AORTA APATI APNØS APPEL APRIL APSIS APTER ARAEN ARAER ARDEN ARDER AREAL ARENA ARENE ARENS ARGES ARGON ARGTS ARIEN ARIER ARIES ARISK ARKEN ARKER ARKET ARKIV ARMEN ARMER ARMES ARMOD ARMTS ARNEN ARNER ARNES AROMA ARPEN ARRAK ARRER ARRES ARRET ARRIG ARSEN ARTEN ARTER ARTES ARTET ARTIG ARVEN ARVER ARVES ARVET ARVÆV ASEDE ASENS ASERS ASETS ASIAT ASIEN ASIER ASIES ASIET ASKEN ASKER ASKES ASKET ASNER ASNET ASPEN ASPES ASTMA ASYLS ATLAS ATLET ATOLS ATOMS ATTAK ATTEN ATTER ATTRÅ AUGUR AULAS AURAS AUTOR AUTOS AVEDE AVERS AVETS AVIND AVLEN AVLER AVLES AVLET AVNEN AVNER AVNES BABYS BADER BADES BADET BADGE BADUT BAGEL BAGEN BAGER BAGES BAGOM BAGPÅ BAGTE BAGTS BAGTÅ BAGUD BAJER BAKKE BAKSE BALAN BALDE BALDR BALGE BALGS BALJE BALLE BAMLE BAMSE BANAL BANAN BANDE BANDS BANDT BANDY BANEN BANER BANES BANET BANGE BANJO BANKE BANKO BANKS BANTU BARAK BARBE BARDE BAREN BARER BARES BARET BARKE BARKS BARME BARMS BARNS BAROK BARON BARRE BARSK BARSL BARTS BARYL BASAL BASAR BASEN BASER BASES BASIS BASKE BASKS BASSE BASTA BASTE BASTS BASUN BATAT BATIK BATTE BAVLE BAVLS BAVNE BAVNS BEATS BEBOP BEBOR BEBOS BEBUD BEBYG BEDEN BEDER BEDES BEDET BEDRE BEDST BEDTE BEDTS BEDYR BEDÅR BEDÆK BEDØM BEDØV BEFAL BEFAR BEFAT BEFOR BEFRI BEFØL BEGAV BEGER BEGES BEGET BEGGE BEGIK BEGIT BEGIV BEGLO BEGÅR BEGÅS BEGÆR BEHAG BEHOV BEHØV BEIGE BEJAE BEJDS BEJLE BEKOM BELAV BELIG BELIV BELUR BELYS BELÅN BELÅS BELÆG BELÆR BELÆS BELØB BELØN BEMAL BEMØG BEMØJ BENER BENES BENET BENLI BENYT BENÅD BEOEN BEOER BERAM BERAP BERED BERET BERIG BEROR BEROS BERUS BERYL BERÅB BERØM BERØR BERØV BESAD BESAT BESER BESES BESET BESID BESKE BESKS BESKT BESLÅ BESTÅ BESYV BESÅR BESÅS BESÆT BESØG BETAK BETAL BETAS BETEL BETEN BETER BETES BETLE BETOG BETON BETRO BETØD BEVAR BEVIS BEVÆG BEÆRE BIAVL BIBEL BIBLI BIDER BIDES BIDET BIDSK BIDTE BIDTS BIEDE BIENS BIERS BIETS BIFAG BIFIL BIGOT BIJOB BIKER BIKIR BIKSE BILAG BILDE BILDT BILEN BILER BILES BILET BILKØ BILLE BILYD BIMLE BIMSE BIMST BINDE BINDS BINGO BINÆR BIOEN BIOER BIORD BIPPE BIRKE BIRKS BISAM BISAT BISEN BISER BISES BISON BISPS BISSE BISTÅ BISÆT BITRE BITTE BIVEJ BIVÅN BJERG BJESK BJÆFS BJÆRG BJØRN BLADE BLADR BLADS BLAFR BLAFS BLAND BLANK BLASE BLEEN BLEER BLEGE BLEGN BLEGS BLEGT BLEND BLIDE BLIDS BLIDT BLIKS BLIND BLINI BLINK BLIST BLIVE BLODS BLOGS BLOKS BLOND BLOTE BLOTS BLUES BLUFF BLUND BLUSE BLYET BLÅNE BLÅRS BLÅTS BLÆKS BLÆND BLÆRE BLÆRS BLÆSE BLÆST BLÆVR BLØDE BLØDS BLØDT BOAEN BOAER BOBBE BOBLE BODEL BODEN BODER BOEDE BOERE BOERS BOETS BOGEN BOGER BOGES BOGET BOGIE BOJAR BOKSE BOLDE BOLDS BOLDT BOLER BOLES BOLET BOLIG BOLLE BOLTE BOLTR BOLTS BOMBE BOMME BONDE BONEN BONES BONET BONUS BOOKE BOOME BOOMS BOOST BOPÆL BORDE BORDS BORER BORES BORET BORGE BORGS BORST BORTE BORTS BOSAT BOSES BOSSE BOSÆT BOVEN BOVES BOVIN BOVNE BOYET BRAGE BRAGS BRAGT BRAKS BRAKT BRALR BRAMS BRAND BRANK BRASE BRASK BRAST BRATE BRATS BRAVE BRAVO BRAVS BRAVT BREAK BREDE BREDS BREDT BREMS BREVE BREVS BRIEF BRIEN BRIER BRIES BRIGS BRIKS BRING BRINK BRINT BRISE BRIST BRITE BRODS BROEN BROER BROGE BROGS BROKS BROMS BRORS BROVT BRUDE BRUDS BRUDT BRUGE BRUGS BRUGT BRUMS BRUNE BRUNS BRUNT BRUSE BRUSK BRYDE BRYGS BRYNE BRYNS BRYSK BRYST BRÆEN BRÆER BRÆGE BRÆKS BRÆND BRÆTS BRØDE BRØDS BRØKS BRØLE BRØLS BRØND BRØST BUDOS BUDTE BUDTS BUEDE BUENS BUERS BUETS BUGEN BUGES BUGNE BUGTE BUGTS BUHER BUHES BUHET BUKET BUKKE BUKLE BULDR BULEN BULER BULES BULET BULKE BULKS BULLE BULNE BUMLE BUMPE BUMPS BUMSE BUNDE BUNDS BUNDT BUNKE BUNKR BURDE BURER BURES BURET BURKA BURRE BUSER BUSES BUSET BUSKE BUSKS BUSSE BUSTE BUTAN BUTES BUTIK BUTST BVADR BYBIL BYBOS BYBUD BYBUS BYDEL BYDER BYDES BYENS BYERS BYGAS BYGDS BYGEN BYGER BYGES BYGET BYGGE BYHUS BYLDS BYLIV BYLTE BYLTS BYMUR BYNKE BYNÆR BYRDE BYRDS BYRET BYROD BYRUM BYRÅD BYSSE BYSTE BYTEN BYTES BYTTE BYTYR BÅDEN BÅDER BÅDES BÅDET BÅKEN BÅKER BÅKES BÅLET BÅNDE BÅNDS BÅREN BÅRER BÅRES BÅRET BÅRNE BÅSEN BÅSER BÅSES BÅSET BÅTTE BÆETS BÆGER BÆGRE BÆKKE BÆLGE BÆLGS BÆLLE BÆLTE BÆLTS BÆNKE BÆNKS BÆRER BÆRES BÆRME BÆSTS BÆVEN BÆVER BÆVES BÆVET BÆVLS BÆVRE BØDEN BØDER BØDES BØDET BØFFE BØGEN BØGER BØGES BØGET BØHER BØHES BØHET BØJEN BØJER BØJES BØJET BØJLE BØLGE BØLLE BØNNE BØREN BØRES BØRNS BØRST BØSES BØSTS BØTTE BØVET BØVLE BØVLS BØVSE CREME CYKEL DADAS DADEL DADLE DAFNE DAGEN DAGES DALBO DALEN DALER DALES DALET DALRE DAMEN DAMER DAMES DAMET DAMME DAMPE DAMPS DANBO DANDY DANER DANNE DANSE DANSK DARTS DASER DASES DASET DASKE DASKS DATAS DATEN DATER DATES DATID DATIV DATOS DAVID DAVRE DDTET DEBAT DEBET DEBIL DEBUT DEGNE DEGNS DEJEN DEJES DEJSE DEKAN DEKOD DEKOR DELEN DELER DELES DELLE DELTA DELTE DELTS DEMOS DENAR DENIM DENNE DENTE DEPOT DERAF DERBY DERES DEROM DEROP DERPÅ DERUD DESES DESTO DETTE DEVON DIAER DIAET DIARE DIBLE DIEDE DIETS DIGEL DIGER DIGES DIGET DIGRE DIGTE DIGTS DIKKE DILDS DILLE DINAR DINER DINES DINGL DINGO DIODE DIPOL DIRKE DIRKS DIRRE DISEN DISES DISET DISKE DISKS DISSE DITTO DIVAN DIVAS DIÆTS DJÆRV DOBLE DOERS DOETS DOGEN DOGER DOGES DOGGE DOGME DOKKE DOLKE DOLKS DOLME DOMEN DOMER DOMME DONEN DONER DONES DONNA DONOR DONTS DOPEN DOPER DOPES DOPET DORER DORNE DORNS DORSK DOSEN DOSER DOSIS DOTER DOVEN DOVNE DOYEN DRABS DRAGE DRAGS DRAGT DRAMA DRAMS DRAPS DREJE DREJS DRENG DRESS DREVS DRIBL DRIFT DRIKS DRILS DRINK DRIST DRIVE DRIVS DROGE DROGS DRONE DROPS DROSL DROTS DRUDE DRUEN DRUER DRUES DRUGS DRUKN DRUKS DRUMS DRYAS DRYPS DRÅBE DRÆBE DRÆBT DRÆET DRÆNE DRÆNS DRÆTS DRÆVE DRØFT DRØJE DRØJS DRØJT DRØMS DRØMT DRØNE DRØNS DRØVS DUBBE DUBLE DUEDE DUELS DUENS DUERS DUETS DUFTE DUFTS DUGEN DUGES DUGGE DUKAT DUKKE DUKSE DULGT DULLE DULME DUMBE DUMDE DUMFE DUMGE DUMHE DUMJE DUMKE DUMLE DUMME DUMMY DUMNE DUMPE DUMPS DUMPT DUMRE DUMSE DUMTE DUMTS DUMVE DUNDR DUNET DUNKE DUNKS DUNST DUOEN DUOER DUPER DUPPE DURER DURES DURET DURRA DURRE DUSES DUSIN DUSKE DUSKS DUSSE DUSØR DUTTE DUVEN DUVER DUVES DUVET DVALE DVASK DVÆLE DVÆLS DVÆRG DYBDE DYBEL DYBES DYBET DYBSØ DYBTS DYDEN DYDER DYDIG DYEDE DYETS DYKKE DYNDS DYNEN DYNER DYNES DYNGE DYPPE DYRES DYRET DYRKE DYRTS DYSEN DYSER DYSES DYSSE DYSTE DYSTS DYTTE DYVEL DÅBEN DÅDEN DÅDYR DÅENS DÅERS DÅNER DÅNES DÅNET DÅREN DÅRER DÅRES DÅRET DÅSEN DÅSER DÅSES DÆGGE DÆKKE DÆLEN DÆLME DÆMME DÆMON DÆMPE DÆMRE DÆNGE DÆVEL DÆVLE DØBER DØBES DØBTE DØBTS DØDEN DØDER DØDES DØDET DØDIS DØDTS DØETS DØGNS DØJER DØJES DØJET DØJTS DØLGE DØLLE DØMME DØMTE DØMTS DØREN DØRES DØRKE DØRKS DØSEN DØSER DØSES DØSET DØSIG DØTRE DØVER DØVES DØVET DØVTS EBBEN EBBER EBBES EBBET EBOLA EDDER EDENS EDERS EDIKT EFAEN EFAER EFEUS EFFEN EFGNE EFORS EFTER EGALE EGALS EGALT EGENS EGENT EGERN EGERS EGETS EGNEN EGNER EGNES EGNET EGOER EGOET EISES EJEDE EJERE EJERS EJETS EKKOE EKKOS EKSEM EKSER EKSES EKSET EKSIL ELANS ELBAS ELBIL ELEGI ELEVS ELGEN ELGES ELITE ELLEN ELLER ELLES ELMEN ELMES ELSKE ELTOG ELVEN ELVER ELVES EMDEN EMDER EMDES EMIRS EMMEN EMMER EMMES EMMET EMNER EMNES EMNET EMSIG EMUEN EMUER ENDDA ENDEN ENDER ENDES ENDNU ENDOG ENDTE ENDTS ENENS ENERE ENERS ENGEL ENGEN ENGES ENGLE ENHED ENIGE ENIGS ENIGT ENKEL ENKEN ENKER ENKES ENKLE ENLIG ENORM ENRUM ENSES ENSOM ENTAL ENTEN ENTRE ENØRE EPIKS EPISK EPOKE ERFAR ERIKA ERLÆG ERMOL ERNÆR EROBR EROTS ESPEN ESPES ESROM ESSAY ESSEN ESSER ESSES ESSET ESSIG ESTER ETAER ETAET ETAGE ETAPE ETATS ETBÆR ETIKS ETISK ETMÅL ETTAL ETTER ETUDE ETUIS ETÅRS EUNUK EUROS EVERT EVIGE EVIGS EVIGT EVNEN EVNER EVNES EVNET FABEL FABLE FADER FADES FADET FADTS FADØL FAERS FAETS FAGER FAGET FAGRE FAIRS FAKET FAKIR FAKTA FALDE FALDS FALDT FALKE FALKS FALLE FALME FALSE FALSK FAMLE FAMØS FANDT FANEN FANER FANES FANGE FANME FARAD FARAO FAREN FARER FARES FARET FARIN FARME FARMS FARNE FARTE FARVE FASAN FASEN FASER FASES FASET FASTE FASTS FATAL FATAS FATTE FATUM FAUNA FAUNS FAVNE FAVNS FAVRE FAVRS FAVRT FAVØR FEBER FEBRE FEDER FEDES FEDET FEDME FEDTE FEDTS FEENS FEERS FEHÅR FEJDE FEJER FEJES FEJET FEJLE FEJLS FEJRE FEJRS FEJRT FEJTS FELET FELTS FEMTE FEMTI FEMÅR FENNE FENOL FENYL FEREN FERES FERIE FERLE FERME FERMS FERMT FERNE FERSK FESEN FESER FESES FESET FESTE FESTS FETAS FETER FEUEN FEUER FIBER FIBRE FIDEL FIDUS FIFAS FIFLE FIGEN FIGHT FIGUR FIKSE FIKST FILEN FILER FILES FILET FILME FILMS FILTE FILTR FILTS FILUR FIMET FIMRE FIMSE FINAL FINDE FINER FINES FINET FINGR FINIS FINIT FINKE FINNE FINSK FINTE FINTS FIOLE FIOLS FIRER FIRES FIRET FIRMA FIRME FISEN FISER FISES FISET FISKE FISKS FISTE FISTR FISTS FJANT FJASE FJEDR FJEDS FJELD FJERN FJERS FJERT FJOGE FJOGS FJOLR FJOLS FJONG FJORD FJORS FJUMR FJUMS FJÆLE FJÆLS FJÆRT FLABE FLABS FLADE FLADS FLADT FLAGE FLAGR FLAGS FLAIR FLAKS FLANE FLAPR FLAPS FLASH FLASK FLEKS FLERE FLERS FLEST FLETS FLIDS FLIGE FLIGS FLIKS FLIMR FLINK FLINT FLIPS FLIRE FLIRT FLISE FLODS FLOKS FLOMS FLOPS FLORA FLORS FLOTE FLOTS FLOVE FLOVS FLOVT FLUAT FLUEN FLUER FLUES FLUGT FLUID FLUKS FLUOR FLUTE FLYDE FLYDT FLYET FLYGT FLYVE FLÅDE FLÅDS FLÅET FLÅTS FLÆBE FLÆBS FLÆNG FLÆNS FLÆSE FLÆSK FLØDE FLØJE FLØJL FLØJS FLØJT FLØSE FNATS FNISE FNIST FNOKS FNUGS FNYSE FNYST FOBIS FODEN FODER FODRE FOERS FOGED FOGET FOKUS FOLDE FOLDS FOLER FOLES FOLET FOLIE FOLIO FOLKE FOLKS FONDE FONDS FONEM FONEN FONER FONTE FONTS FORAN FORAS FORBI FORDI FORDR FORDS FOREL FOREN FORER FORES FORET FORGÅ FORKE FORKS FORLÅ FORME FORMS FORMÅ FORNE FORNY FORPÅ FORRÅ FORSE FORSK FORST FORSÅ FORTE FORTI FORTN FORTS FORUD FORUM FORÅD FORÅR FORÆD FORÆR FORØD FORØG FORØV FOSES FOSSE FOSTR FOTON FOTOS FOYER FRAGT FRAGÅ FRANK FRASE FREAK FREDE FREDS FRELS FREON FRIER FRIES FRIET FRISE FRISK FRIST FRITS FROMS FROMT FRONT FROST FRUEN FRUER FRUES FRUGT FRYDE FRYDS FRYGT FRYNS FRYSE FRÅDE FRÅDS FRÅSE FRÆKS FRÆKT FRÆSE FRØEN FRØER FRØET FUGAS FUGEN FUGER FUGES FUGET FUGLE FUGLS FUGTE FUGTS FUKSE FULDE FULDS FULDT FULES FULGT FULTS FUMLE FUNDS FUNKE FUNKL FUNKS FUPPE FUREN FURER FURES FURET FURIE FUSEL FUSEN FUSER FUSES FUSET FUSKE FUSKS FUTIL FUTON FUTTE FYGER FYGES FYGET FYLDE FYLDS FYLDT FYLKE FYNBO FYNDS FYNSK FYORD FYREN FYRER FYRES FYRET FYRIG FYRRE FYRÅB FYSIK FYTIN FÅEDE FÅETS FÅRET FÅTAL FÆDRE FÆENE FÆETS FÆGTE FÆHÅR FÆISK FÆKAL FÆLDE FÆLES FÆLGE FÆLGS FÆLLE FÆLTS FÆNGE FÆRDS FÆRGE FÆRRE FÆRTS FÆSTE FÆSTN FÆTRE FØDEN FØDER FØDES FØDET FØDEØ FØDTE FØDTS FØGEN FØGET FØGNE FØJER FØJES FØJET FØJTE FØLER FØLES FØLGE FØLTE FØLTS FØNEN FØNER FØRER FØRES FØRET FØRST FØRTE FØRTS GABEN GABER GABES GABET GABTE GABTS GADEN GADER GADES GAFFE GAFLE GAGEN GAGER GAGES GAKKE GALAN GALAR GALDE GALDR GALEJ GALEN GALER GALES GALET GALGE GALLA GALLE GALON GALOP GALPE GALTE GALTS GAMBE GAMBL GAMES GAMET GAMIN GAMLE GAMMA GANEN GANER GANES GANGE GANGS GARDE GARNS GARVE GASEN GASER GASES GASSE GASTS GATES GAUGE GAVEN GAVER GAVES GAVLE GAVLS GAVNE GAVNS GEARE GEARS GEBET GEBIS GEBYR GEDDE GEDEN GEDER GEHØR GEJLE GEJLS GEJLT GEJSE GEJST GEKKO GELED GELEN GELER GELES GEMAK GEMAL GEMEN GEMME GEMMT GEMSE GEMTE GEMTS GEMYT GENBO GENEN GENER GENES GENET GENIS GENNE GENOM GENRE GENSE GENSÅ GENUA GENUS GERDS GEREN GERER GERES GERET GERNE GERÅD GESES GESTS GEVIR GEVÆR GIBBE GIDER GIDES GIDET GIDSL GIEDE GIENS GIERS GIETS GIFTE GIFTS GIGTS GILDE GIMPE GINEN GINER GINES GIPSE GIRAF GIRER GIRES GIRET GIROS GISES GISNE GISPE GISPS GITRE GIVEN GIVER GIVES GIVET GIVNE GJALD GJORD GJORT GLADE GLADS GLAMS GLANE GLANS GLATS GLEDS GLEMT GLIBE GLIDE GLIDS GLIMR GLIMT GLINS GLIPS GLITR GLOBE GLOET GLOSE GLUGS GLÆDE GLØDE GLØDS GLØGG GNASK GNAVE GNAVS GNEJS GNIDE GNIDR GNIER GNIST GNITR GNOME GNOMS GNUEN GNUER GNYET GODEN GODER GODES GODET GODTE GODTS GOGOS GOKKE GOLDE GOLDS GOLDT GOLFS GOMME GONGE GONGS GOOGL GOPLE GOTER GOTIK GOTTE GRABS GRADE GRADS GRAFS GRALS GRAMS GRAMT GRAND GRANS GRANT GRATS GRAVE GRAVS GREBE GREBS GREEN GREJE GREJS GRELS GRELT GRENE GRENS GREVE GRIBE GRIBS GRIDS GRIFL GRIFS GRILL GRIME GRIMS GRIMT GRIND GRINE GRINS GRINT GRISE GRISK GROET GROFT GROGS GROVE GROVS GRUBE GRUBL GRUEN GRUER GRUES GRUET GRUKS GRUMS GRUMT GRUND GRUSE GRYDE GRYET GRYNS GRYNT GRÅDS GRÅNE GRÅTS GRÆDE GRÆDT GRÆNS GRÆSK GRØBL GRØDE GRØDS GRØFT GRØNS GRØNT GUANO GUAVA GUBBE GUDEN GUDER GUDST GUFFE GUFLE GUIDE GULDS GULES GULNE GULTS GULVE GULVS GUMLE GUMME GUMMI GUMPE GUMPS GUNGR GUNST GUPPY GURGL GURUS GUSEN GUSES GYDEN GYDER GYDES GYDET GYDTE GYDTS GYLDN GYLLE GYLPE GYLPS GYLTE GYLTS GYNGE GYSEN GYSER GYSES GYSET GYSTE GYTJE GYVEL GÅBEN GÅDEN GÅDER GÅDES GÅEDE GÅENS GÅETS GÅLÆG GÅRDE GÅRDS GÅSEN GÅSES GÅTUR GÆKKE GÆLDE GÆLDS GÆLDT GÆLER GÆLLE GÆNGE GÆNGS GÆRDE GÆREN GÆRER GÆRES GÆRET GÆSES GÆSTE GÆSTS GÆTTE GÆVES GÆVTS GØDER GØDES GØDET GØDSK GØEDE GØENS GØETS GØGEN GØGES GØGLE GØGLS GØNGE GØREN GØRES GØSEN GØSES HABIL HABIT HADER HADES HADET HADSK HAGEN HAGER HAGES HAGET HAGLE HAGLS HAIKU HAJEN HAJER HAKKE HALEN HALER HALES HALET HALLO HALLS HALMS HALOS HALSE HALTE HALTS HALVE HALVS HALVT HALVØ HAMLE HAMME HAMPS HAMRE HANDI HANDL HANDY HANEN HANER HANES HANGS HANKE HANKS HAPPY HAPSE HAREM HAREN HARER HARES HARKE HARKS HARME HARMS HARPE HARPY HARSK HARVE HASEN HASER HASES HASHS HASPE HASTE HASTS HATTE HAUSA HAVDE HAVEN HAVER HAVES HAVET HAVIS HAVNE HAVNS HAVRE HAVÅL HEADE HEALE HEATS HEAVY HEDDE HEDEN HEDER HEDES HEDET HEDTS HEFTE HEGLE HEGNE HEGNS HEILE HEJRE HEJSA HEJSE HEJST HEKSE HELAN HELDS HELER HELES HELET HELGS HELLE HELME HELOT HELSE HELST HELTE HELTS HELÅR HEMAN HEMSE HENDE HENDØ HENGÅ HENLÅ HENNA HENNE HENRY HENSE HENSÅ HENTE HEPPE HERAF HERDS HERME HEROM HEROP HEROS HERPÅ HERRE HERSE HERSK HERTE HERUD HERUT HESTE HESTS HEVEN HEVES HEVET HEVNE HIDSE HIERS HIETS HIGEN HIGER HIGES HIGET HIHAT HIKER HIKES HIKET HIKKE HIKST HILDE HILLE HILSE HILST HIMLE HINDE HINDI HINDR HINDS HINDU HINES HINKE HINTS HIPOS HIRDS HIRSE HISES HISSE HITTE HIVEN HIVER HIVES HIVET HJALD HJALP HJELM HJEML HJEMS HJORD HJORT HJULE HJULS HJÆLP HJØRN HOBBY HOBEN HOBER HOBES HOBET HOFTE HOLDE HOLDS HOLDT HOLME HOLMS HOOKE HOOKS HOPLA HOPPE HOPSA HORAS HORDE HORET HORKS HORNS HORST HOSEN HOSER HOSES HOSTE HOSTS HOTBE HOTDE HOTEL HOTFE HOTGE HOTHE HOTJE HOTKE HOTLE HOTME HOTNE HOTPE HOTRE HOTSE HOTTE HOTVE HOVED HOVEN HOVER HOVES HOVET HOVNE HOVSA HTTPS HUDEN HUDER HUDRE HUEDE HUENS HUERS HUETS HUGAF HUGGE HUGST HUHEJ HUJEN HUJER HUJES HUJET HUKKE HULDE HULDS HULDT HULEN HULER HULES HULET HULKE HULKS HULLE HULTE HULTS HUMAN HUMLE HUMME HUMOR HUMPE HUMUS HUMØR HUNDE HUNDS HUNGR HURIS HURRA HUSAR HUSER HUSES HUSET HUSKE HUSLY HUTLE HUTRE HVALP HVALS HVAST HVEDE HVENE HVEPS HVERS HVERT HVERV HVIDE HVIDN HVIDS HVIDT HVILE HVILS HVINE HVINS HVISK HVISL HVORI HVÆLV HVÆSE HYBEL HYBEN HYDRA HYFEN HYFER HYFES HYGGE HYKLE HYLDE HYLDS HYLEN HYLER HYLES HYLET HYLLE HYMEN HYMNE HYNDE HYPPE HYRDE HYREN HYRER HYRES HYRET HYSSE HYTTE HYÆNE HÅBER HÅBES HÅBET HÅNDE HÅNDS HÅNEN HÅNER HÅNES HÅNET HÅNLE HÅNLO HÅNSK HÅRDE HÅRDS HÅRDT HÅRER HÅRES HÅRET HÆDER HÆDRE HÆFTE HÆGER HÆGES HÆGET HÆGGE HÆGTE HÆKKE HÆKLE HÆLDE HÆLDS HÆLDT HÆLEN HÆLER HÆLES HÆLET HÆLVT HÆMME HÆNDE HÆNDT HÆNGE HÆNGS HÆNGT HÆRDE HÆRDN HÆREN HÆRES HÆRGE HÆSES HÆSTS HÆTTE HÆVDE HÆVDS HÆVER HÆVES HÆVET HÆVNE HÆVNS HØETS HØFDE HØGEN HØGES HØJDE HØJEN HØJER HØJES HØJET HØJNE HØJRE HØJST HØJTS HØKER HØKRE HØLÆS HØNEN HØNER HØNES HØNSE HØRER HØRES HØRIG HØRME HØRMS HØRTE HØRTS HØSTE HØSTS HØTYV HØVED HØVLE HØVLS IDEAL IDEEL IDEEN IDEER IDELS IDETS IDIOM IDIOT IDOLS IDRÆT IDYLS IDØMT IFALD IFØRE IFØRT IGLEN IGLER IGLES IGLOO IGLOS IHJEL IKEND IKKUN IKLÆD IKONS IKTEN IKTER IKTES ILAGT ILBUD ILDEN ILDER ILDES ILDET ILDHU ILDNE ILEDE ILETS ILING ILLUM ILSOM ILTEN ILTER ILTES ILTET ILTOG ILTRE IMAGE IMAGO IMAMS IMENS IMMER IMMUN INDAD INDBO INDEN INDER INDGÅ INDRE INDSE INDSY INDSÅ INDSØ INDVI INDØV INERT INFAM INFOS INGEN INKAS INPUT INTET INTIM INTRO INUIT IONEN IONER IRERE IRERS IRONI IRREN IRRER IRRES IRRET IRSKE IRSKS IRØRE IRØRT ISATS ISBAR ISBLÅ ISBOD ISBRÆ ISBÅD ISEDE ISETS ISFOD ISFRI ISHAL ISHAV ISHUS ISING ISLAG ISLAM ISLÆG ISLÆT ISMEN ISMER ISMES ISNEN ISNER ISNES ISNET ISOLI ISOPS ISSEN ISSER ISSES ISSYL ISTAP ISTEM ISTEN ISTER ISTES ISTID ITEMS IVERS IVRER IVRES IVRET IVRIG JADEN JADES JAERS JAETS JAGEN JAGER JAGES JAGET JAGNE JAGTE JAGTS JAKET JAKKE JAKOS JAMBE JAMEN JAMME JAMRE JANTE JAORD JAPPE JARLS JASES JASKE JASKS JAVEL JEANS JEEPS JEGER JEGET JERES JERKE JERNE JERNS JETET JETON JIHAD JINGE JIVER JIVES JIVET JOBBE JODET JODLE JOGES JOGGE JOINE JOINT JOKEN JOKER JOKES JOKKE JOLLE JOLRE JONEN JONER JORDE JORDS JOULE JUBEL JUBLE JUDOS JUGER JULEN JULER JULES JULET JULIS JUMBE JUMBO JUMPE JUNGE JUNIS JUNKE JUNKS JUNTA JURAS JURYS JUSES JUTEN JUTES JUVEL JYDEN JYDER JYDES JYSKE JYSKS JÆGER JÆRPE JÆRVE JÆRVS JÆTTE JÆVNE JÆVNS JÆVNT JØDEN JØDER JØDES JØDET JØKEL KABEL KABYS KADET KADIS KADRE KAFEE KAFES KAFFE KAGEN KAGER KAGES KAGET KAGLE KAHYT KAJAK KAJEN KAJER KAJES KAKAO KAKIS KALAS KALDE KALDS KALDT KALIF KALIS KALKE KALKS KALLA KALOT KALVE KALVS KAMEL KAMES KAMIK KAMIN KAMME KAMPE KAMPS KAMRE KANAL KANDE KANEL KANEN KANER KANES KANET KANIN KANNA KANON KANOS KANTE KANTS KANUT KANVA KAOTS KAPEL KAPER KAPOK KAPPE KAPRE KAPSL KAPUT KARAT KARDE KARET KARGO KARLE KARLS KARMA KARME KARMS KARPE KARRE KARRY KARSE KARSK KARST KARTE KARVE KASKO KASSE KASTE KASTS KASUS KATAR KATTE KAVAJ KAVER KEAEN KEAER KEBAB KEDEL KEDER KEDES KEDET KEFIR KEGLE KEJSE KELER KELES KELET KELIM KELPS KEMIS KENDE KENDT KEPIS KERER KERES KERET KERNE KERTE KERUB KETLE KETON KHANS KHMER KIGER KIGES KIGET KIGGE KIKKE KIKSE KILDE KILDR KILEN KILER KILES KILET KILOS KILTE KILTS KIMEN KIMER KIMES KIMET KIMSE KINDS KININ KINOS KIOSK KIPER KIPPE KIRKE KISEL KISEN KISES KISTE KITIN KITTE KIVEN KIVES KJOLE KJOVE KLAGE KLAMP KLAMR KLAMS KLAMT KLANG KLANS KLAPR KLAPS KLARE KLARN KLARS KLART KLASE KLASK KLATR KLATS KLAVR KLEJN KLEMA KLEMS KLEMT KLERK KLIDS KLIKE KLIKS KLIMA KLINE KLING KLINK KLINT KLIPS KLIRE KLIRS KLITS KLOAK KLODE KLODS KLOEN KLOGE KLOGS KLOGT KLONE KLONS KLORE KLORS KLOVE KLOVN KLOVS KLUBS KLUDE KLUDR KLUDS KLUKS KLUMP KLUMR KLUNS KLUNT KLUPS KLYDE KLYNE KLYNG KLYNK KLÆBE KLÆDE KLÆDT KLÆGE KLÆGS KLÆGT KLØEN KLØER KLØES KLØET KLØFT KLØGT KLØJS KLØRS KLØVE KNAGE KNAGS KNAPS KNAPT KNARK KNARR KNASE KNAST KNEBL KNEBR KNEBS KNEJS KNEVR KNIBE KNIKS KNIPL KNIPS KNIRK KNITR KNIVE KNIVS KNOBE KNOBS KNOEN KNOER KNOKL KNOLD KNOPS KNUBS KNUDE KNUGE KNUGS KNUSE KNUST KNUTS KNYET KNYST KNÆET KNÆGT KNÆKS KNÆLE KNÆVR KNØSE KOALA KOBEN KOBLE KOBRA KODEN KODER KODES KODET KOENS KOFTE KOGEN KOGER KOGES KOGEØ KOGGE KOGLE KOGTE KOGTS KOKET KOKKE KOKON KOKOS KOKSE KOLBE KOLDE KOLDS KOLDT KOLIK KOLON KOLOS KOMAS KOMET KOMIK KOMMA KOMME KOMNE KOMØG KONDI KONEN KONER KONES KONET KONGE KONGS KONKS KONTI KONTO KONUS KOPAR KOPEK KOPIS KOPRA KORAL KORAN KORDE KORET KORKS KORNS KORPS KORSE KORTE KORTS KOSAK KOSTE KOSTS KOTEN KOTER KOTES KOØJE KRAAL KRABL KRADS KRAFT KRAGE KRAKS KRAMP KRAMS KRANE KRANK KRANS KRAPS KRAPT KRAST KRATS KRAVE KRAVL KRAVS KREBS KREDS KREER KREJL KREMS KREMT KREOL KREPS KRIBL KRIDT KRIGE KRIGS KRILR KRIMI KRISE KRISP KROAT KROEN KROER KROET KROGE KROGS KROKI KROMS KRONE KROPS KRUDT KRUKS KRUMS KRUMT KRUSE KRYBE KRYBS KRYDR KRYDS KRYMP KRYPT KRYST KRÅLS KRÅSE KRÆET KRÆFT KRÆGE KRÆNG KRÆNK KRÆSE KRÆVE KRØJE KRØLS KUBEN KUBER KUBES KUBET KUBIK KUBUS KUDUS KUEDE KUETS KUGLE KUJON KUKKE KUKUR KULAK KULDE KULDS KULEN KULER KULES KULET KULIS KULLE KULOS KULSO KULTS KULØR KUMME KUNDE KUNNE KUNST KUPER KUPES KUPLE KUPON KUPPE KUREN KURER KURES KURET KURIE KURRE KURVE KURVS KUSKE KUSKS KUTTE KVADS KVAJE KVAJS KVALM KVALS KVALT KVANS KVANT KVARK KVART KVASE KVAST KVIDE KVIDR KVIEN KVIER KVIES KVIET KVIKS KVIKT KVILT KVIND KVINT KVIST KVITS KVOTA KVOTE KVÆDE KVÆGE KVÆGS KVÆKS KVÆLD KVÆLE KVÆRK KVÆRN KVÆST KYLER KYLES KYLET KYLLE KYPER KYRAS KYRIE KYSEN KYSER KYSES KYSET KYSKE KYSKS KYSKT KYSSE KYSTE KYSTS KÅBEN KÅBER KÅBES KÅDES KÅDTS KÅGEN KÅGES KÅLEN KÅRDE KÅRER KÅRES KÅRET KÆBEN KÆBER KÆBES KÆDEN KÆDER KÆDES KÆDET KÆFTE KÆFTS KÆKBE KÆKDE KÆKFE KÆKGE KÆKHE KÆKJE KÆKKE KÆKLE KÆKME KÆKNE KÆKPE KÆKRE KÆKSE KÆKTE KÆKTS KÆKVE KÆLEN KÆLER KÆLES KÆLET KÆLKE KÆLKS KÆLNE KÆLVE KÆMME KÆMPE KÆNTR KÆPPE KÆRER KÆRES KÆRET KÆRNE KÆRRE KÆRTE KÆRTS KÆRVE KÆRVS KÆVER KÆVES KÆVET KÆVLE KÆVLS KØBER KØBES KØBET KØBTE KØBTS KØDBY KØDET KØENS KØERS KØJEN KØJER KØJES KØLEN KØLER KØLES KØLET KØLIG KØLLE KØLNE KØNBE KØNDE KØNFE KØNGE KØNHE KØNJE KØNKE KØNLE KØNME KØNNE KØNPE KØNRE KØNSE KØNTE KØNTS KØNVE KØRER KØRES KØRNE KØRTE KØRTS KØTER LABAN LABBE LABER LABIL LABRE LADEN LADER LADES LADET LADTE LADTS LADYS LAERS LAETS LAGDE LAGEN LAGER LAGES LAGET LAGRE LAGTE LAGTS LAKAJ LAKER LAKKE LALAS LALLE LAMAS LAMBE LAMDE LAMEL LAMES LAMFE LAMGE LAMHE LAMJE LAMKE LAMLE LAMME LAMNE LAMPE LAMRE LAMSE LAMTE LAMTS LAMVE LANDE LANDS LANET LANGE LANGS LANGT LANSE LAOTS LAPIS LAPPE LAPSE LARGE LARGO LARME LARMS LARVE LASEN LASER LASES LASET LASKE LASKS LASSO LASTE LASTS LASUR LATIN LATTE LAUDS LAUGS LAVAS LAVEN LAVER LAVES LAVET LAVTS LEASE LEBEN LEDDE LEDEN LEDER LEDES LEDET LEDIG LEDNE LEDTE LEDTS LEENS LEERS LEFLE LEGAL LEGAT LEGEN LEGER LEGES LEGET LEGIO LEJDE LEJEN LEJER LEJES LEJET LEJRE LEJRS LEMMA LEMME LEMON LEMPE LEMUR LENDE LENET LERET LETAL LETBE LETDE LETES LETFE LETGE LETHE LETJE LETKE LETLE LETME LETNE LETPE LETRE LETSE LETST LETTE LETVE LEVEN LEVER LEVES LEVET LEVIT LEVNE LEVNS LEVRE LIANS LIDEN LIDER LIDES LIDET LIDOS LIDSE LIDTE LIDTS LIEDS LIENS LIERE LIERS LIFTE LIFTS LIGAS LIGER LIGES LIGET LIGGE LIGNE LIGST LIGTS LIKØR LILJE LILLA LILLE LIMEN LIMER LIMES LIMET LIMIT LIMON LINDE LINDR LINDS LINDT LINEN LINER LINES LINET LINGE LINJE LINKE LINKS LINSE LIREN LIRER LIRES LIRET LIRKE LISES LISTE LISTS LITER LITRA LIVER LIVES LIVET LIVRE LOADE LOBBE LOBBY LODDE LODEN LODES LODET LODNE LODSE LODUR LOENS LOERS LOFTS LOGEN LOGER LOGES LOGGE LOGIK LOGIS LOGOS LOGRE LOKAL LOKKE LOKUM LOMME LOMVI LONGE LOOKS LOOPE LOOPS LOPPE LORDS LOREN LORNE LOSES LOSSE LOTTE LOTTO LOTUS LOVEN LOVER LOVES LOVET LOYAL LSDEN LUBBE LUDEN LUDES LUDET LUDOS LUEDE LUENS LUERS LUETS LUFFE LUFTE LUFTS LUGAR LUGEN LUGER LUGES LUGET LUGTE LUGTS LUKAF LUKKE LUKSE LULLE LUMEN LUMRE LUMSK LUNDE LUNDS LUNER LUNES LUNET LUNGE LUNKE LUNTE LUNTS LUPIN LUPUS LUREN LURER LURES LURET LUSEN LUSES LUSET LUSKE LUSKS LUTRE LUVEN LUVER LUVES LUVET LYBSK LYDEN LYDER LYDES LYDIG LYDTE LYDTS LYEDE LYENE LYETS LYGTE LYKKE LYMFE LYNER LYNES LYNET LYNGS LYNNE LYREN LYRER LYRES LYRIK LYSEN LYSER LYSES LYSET LYSIN LYSKE LYSNE LYSTE LYSTR LYSTS LYSÅR LYTTE LYVER LYVES LÅDNE LÅGEN LÅGER LÅGES LÅGET LÅNER LÅNES LÅNET LÅNTE LÅNTS LÅRET LÅSEN LÅSER LÅSES LÅSTE LÅSTS LÆBEN LÆBER LÆBES LÆDER LÆEDE LÆETS LÆGEN LÆGER LÆGES LÆGET LÆGGE LÆGTE LÆGTS LÆKAT LÆKBE LÆKDE LÆKFE LÆKGE LÆKHE LÆKJE LÆKKE LÆKLE LÆKME LÆKNE LÆKPE LÆKRE LÆKSE LÆKTE LÆKTS LÆKVE LÆMME LÆMUR LÆNDS LÆNER LÆNES LÆNET LÆNGE LÆNKE LÆNSE LÆRDE LÆRDS LÆREN LÆRER LÆRES LÆRKE LÆRKS LÆRTE LÆRTS LÆSER LÆSES LÆSKE LÆSPE LÆSSE LÆSTE LÆSTS LØBEN LØBER LØBES LØBET LØBNE LØBSK LØDEN LØDES LØDIG LØFTE LØFTS LØGET LØGNE LØGNS LØJEN LØJER LØJES LØJET LØJPE LØJTS LØKKE LØNNE LØSEN LØSER LØSES LØSNE LØSTE LØSTS LØVEN LØVER LØVES LØVET MADAM MADEN MADER MADES MADET MADOS MADRO MAFIA MAGEN MAGER MAGES MAGET MAGIS MAGMA MAGRE MAGTE MAGTS MAILE MAILS MAJEN MAJER MAJES MAJET MAJOR MAKIS MAKKE MAKOS MAKRO MALAJ MALEN MALER MALES MALET MALKE MALLE MALME MALMS MALTE MALTS MAMAS MAMBA MAMMA MANAS MANAT MANDE MANDS MANEN MANER MANES MANET MANGE MANGL MANGO MANGT MANIS MANKE MANKO MANNA MANNE MANTA MANUS MAORI MAPPE MAREN MARER MARES MARIN MARKS MARSK MARTR MARTS MARVS MASEN MASER MASES MASET MASKE MASKS MASSE MASTE MASTS MATBE MATCH MATDE MATEN MATER MATES MATFE MATGE MATHE MATHS MATJE MATKE MATLE MATME MATNE MATPE MATRE MATSE MATST MATTE MATVE MAUVE MAVEN MAVER MAVES MAVET MAVSE MAYAS MEDEN MEDER MEDES MEDET MEDGÅ MEDIE MEDIO MEGEN MEGET MEJER MEJES MEJET MEJSE MEJSL MEKKA MELDE MELDT MELER MELES MELET MELIS MELON MEMOS MENED MENER MENES MENGE MENIG MENTE MENTS MENUS MERES MERGL MERIT MERLE MESAN MESON MESSE MESTE MESTR MESTS METAL METAN METER METRA METRE METRO METYL MIAVE MIDEN MIDER MIDES MIDJE MIDLE MIDTE MIDTI MIERS MIETS MIKKE MIKSE MILDE MILDN MILDS MILDT MILEN MILER MILES MILJØ MILLE MILTE MILTS MIMEN MIMER MIMES MIMET MIMIK MIMRE MINDE MINEN MINER MINES MINIS MINKE MINKS MINUS MINUT MINØR MIREN MIRER MIRES MIRET MISES MISSE MISTE MITRA MITTE MJAVE MJØDS MOBBE MOBIL MODEL MODEM MODEN MODER MODES MODET MODGÅ MODIG MODIS MODNE MODSØ MODUL MODUS MOENS MOGUL MOIRE MOKKA MOKKE MOLBO MOLEN MOLER MOLES MOLET MOLOK MOLÆR MOMSE MONNE MONOS MOPPE MORAK MORAL MORDS MOREL MOREN MORER MORES MORET MOROS MORSE MOSEN MOSER MOSES MOSET MOSKE MOSLE MOSTE MOSTS MOTEL MOTET MOTIV MOTOR MOTTO MOVER MUDRE MUFFE MUFLE MUFTI MUGER MUGES MUGET MUGGE MUGNE MUKKE MULAT MULDE MULDN MULDS MULEN MULER MULES MULET MULIG MULKT MULLE MULMS MULTE MULTI MULTS MUMIE MUMLE MUNDE MUNDS MUNKE MUNKS MUNTR MURBI MUREN MURER MURES MURET MURHA MURRE MUSEN MUSER MUSES MUSET MUSIK MUSKL MUTBE MUTDE MUTEN MUTER MUTES MUTFE MUTGE MUTHE MUTJE MUTKE MUTLE MUTME MUTNE MUTPE MUTRE MUTSE MUTTE MUTVE MYENE MYENS MYGES MYGTS MYLDR MYNDE MYNTE MYOSE MYRDE MYREN MYRER MYRES MYRET MYRRA MYRTE MYSLI MYTEN MYTER MYTES MÅBEN MÅBER MÅBES MÅBET MÅDEN MÅDER MÅDES MÅGEN MÅGER MÅGES MÅLER MÅLES MÅLET MÅLTE MÅLTS MÅNED MÅNEN MÅNER MÅNES MÅREN MÅRES MÅSEN MÅSES MÅSKE MÅTTE MÆEDE MÆETS MÆGLE MÆGTE MÆHÆS MÆLDE MÆLER MÆLES MÆLET MÆLKE MÆLKS MÆNDS MÆNGE MÆREN MÆRES MÆRKE MÆSKE MÆTES MÆTST MÆTTE MØBEL MØDER MØDES MØDET MØDIG MØDOM MØDRE MØDTE MØDTS MØENS MØERS MØFFE MØGER MØGES MØGET MØGSO MØJEN MØJES MØLLE MØNBO MØNJE MØNNE MØNSK MØNTE MØNTS MØRES MØRKE MØRKN MØRKS MØRKT MØRNE MØRTS MØVER MØVES MØVET NABOS NADIR NAFTA NAGER NAGES NAGET NAGLE NAIVE NAIVS NAIVT NAJER NAJES NAJET NAKKE NALLE NALRE NAPPA NAPPE NARKO NARRE NASAL NASES NASSE NATIV NATTE NATUE NATUR NAVEL NAVER NAVET NAVLE NAVNE NAVNS NAVRE NAVRS NEDAD NEDEN NEDER NEDET NEDGÅ NEDIS NEDRE NEGET NEGLE NEGLS NEJER NEJES NEJET NEMBE NEMDE NEMFE NEMGE NEMHE NEMJE NEMKE NEMLE NEMME NEMNE NEMPE NEMRE NEMSE NEMTE NEMTS NEMVE NEONS NERIE NERVE NESTE NETES NETOP NETST NETTE NETTO NEVEN NEVES NEVET NEVNE NEVØS NIBER NIBES NIBET NIENS NIERE NIERS NIKKE NIPPE NIPSE NISSE NITAL NITID NITIS NITTE NIVER NIVES NIÅRS NIØJE NOBEL NOBLE NODEN NODER NODES NOGEN NOGET NOGLE NOKKE NOLER NOLES NOLET NONEN NONER NONES NONET NONNE NOPPE NOPRE NORDS NORET NORMS NORNE NORSK NOSSE NOTAR NOTAS NOTAT NOTEN NOTER NOTES NOTET NOVAS NUBRE NUDEL NUETS NULRE NULTE NUMRE NUMSE NUPPE NURSE NUSES NUSLE NUSSE NUTID NUTTE NUVEL NYDER NYDES NYDTE NYDTS NYERE NYEST NYETS NYHED NYKKE NYLIG NYLON NYMFE NYNNE NYORD NYREN NYRER NYRES NYRIG NYSEN NYSER NYSES NYSET NYSNE NYSSE NYSTE NYSYN NYTTE NYTÅR NYÅBN NÅDEN NÅDES NÅDIG NÅDLE NÅEDE NÅETS NÅLEN NÅLER NÅLES NÅLET NÆBES NÆBET NÆETS NÆGTE NÆLDE NÆNBE NÆNDE NÆNFE NÆNGE NÆNHE NÆNJE NÆNKE NÆNLE NÆNME NÆNNE NÆNPE NÆNRE NÆNSE NÆNTE NÆNTS NÆNVE NÆPPE NÆRER NÆRES NÆRET NÆRIG NÆRME NÆRST NÆRTS NÆSEN NÆSER NÆSES NÆSTE NÆVEN NÆVER NÆVES NÆVNE NÆVNS NÆVNT NØDEN NØDER NØDES NØDET NØDIG NØDTS NØFLE NØGEN NØGLE NØGNE NØJER NØJES NØJET NØKKE NØLEN NØLER NØLES NØLET NØRDS NØRKL NØRRE NØSES OASEN OASER OASES OBLAT OBLIK OBOEN OBOER OBOLS ODDEN ODDER ODDES ODELS ODENS ODERS ODEUR ODIØS ODØRS OFFER OFRER OFRES OFRET OKAPI OKAYS OKKER OKSEN OKSER OKSES OKSET OKTAN OKTAV OKTET OLDEN OLENE OLENS OLIEN OLIER OLIES OLIET OLMES OLMTS OMBUD OMBUK OMBYG OMBYT OMBØJ OMDAN OMDEL OMDØB OMEGA OMEGN OMEND OMENS OMFAT OMGAV OMGIK OMGIV OMGÅR OMGÅS OMGÆS OMGØR OMHUG OMHUS OMHYL OMKOM OMLAD OMLYD OMLÆG OMLÆS OMLØB OMPOT OMRAM OMRØR OMSAT OMSEN OMSES OMSYR OMSYS OMSÆT OMTAL OMVEJ ONANI ONDER ONDES ONDET ONDTS ONKEL ONYKS OPAKE OPAKS OPAKT OPALS OPART OPBAG OPBAK OPBUD OPBYD OPBYG OPBØD OPDAG OPDEL OPDUK OPDÆM OPERA OPFAR OPFAT OPFED OPFEJ OPFOR OPFØR OPGAV OPGIK OPGIV OPGÅR OPGÅS OPGØR OPHAV OPHED OPHOB OPHUG OPHÆV OPHØJ OPHØR OPIUM OPKOG OPKOM OPKØB OPKØR OPLAD OPLAG OPLED OPLEV OPLIV OPLOD OPLUK OPLYS OPLÆG OPLÆR OPLÆS OPLØB OPLØS OPMAL OPMUR OPMÅL OPNÅR OPNÅS OPOFR OPPER OPPES OPPET OPRET OPREV OPRIV OPRUL OPRYK OPRÅB OPRØM OPRØR OPSAT OPSIG OPSLÅ OPSTÅ OPSUG OPSYN OPSÆT OPSØG OPTAG OPTER OPTIK OPTOG OPTUR OPTÆL OPTØR OPTØS OPVEJ OPVIS OPVÆK OPÆDE OPÆDT OPØVE ORAKL ORALE ORALS ORALT ORDEN ORDES ORDET ORDNE ORDRE OREDE ORETS ORGAN ORGEL ORGIE ORGLE ORGON ORKAN ORKER ORKES ORKET ORKIS ORLOG ORLOV ORMEN ORMER ORMES ORMET ORNAT ORNEN ORNER ORNES ORTEN ORTER OSEDE OSENS OSERE OSERS OSETS OSMAN OSTEN OSTER OSTES OSTET OTIET OTIUM OTTER OTTES OVALE OVALS OVALT OVENI OVERE OVERS OVNEN OVNES PADDE PADLE PAFFE PAGAJ PAGEN PAGER PAGES PAGTS PAIRS PAJEN PAJER PAKET PAKKE PALEN PALER PALET PALLE PALME PALMS PALÆS PAMPA PANDA PANDE PANEL PANER PANIK PANSR PANTE PANTS PAPAS PAPIL PAPIR PAPPE PARAT PARER PARES PARIA PARIS PARKA PARKS PARRE PARTI PARTS PARTY PARYK PASES PASHA PASSE PASTA PASTE PATER PATES PATIO PATOS PAUKE PAUSE PAVEN PAVER PAVES PEBEN PEBER PEBES PEBET PEBNE PEBRE PEDAL PEDEL PEELE PEERS PEGER PEGES PEGET PEJLE PEJSE PELSE PENDL PENGE PENNE PENNY PENSA PENSL PEPPE PERLE PERMS PERSE PERTS PESOS PESTS PETIT PETTE PHIER PHIET PIANO PIBEN PIBER PIBES PIBET PIBLE PIENS PIERS PIFTE PIFTS PIGEN PIGER PIGES PIGET PIGGE PIKER PIKES PILAR PILEN PILER PILES PILET PILKE PILKS PILLE PILNE PILOT PILTE PILTS PIMPE PINDE PINDS PINEN PINER PINES PINGS PINJE PINKS PINOL PINSE PINTE PINTS PINUP PIPEN PIPER PIPES PIPPE PIRAT PIRKE PIRKS PIROG PIROL PIRRE PISES PISKE PISKS PISTS PIVET PIVOT PIZZA PJADR PJALT PJANK PJASK PJATS PJEVS PJOKS PJÆVE PJÆVR PLADE PLADR PLADS PLAFS PLAGE PLAGS PLAID PLAKS PLANE PLANK PLANS PLANT PLAPR PLASK PLAST PLATE PLATS PLEAS PLEBS PLEJE PLEJL PLETS PLIEN PLIGT PLING PLINT PLIRE PLOTS PLOVE PLOVS PLUDR PLUKS PLUMP PLUMR PLUMS PLUTR PLÆNE PLØJE PLØKS PLØRE PLØSE PODEN PODER PODES PODET POESI POETS POGEN POGES POINT POKAL POKER POLAK POLAR POLEN POLER POLET POLIO POLKA POLOS POLSK POLYP POLÆR POMPS PONYS POOLS POPEN POPER POPES POPOS POPPE POREN PORER PORES PORET PORRE PORTE PORTO PORTS PORØS POSEN POSER POSES POSET POSTE POSTS POSØR POTEN POTER POTES POTTE PRAGT PRAJE PRAJS PRALE PRALS PRAMS PRANG PRATE PRATS PRENE PRENS PRENT PRIKL PRIKS PRIMA PRIME PRIMO PRIMS PRINS PRINT PRIOR PRISE PRIST PROBE PROFS PROPS PROSA PROVO PRUDE PRUDS PRUDT PRUNK PRUST PRUTS PRYDE PRYDS PRYGL PRÅSE PRÆER PRÆET PRÆGE PRÆGS PRÆKE PRÆKS PRÆST PRØVE PSYKE PUDEL PUDEN PUDER PUDES PUDET PUDRE PUDSE PUFFE PUGER PUGES PUGET PUKKE PUKLE PULDE PULDS PULER PULES PULET PULJE PULKE PULKS PULLE PULPS PULSE PULTE PULTS PUMAS PUMPE PUMPS PUNDS PUNGE PUNGS PUNKE PUNKS PUNKT PUNSL PUPIL PUPPE PURER PURES PURIN PURKE PURKS PURRE PURTS PUSES PUSET PUSHE PUSLE PUSTE PUSTS PUTTE PYENS PYERS PYGMÆ PYLON PYLRE PYNTE PYNTS PYRIT PYTON PYTTE PÅANK PÅBUD PÅBYD PÅBØD PÅDUT PÅDØM PÅFØR PÅGIK PÅGÅR PÅGÅS PÅHIT PÅHØR PÅKOM PÅKÆR PÅKØR PÅLIM PÅLÆG PÅNØD PÅPEG PÅSAT PÅSER PÅSES PÅSET PÅSKE PÅSTÅ PÅSYN PÅSYR PÅSYS PÅSÅS PÅSÆT PÅTAG PÅTAL PÅTOG PÅVIS PÆGLE PÆGLS PÆLEN PÆLER PÆLES PÆLET PÆNES PÆNTS PÆONS PÆREN PÆRER PÆRES PØBEL PØLEN PØLER PØLES PØLET PØLLE PØLSE PØNSE PØSEN PØSER PØSES PØSET RABAT RABBI RABLE RADAR RADEN RADER RADES RADIO RADON RAFEN RAFER RAFES RAFLE RAFTE RAGAS RAGER RAGES RAGET RAIDE RAIDS RAJAH RAKET RAKKE RAKLE RAKTE RAKTS RAKUS RALLE RALLY RAMBE RAMDE RAMFE RAMGE RAMHE RAMJE RAMKE RAMLE RAMME RAMNE RAMPE RAMRE RAMSE RAMTE RAMTS RAMVE RANDE RANDS RANDT RANER RANES RANET RANGS RANKE RANKS RANKT RAPBE RAPDE RAPFE RAPGE RAPHE RAPJE RAPKE RAPLE RAPME RAPNE RAPPE RAPRE RAPSE RAPTE RAPTS RAPVE RARES RARTS RASEN RASER RASES RASET RASKE RASKS RASKT RASLE RASPE RASPS RASTE RASTS RATEN RATER RATES RATET RATIO RAVEN RAVER RAVES RAVET RAVNE RAVNS RAYON REALE REALS REALT REBEL REBER REBES REBET REBUS REDDE REDEN REDER REDES REDET REDNE REDTE REDTS REELS REELT REGAL REGEL REGER REGIE REGIS REGNE REGNS REJEN REJER REJES REJFE REJSE REJST REKYL RELÆS REMIS REMME REMSE RENDE RENDS RENDT RENEN RENER RENES RENSE RENTE RENTS REOLS REPOS RERNE RESTS RETES RETST RETTE RETUR REVEN REVES REVET REVIR REVLE REVNE REVSE REVYS RIBBE RIDEN RIDER RIDES RIDSE RIDTS RIEDE RIENS RIERE RIERS RIETS RIFFS RIFTS RIGEL RIGER RIGES RIGET RIGGE RIGID RIGLE RIGTS RILLE RIMEN RIMER RIMES RIMET RIMPE RIMTE RINDE RINGE RINGL RINGS RINKE RIPPE RISEN RISER RISES RISET RISLE RISPE RISPS RISTE RISTS RITEN RITER RITES RITTE RITUS RIVAL RIVEN RIVER RIVES ROBEN ROBER ROBES ROBOT ROBÅD RODEN RODEO RODER RODES RODET ROEDE ROENS ROERE ROERS ROETS ROGNS ROKER ROKKE ROLFE ROLIG ROLLE ROMAN ROMBE ROMER ROMMY RONDO RORET ROSAS ROSEN ROSER ROSES ROSET ROSIN ROSTE ROSTS ROTER ROTOR ROTTE ROTUR ROUGE ROVET ROYAL RUBBE RUBEL RUBIN RUDEL RUDEN RUDER RUDES RUFLE RUGBY RUGEN RUGER RUGES RUGET RUHED RUINS RULAM RULLE RUMBA RUMLE RUMME RUMPE RUNDE RUNDS RUNDT RUNEN RUNER RUNES RUNET RUNGE RUPEE RUPIS RUPPE RURAL RUREN RURER RUSEN RUSER RUSES RUSHS RUSKE RUSKS RUSTE RUSTS RUTEN RUTER RUTES RUTSJ RUTTE RYAEN RYAER RYDDE RYETS RYGER RYGES RYGGE RYGTE RYKKE RYLEN RYLER RYLES RYNKE RYPEN RYPER RYPES RYSTE RYTME RÅBEN RÅBER RÅBES RÅBET RÅBTE RÅBTS RÅBUK RÅDER RÅDES RÅDET RÅDNE RÅDYR RÅENS RÅERS RÅGEN RÅGER RÅGES RÅHED RÅHUS RÅHYG RÅKID RÅLAM RÅNOK RÅULD RÆBER RÆBES RÆBET RÆDBE RÆDDE RÆDFE RÆDGE RÆDHE RÆDJE RÆDKE RÆDLE RÆDME RÆDNE RÆDPE RÆDRE RÆDSE RÆDTE RÆDTS RÆDVE RÆERS RÆKKE RÆLIG RÆNKE RÆRET RÆSER RÆSES RÆSET RÆSON RÆVEN RÆVER RÆVES RÆVET RØBER RØBES RØBET RØDEL RØDES RØDME RØDNE RØDTS RØFLE RØGEN RØGER RØGES RØGET RØGNE RØGTE RØGTS RØMME RØMTE RØMTS RØNNE RØRER RØRES RØRET RØRIG RØRTE RØRTS RØRÆG RØSEN RØSER RØSES RØSTI RØSTS RØVER RØVET SABEL SABLE SADEL SADLE SAFIR SAFTE SAFTS SAGAS SAGDE SAGEN SAGER SAGNS SAGOS SAGTE SAGTN SAGTS SAKES SAKKE SAKSE SALAT SALDI SALDO SALEN SALEP SALES SALGS SALIG SALME SALOL SALON SALPE SALSA SALTE SALTO SALTS SALUT SALVE SALÆR SAMBA SAMBO SAMEN SAMER SAMES SAMLE SAMME SAMPL SAMSK SAMSØ SANDE SANDS SANDT SANER SANGE SANGS SANKE SANKS SANKT SANSE SAREN SARGE SARGS SARIS SARTE SARTS SATES SATIN SATME SATSE SATST SATTE SATYR SAUNA SAVEN SAVER SAVES SAVET SAVLE SAVLS SAVNE SAVNS SEDAN SEDES SEEDE SEERE SEERS SEGLE SEGLS SEGNE SEJDS SEJEN SEJER SEJES SEJET SEJLE SEJLS SEJRE SEJRS SEJSE SEJTS SEKEL SEKST SEKTS SELEN SELER SELES SELVE SELVS SEMER SEMET SEMIT SENAT SENDE SENDT SENEN SENER SENES SENET SENGE SENGS SENIL SENTS SEPIA SERAF SERAS SERGE SERIE SERUM SERVE SERVS SESAM SETES SETET SFÆRE SHAGS SHAHS SHEIK SHIIT SHOPS SHTML SIDDE SIDEN SIDER SIDES SIDSE SIDST SIDTS SIEDE SIENS SIERS SIETS SIFON SIGEL SIGER SIGES SIGMA SIGNE SIGTE SIGTS SIKHS SIKKE SIKRE SILDE SILDS SILEN SILER SILES SILET SILKE SILOS SILUR SIMRE SIMSE SINDE SINDS SINES SINKE SINTR SINUS SIPPE SIRER SIRES SIRET SIRTS SIRUP SISAL SISUS SITAR SITEE SITEN SITES SITRE SIVER SIVES SIVET SJAKR SJAKS SJALS SJAPS SJASK SJATS SJOFL SJOSK SJOVE SJOVS SJOVT SJUFT SJUSK SJÆKL SJÆLE SJÆLS SKABE SKABS SKABT SKADE SKAFT SKAGE SKAKS SKAKT SKALA SKALK SKALP SKALS SKALT SKAMS SKARE SKARN SKARP SKARV SKATS SKAVE SKEDE SKEEN SKEER SKEJE SKEJS SKELE SKELN SKELS SKEMA SKETE SKIBE SKIBS SKIDS SKIDT SKIEN SKIFT SKIKS SKILR SKILT SKIML SKIMT SKIND SKINK SKINS SKIVE SKJUL SKODS SKOEN SKOET SKOGR SKOKS SKOLD SKOLE SKOPS SKORP SKORT SKOSE SKOTS SKOVE SKOVL SKOVS SKRAB SKRAL SKRAM SKRAP SKRAT SKRED SKREG SKREV SKRID SKRIG SKRIN SKRIV SKROG SKROT SKRUB SKRUD SKRUE SKRUK SKRUS SKRUT SKRYD SKRÅL SKRÅN SKRÅR SKRÅS SKRÅT SKRÆK SKRÆL SKRÆM SKRÆP SKRÆV SKRØD SKUBS SKUDE SKUDS SKUDT SKUEN SKUER SKUES SKUET SKUFL SKULE SKULK SKUML SKUMR SKUMS SKUNK SKURE SKURK SKURS SKURV SKVAT SKVIS SKVÆT SKYDE SKYEN SKYER SKYET SKYLD SKYLS SKYND SKYRS SKYTS SKÅLE SKÅLS SKÅNE SKÅRE SKÅRS SKÆFT SKÆGS SKÆGT SKÆLD SKÆLM SKÆLS SKÆLV SKÆMT SKÆND SKÆNE SKÆNK SKÆRE SKÆRF SKÆRM SKÆRP SKÆRS SKÆRT SKÆRV SKÆVE SKÆVS SKÆVT SKØDE SKØDS SKØGE SKØJT SKØNS SKØNT SKØRE SKØRN SKØRS SKØRT SLADR SLAGS SLAGT SLAMS SLANG SLANK SLANT SLAPS SLAPT SLASK SLATS SLAVE SLEMS SLEMT SLESK SLETS SLEVE SLEVS SLIBE SLIDE SLIDS SLIDT SLIGE SLIGS SLIGT SLIKS SLIME SLIMS SLING SLIPS SLISK SLOTS SLUBR SLUDE SLUDR SLUDS SLUGE SLUGT SLUKN SLUMP SLUMR SLUMS SLUPS SLURK SLUSE SLYNG SLÅEN SLÅER SLÅET SLÆBE SLÆBS SLÆBT SLÆDE SLÆGT SLÆKS SLÆKT SLÆNG SLÆTS SLØJD SLØJE SLØJF SLØJS SLØJT SLØRE SLØRS SLØSE SLØVE SLØVS SLØVT SMADR SMAGE SMAGS SMAGT SMALN SMALS SMALT SMART SMASH SMASK SMEDE SMEDS SMELT SMERT SMIDE SMIDT SMIGE SMIGR SMIGS SMILE SMILS SMILT SMINK SMISK SMOGS SMOVS SMSEN SMSER SMSES SMUDS SMUGL SMUGS SMUKS SMUKT SMULD SMULE SMULT SMURT SMYGE SMÅBY SMÅLE SMÅLO SMÆDE SMÆGT SMÆKS SMÆLD SMØGE SMØGS SMØLE SMØLS SMØRE SMØRS SNADR SNAGE SNAKS SNAPS SNARE SNARS SNART SNASK SNAVS SNEEN SNEET SNEGL SNERP SNERT SNESE SNIFS SNIGE SNILD SNIPE SNIPS SNITS SNIVE SNOBS SNOET SNOGE SNOGS SNOLD SNORE SNORK SNORS SNOTS SNUBL SNUDE SNUEN SNUER SNUES SNUET SNUSE SNUSK SNUTS SNYDE SNYDS SNYDT SNYLT SNÆRE SNÆRT SNÆVR SNØFT SNØRE SNØVL SNØVS SOBER SOBRE SODAS SODEN SODER SODES SODET SOENS SOFAS SOGNE SOGNS SOIRE SOJAS SOLDE SOLDS SOLEN SOLER SOLES SOLET SOLGT SOLID SOLIS SOLOS SOLUR SOLÅR SOMAS SOMME SOMRE SONAR SONDE SONDR SONER SONES SONET SONOR SOPPE SORGS SORTE SORTN SORTS SOTEN SOTER SOULS SOVEN SOVER SOVES SOVET SOVNE SOVSE SPADE SPAGE SPAGS SPAGT SPALT SPAMS SPAND SPANG SPANK SPANT SPARE SPARK SPARS SPATS SPEAK SPEED SPEJD SPEJL SPELT SPIDS SPIES SPIGR SPILD SPILE SPILS SPIND SPINK SPINS SPION SPIRE SPIRS SPISE SPIST SPJÆT SPLAT SPLID SPLIT SPOLE SPORE SPORS SPORT SPOTS SPOVE SPRAK SPRAY SPRED SPRIT SPROG SPRUD SPRUT SPRÆK SPRÆL SPRÆT SPRØD SPULE SPUNS SPURT SPURV SPYDS SPYET SPYTS SPÅET SPÅNS SPÆDE SPÆDS SPÆDT SPÆGE SPÆKS SPÆND SPÆNE SPÆRS SPØGE SPØGS SPØGT SPØJS SPØRG STABE STABL STABS STADE STADS STAFS STAGE STAGS STAKL STAKS STALD STAMP STAND STANG STANK STANS STARS START STASE STATS STAVE STAVN STAVR STAVS STEDE STEDS STEDT STEGE STEGS STEGT STEJL STELE STELS STEMS STEMT STENE STENS STEPS STIEN STIER STIFT STIGE STIKL STIKS STILE STILK STILL STILN STILS STIME STIML STING STINK STIVE STIVN STIVS STJAL STJÆL STODS STOFS STOKS STOLA STOLE STOLP STOLS STOLT STOPS STORE STORK STORL STORM STORS STORT STORY STOSE STOUT STOVT STRAF STRAM STRAP STRED STREG STRES STRIB STRID STRIG STRIK STRIP STRIT STROP STRUD STRUT STRYG STRÅL STRÅS STRÆB STRÆK STRØG STRØM STRØR STRØS STUBS STUDE STUDS STUEN STUER STUES STUKS STUMP STUMS STUMT STUND STUPS STUTS STUVE STYGS STYGT STYKS STYLE STYLT STYNE STYRE STYRK STYRS STYRT STÅET STÅLS STÆNG STÆNK STÆRE STÆRK STÆRS STÆSE STÆVN STØBE STØBT STØDE STØDS STØDT STØJE STØJS STØNS STØRE STØRR STØRS STØTS STØVE STØVL STØVS SUDER SUGEN SUGER SUGES SUGET SUITE SUKAT SUKKE SUKRE SULEN SULER SULES SULET SULFO SULKY SULTE SULTS SUMAK SUMME SUMPE SUMPS SUNDE SUNDS SUNDT SUPEN SUPER SUPES SUPET SUPPE SUPRE SURES SURFE SURRE SURTS SUSEN SUSER SUSES SUSET SUTTE SUTUR SVABR SVADA SVAGE SVAGS SVAGT SVAJE SVAJS SVALE SVALS SVALT SVAMP SVANE SVANG SVANS SVARE SVARS SVART SVEDE SVEDS SVEDT SVEJF SVEJS SVEND SVIDE SVIEN SVIER SVIES SVIGE SVIGS SVIGT SVIME SVIML SVIND SVINE SVING SVINS SVIPS SVIRE SVIRP SVIRS SVITS SVOVL SVULM SVUPS SVÆLG SVÆRD SVÆRE SVÆRG SVÆRM SVÆRS SVÆRT SVÆVE SVÆVS SVØBE SVØBS SVØBT SYDEN SYDER SYDES SYDET SYDPÅ SYEDE SYERE SYERS SYETS SYGEN SYGER SYGES SYGNE SYGTS SYLDS SYLEN SYLES SYLTE SYNDE SYNDS SYNER SYNES SYNET SYNGE SYNKE SYNKS SYNSK SYNÅL SYREN SYRER SYRES SYRET SYRNE SYSLE SYTØJ SYVER SYVTI SÅBED SÅDAN SÅEDE SÅETS SÅGAR SÅLEN SÅLER SÅPAS SÅRER SÅRES SÅRET SÅSOM SÅSÆD SÅTEN SÅTER SÅTID SÅVEL SÆBEN SÆBER SÆBES SÆBET SÆDEN SÆDER SÆDES SÆDET SÆKKE SÆLEN SÆLER SÆLGE SÆNKE SÆNKS SÆRBO SÆRES SÆRKE SÆRKS SÆRTS SÆSON SÆTER SÆTTE SØBAD SØBER SØBES SØBET SØDER SØDES SØDET SØDME SØDTS SØENS SØERS SØGEN SØGER SØGES SØGTE SØGTS SØJLE SØKOK SØKOS SØLEN SØLER SØLES SØLET SØLIV SØLJE SØLLE SØLVS SØMIL SØMME SØNDR SØREN SØRET SØRGE SØRIG SØRME SØSAT SØSYG SØSÆT SØULK SØVEJ SØVNE SØVNS TABEL TABER TABES TABET TABTE TABTS TABUS TAFTS TAGEN TAGER TAGES TAGET TAGNE TAJGA TAKKE TAKLE TAKSI TAKST TAKTS TALAR TALEN TALER TALES TALGS TALJE TALKS TALON TALTE TALTS TAMBE TAMDE TAMFE TAMGE TAMHE TAMIL TAMJE TAMKE TAMLE TAMME TAMNE TAMPE TAMPS TAMRE TAMSE TAMTE TAMTS TAMVE TANDE TANDS TANGA TANGE TANGO TANGS TANKE TANKS TANTE TANTS TAPEN TAPES TAPET TAPIR TAPPE TAPRE TARAS TARER TARIF TARME TARMS TAROK TAROS TARVS TASKE TASSE TASTE TASTS TATAR TATER TAVEN TAVER TAVES TAVLE TAVLS TAVSE TAVST TEAKS TEAMS TEEDE TEENS TEERS TEGLS TEGNE TEGNS TEHUS TEINS TEINT TEJEN TEJER TEJES TEJST TEKOP TEKST TELEN TELER TELES TELTE TELTS TEMAS TEMPI TEMPO TENEN TENES TENOR TEORI TERME TERMS TERNE TERNS TERPE TERRE TERTS TESEN TESER TESES TESIS TESKE TESTE TESTS TETEN TETES TEÆGS THAIS THENS THERS THETA THUJA THYBO TIARA TIDEN TIDER TIDES TIEDE TIENS TIERE TIERS TIEST TIETS TIGER TIGGE TIGRE TIHIS TIKKE TILDE TILGÅ TILSE TILSÅ TILTE TIMEN TIMER TIMES TINDE TINDR TINGE TINGS TINTE TIPIS TIPPE TIRRE TISES TISKE TISSE TITAL TITAN TITEL TITTE TIÅRS TIØRE TJALD TJANS TJATS TJAVS TJEKS TJENE TJENT TJEPT TJURS TJÆRE TJØRN TOAST TOBAK TOBIS TODDY TODEL TOEDE TOENS TOERE TOERS TOETS TOFTE TOFTS TOGAS TOGER TOGES TOGET TOGTS TOLDE TOLDS TOLKE TOLKS TOLVS TOMAT TOMBE TOMDE TOMEN TOMER TOMES TOMFE TOMGE TOMHE TOMJE TOMKE TOMLE TOMME TOMNE TOMPE TOMRE TOMSE TOMTE TOMTS TOMVE TONAL TONEN TONER TONES TONET TONSE TONST TOPAS TOPPE TOPTI TORAS TORDN TORNE TORNS TORPS TORSK TORSO TORTS TORVE TORVS TOSSE TOTAL TOTEM TOTNE TOTTE TOUPE TOUTS TOVER TOVES TOVET TOÅRS TRAGT TRAIN TRAKT TRAMP TRANE TRANG TRANS TRASK TRAVE TRAVL TRAVS TREER TREKS TREMA TREND TRENS TRERS TREST TREVL TRIAS TRILR TRIML TRIND TRINE TRINS TRIOL TRIOS TRIPL TRIPS TRIST TRITS TRIVI TRODS TROEN TROET TROFÆ TROKL TROKÆ TROLD TROML TRONE TROPE TROPS TRUER TRUES TRUET TRUGS TRUMF TRUNK TRUPS TRUST TRUTS TRYGL TRYGS TRYGT TRYKS TRYKT TRYNE TRÅDE TRÅDS TRÅDT TRÆDE TRÆER TRÆET TRÆFS TRÆGE TRÆGS TRÆGT TRÆKS TRÆLS TRÆNE TRÆNG TRÆNS TRÆSK TRÆTE TRÆTS TRÆVL TRØJE TRØST TSARS TUBAS TUBEN TUBER TUBES TUDEN TUDER TUDES TUDET TUDSE TUENS TUERS TUGTE TUGTS TUJAS TUKAN TULLE TULRE TUMBL TUMLE TUMOR TUMPE TUNEN TUNER TUNES TUNET TUNGE TUNGS TUNGT TURDE TUREN TURER TURES TURET TURNE TUSKE TUSKS TUSSE TUTOR TUTTE TUTTI TVANG TVDÆK TVEBO TVIND TVINE TVING TVIST TVIVL TVÆRE TVÆRS TVÆRT TYDEN TYDER TYDES TYDET TYEDE TYETS TYFON TYFUS TYGGE TYKBE TYKDE TYKFE TYKGE TYKHE TYKJE TYKKE TYKLE TYKME TYKNE TYKPE TYKRE TYKSE TYKTE TYKTS TYKVE TYLLE TYLVT TYNDE TYNDS TYNDT TYNGE TYPEN TYPER TYPES TYRAN TYREN TYRER TYRES TYRET TYRKS TYSKE TYSKS TYSSE TYSTE TYSTN TYSTS TYVEN TYVER TYVES TYVTE TÅBEN TÅBER TÅBES TÅENS TÅGEN TÅGER TÅGES TÅGET TÅLED TÅLER TÅLES TÅLTE TÅLTS TÅREN TÅRER TÅRES TÅRNE TÅRNS TÆERS TÆFTE TÆFTS TÆGEN TÆGER TÆGES TÆKKE TÆLLE TÆMME TÆNDE TÆNDT TÆNKE TÆNKT TÆPPE TÆRER TÆRES TÆRET TÆRSK TÆRTE TÆSKE TÆSKS TÆTBE TÆTDE TÆTFE TÆTGE TÆTHE TÆTJE TÆTKE TÆTLE TÆTME TÆTNE TÆTPE TÆTRE TÆTSE TÆTTE TÆTVE TÆVEN TÆVER TÆVES TÆVET TØEDE TØETS TØFFE TØFLE TØJER TØJET TØJLE TØJRE TØJRS TØJTE TØMME TØMRE TØMTE TØMTS TØNDE TØRBE TØRDE TØRFE TØRGE TØRHE TØRIS TØRJE TØRKE TØRLE TØRME TØRNE TØRNS TØRPE TØRRE TØRSE TØRST TØRTE TØRTS TØRVE TØRVS TØSEN TØSER TØSES TØSET TØSNE TØVEN TØVER TØVES TØVET UANET UBLID UBLUS UBÅDE UBÅDS UDART UDBAD UDBED UDBEN UDBOR UDBUD UDBUL UDBYD UDBYG UDBYT UDBØD UDDAN UDDEL UDDYB UDDYK UDDØD UDDØR UDDØS UDELT UDFAS UDFRI UDFØR UDGAV UDGIK UDGIV UDGYD UDGÅR UDGÅS UDGÆR UDGØD UDGØR UDHUG UDHUL UDHUS UDHÆV UDKIG UDKIK UDKOG UDKOM UDKÅR UDKØR UDLAD UDLED UDLEG UDLEJ UDLER UDLES UDLET UDLEV UDLOD UDLOS UDLOV UDLUD UDLYD UDLÅN UDLÆG UDLÆR UDLÆS UDLØB UDLØS UDMAJ UDMAL UDMAT UDMÅL UDNYT UDPAK UDPEB UDPEG UDPIB UDPIN UDRAG UDRED UDRET UDREV UDRIV UDRUG UDRUL UDRYD UDRYK UDRÅB UDRØR UDSAT UDSAV UDSER UDSES UDSET UDSIG UDSIV UDSON UDSPY UDSTÅ UDSUG UDSYN UDSYR UDSÅR UDSÅS UDSÆD UDSÆT UDSØG UDTAG UDTAL UDTAP UDTOG UDTON UDTUR UDTYD UDTÆR UDTØM UDTØR UDVEJ UDVEN UDVES UDVID UDVIS UDYDS UDYRS UDÅDS UDÅND UDÆSK UDØBT UDØRK UDØSE UDØST UDØVE UEFNE UEGAL UENIG UFIKS UFINE UFINS UFINT UFOEN UFOER UFRED UFRIE UFRIS UFRIT UFROM UFØDT UFØRE UGENS UGERS UGIFT UGLAD UGLEN UGLER UGLES UGLET UGRÆS UHELD UHYRE UHØRT UJÆVN UKLAR UKLOG UKÆRE UKÆRS UKÆRT ULAND ULANS ULAVE ULDEN ULDER ULDES ULDET ULDNE ULIGE ULIGS ULIGT ULKEN ULKES ULMER ULMES ULMET ULTRA ULVEN ULVES ULYST ULÅST ULÆRD ULØST UMAGE UMBRA UMILD UNDER UNDES UNDGÅ UNDRE UNDSE UNDSÅ UNDTE UNDTS UNGEN UNGER UNGES UNGMØ UNGTS UNIKA UNIKS UNIKT UNION UNITS UNODE UNSEN UNSER UNSES UNÅDE URANS URBAN URDUS UREDE UREDT UREEL URENE URENS URENT URERS URETE URETS URGER URHAV URINS URNEN URNER URNES UROEN UROER UROET URREM URTEN URTER URTID URÅDS URÆMI URØRT USAGT USAND USEDE USETS USKET USKIK USKØN USLES USSEL USUND UTAKS UTALS UTALT UTIDE UTING UTOPI UTROS UTRYG UTUGT UTURS UTYSK UTÆTE UTÆTS UTØJS UVANE UVANS UVANT UVEJR UVENS UVIST UVORN UÆGTE UØVET VABEL VABLE VADEN VADER VADES VADET VADIS VAGER VAGES VAGTS VAJDS VAJER VAJES VAJET VAKLE VAKRE VAKSE VAKST VAKTE VAKTS VALEN VALGS VALGT VALID VALKE VALKS VALLE VALNE VALSE VALTE VALØR VAMLE VAMPE VAMPS VAMSE VANDE VANDR VANDS VANDT VANEN VANER VANES VANGE VANGS VANKE VANRY VANTE VANTS VANÆR VARAN VARDE VAREN VARER VARES VARET VARIG VARME VARMS VARMT VARPE VARSL VARTE VARYL VASAL VASEN VASER VASES VASKE VASKS VATER VAUEN VEDAS VEDEL VEDET VEDGÅ VEENS VEERS VEGEN VEGES VEGET VEGNE VEGTS VEJEN VEJER VEJES VEJET VEJLE VEJRE VEJRS VEKSL VELAN VELBJ VELIN VEMOD VENDE VENDT VENEN VENER VENES VENTE VENØS VERFE VERPE VERSE VERVE VERÅB VESTE VESTS VETOE VETOS VIBEN VIBER VIBES VIDDE VIDEN VIDEO VIDER VIDES VIDET VIDJE VIDNE VIDST VIDTS VIEDE VIERS VIETS VIFTE VIFTS VIGEN VIGER VIGES VIGTE VIGØR VIISE VIIST VIKAR VIKKE VIKLE VIKSE VILDE VILDS VILDT VILJE VILLA VILLE VIMRE VIMSE VIMST VINDE VINDS VINDT VINDU VINEN VINES VINGE VINKE VINKL VINKS VINYL VINØS VIOLA VIOLS VIPPE VIRAK VIRAS VIREN VIRER VIRES VIRIL VIRKE VIRRE VIRUS VISAS VISBE VISDE VISEN VISER VISES VISFE VISGE VISHE VISIR VISIT VISJE VISKE VISKS VISLE VISME VISNE VISPE VISRE VISSE VISTE VISTS VISUM VISVE VITAL VITAS VIVEN VLIES VODKA VOGNE VOGNS VOGTE VOILA VOKAL VOKSE VOLDE VOLDS VOLDT VOLFE VOLTE VOLTS VOLUT VOMER VOMME VORDE VORES VORTE VOTAS VOTER VOTUM VOVEN VOVER VOVES VOVET VOVSE VRAGE VRAGS VRALT VRANG VREDE VREDS VREDT VRIDE VRIDS VRIKS VRIML VRIST VRÅEN VRÅER VRÅLE VRÆLE VRÆLS VRÆNG VRØVL VUERS VUETS VUGGE VULST VUNDE VUPPE VUPTI VYERS VYETS VÅBEN VÅDEN VÅDER VÅDES VÅDET VÅDTE VÅDTS VÅGEN VÅGER VÅGES VÅGET VÅGNE VÅNDE VÅNDS VÅREN VÅRET VÅSER VÅSES VÅSET VÆBNE VÆDDE VÆDEN VÆDER VÆDES VÆDET VÆDRE VÆGEN VÆGER VÆGES VÆGGE VÆGRE VÆGTE VÆGTS VÆGUR VÆKKE VÆKST VÆLDE VÆLDS VÆLGE VÆLIG VÆLTE VÆNES VÆNGE VÆNNE VÆNTS VÆRDI VÆRDS VÆREN VÆRES VÆRET VÆRFT VÆRGE VÆRKE VÆRKS VÆRNE VÆRNS VÆRRE VÆRST VÆRTS VÆSEL VÆSEN VÆSKE VÆTTE VÆVEN VÆVER VÆVES VÆVET VÆVRE VØLVE YAHOO YANGS YARDS YDEDE YDERE YDERS YDETS YDMYG YDRER YDRES YDRET YMERE YMERS YMTER YMTES YMTET YNDEN YNDER YNDES YNDET YNDIG YNGEL YNGLE YNGRE YNGST YNKER YNKES YNKET YOGAS YOGIS YOYOS YPPER YPPES YPPET YPPIG YTRER YTRES YTRET YUANS YVERE YVERS ÅBENS ÅBENT ÅBNER ÅBNES ÅBNET ÅBRED ÅDRER ÅDRES ÅDRET ÅDSEL ÅERNE ÅGENE ÅGERS ÅGETS ÅGRER ÅGRES ÅGRET ÅLEDE ÅLENE ÅLENS ÅLETS ÅLØBS ÅMAND ÅMÆND ÅNDEN ÅNDER ÅNDES ÅNDET ÅNDIG ÅRBOG ÅREDE ÅRENE ÅRENS ÅRERS ÅRETS ÅRING ÅRLES ÅRLIG ÅRSAG ÅRTIS ÅSENE ÅSENS ÅSTED ÅSYNS ÆBLER ÆBLES ÆBLET ÆDELS ÆDELT ÆDENS ÆDERI ÆDLES ÆDRUS ÆDTES ÆGGEN ÆGGER ÆGGES ÆGGET ÆGIDE ÆGTER ÆGTES ÆGTET ÆKELS ÆKELT ÆKLES ÆLDEN ÆLDER ÆLDES ÆLDET ÆLDRE ÆLDST ÆLTEN ÆLTER ÆLTES ÆLTET ÆNDER ÆNDRE ÆNGST ÆNSER ÆNSES ÆNSET ÆONEN ÆONER ÆRAEN ÆRAER ÆRBAR ÆREDE ÆRENS ÆRERS ÆRETS ÆRGRE ÆRLIG ÆRMER ÆRMES ÆRMET ÆRTEN ÆRTER ÆRTES ÆRTET ÆRØBO ÆRØSK ÆSELS ÆSENS ÆSKEN ÆSKER ÆSKES ÆSKET ÆSLER ÆSLET ÆSTET ÆTANS ÆTERE ÆTERS ÆTSER ÆTSES ÆTSET ÆTTEN ÆTTER ÆTYLS ÆVLER ÆVLES ÆVLET ÆVRED ØBOEN ØBOER ØBUEN ØBUER ØBUES ØDEDE ØDEMS ØDERS ØDETS ØDSEL ØDSLE ØERNE ØFFER ØFFES ØFFET ØGEDE ØGENE ØGETS ØGLEN ØGLER ØGLES ØHAVE ØHAVS ØJEDE ØJERS ØJETS ØJNER ØJNES ØJNET ØKSEN ØKSER ØKSES ØKSET ØKSNE ØLBAS ØLBIL ØLBOD ØLEJR ØLGÆR ØLLEN ØLLER ØLLET ØLVOM ØMBES ØMDES ØMFES ØMGES ØMHED ØMHES ØMJES ØMKES ØMLES ØMMER ØMMES ØMMET ØMNES ØMPES ØMRES ØMSES ØMTES ØMVES ØNSKE ØRENS ØRERE ØRERS ØREST ØRETS ØRIGE ØRKEN ØRNEN ØRNES ØRRED ØSEDE ØSENS ØSERS ØSETS ØSKEN ØSTEN ØSTPÅ ØSTRE ØVEDE ØVERE ØVERS ØVETS ØVRES ØVRIG",
-  },
-  en: {
-    answers: "ABOUT ABOVE ACTOR ACUTE ADAPT ADMIT ADOPT ADULT AFTER AGAIN AGENT AGREE AHEAD ALARM ALBUM ALERT ALIKE ALIVE ALLOW ALONE ALONG ALTER AMONG ANGER ANGLE ANGRY ANKLE APART APPLE APPLY ARENA ARGUE ARISE ARMOR AROMA ARRAY ARROW ASIDE ASSET AUDIO AUDIT AVOID AWAKE AWARD AWARE AWFUL BACON BADGE BADLY BAKER BASIC BASIN BASIS BEACH BEARD BEAST BEGIN BEING BELLY BELOW BENCH BERRY BIRTH BLACK BLADE BLAME BLANK BLAST BLAZE BLEND BLESS BLIND BLOCK BLOOD BLOOM BLOWN BOARD BOOST BOOTH BOUND BRAIN BRAKE BRAND BRASS BRAVE BREAD BREAK BREED BRICK BRIDE BRIEF BRING BROAD BROKE BROOK BROOM BROTH BROWN BRUSH BUDDY BUILD BUILT BUNCH BURST BUYER CABIN CABLE CAMEL CANAL CANDY CANOE CARGO CARRY CARVE CATCH CAUSE CEDAR CHAIN CHAIR CHALK CHAMP CHANT CHAOS CHARM CHART CHASE CHEAP CHEAT CHECK CHEEK CHEER CHESS CHEST CHICK CHIEF CHILD CHILL CHOIR CHORD CHUNK CIVIC CIVIL CLAIM CLASH CLASS CLEAN CLEAR CLERK CLICK CLIFF CLIMB CLOCK CLOSE CLOTH CLOUD CLOWN COACH COAST COCOA COLOR COMET COMIC CORAL COUCH COUGH COULD COUNT COURT COVER CRACK CRAFT CRANE CRASH CRAWL CRAZY CREAM CREEK CREST CRIME CRISP CROSS CROWD CROWN CRUEL CRUMB CRUSH CURVE CYCLE DAILY DAIRY DAISY DANCE DEALT DEBUT DECAY DECOR DELAY DELTA DENSE DEPTH DIARY DIGIT DINER DIRTY DITCH DIZZY DODGE DOUBT DOUGH DOZEN DRAFT DRAIN DRAMA DRANK DRAWN DREAM DRESS DRIED DRIFT DRILL DRINK DRIVE DROVE DROWN DRYER DWARF EAGER EAGLE EARLY EARTH EASEL EIGHT ELBOW ELDER ELECT ELITE EMAIL EMBER EMPTY ENEMY ENJOY ENTER ENTRY EQUAL EQUIP ERASE ERROR ERUPT ESSAY EVENT EVERY EXACT EXIST EXTRA FABLE FAINT FAIRY FAITH FALSE FANCY FAULT FAVOR FEAST FENCE FERRY FEVER FEWER FIBER FIELD FIFTH FIFTY FIGHT FINAL FINCH FIRST FIXED FLAKE FLAME FLASH FLASK FLEET FLICK FLOAT FLOCK FLOOD FLOOR FLOUR FLOWN FLUID FLUTE FOCUS FORCE FORGE FORTH FORTY FORUM FOUND FRAME FRAUD FRESH FRONT FROST FROWN FROZE FRUIT FUNNY GHOST GIANT GIVEN GLASS GLEAM GLIDE GLOBE GLOOM GLORY GLOVE GOOSE GRACE GRADE GRAIN GRAND GRANT GRAPE GRAPH GRASP GRASS GRAVE GRAVY GREAT GREED GREEN GREET GRIEF GRILL GRIND GROAN GROOM GROSS GROUP GROVE GROWN GUARD GUESS GUEST GUIDE GUILD GUILT HABIT HAIRY HANDY HAPPY HARDY HARSH HASTE HATCH HAUNT HAVEN HEART HEAVY HEDGE HELLO HENCE HERON HINGE HOBBY HOIST HOLLY HONEY HONOR HORSE HOTEL HOUND HOUSE HOVER HUMAN HUMOR HURRY ICING IDEAL IDIOM IMAGE IMPLY INBOX INDEX INNER INPUT IRONY ISSUE IVORY JELLY JEWEL JOINT JOKER JOLLY JUDGE JUICE JUICY JUMBO KAYAK KEBAB KNACK KNEAD KNEEL KNIFE KNOCK KNOWN KOALA LABEL LABOR LANCE LARGE LASER LATCH LATER LAUGH LAYER LEAFY LEARN LEASE LEAST LEAVE LEDGE LEGAL LEMON LEVEL LEVER LIGHT LILAC LIMIT LINEN LINER LLAMA LOCAL LODGE LOFTY LOGIC LOOSE LORRY LOSER LOTUS LOVER LOWER LOYAL LUCKY LUNAR LUNCH LYRIC MAGIC MAJOR MAKER MANGO MANOR MAPLE MARCH MARRY MARSH MATCH MAYBE MAYOR MEANT MEDAL MEDIA MELON MERCY MERGE MERIT MERRY METAL METER MIDST MIGHT MINOR MINUS MIXED MODEL MOIST MONEY MONTH MOOSE MORAL MOTEL MOTOR MOTTO MOUND MOUNT MOUSE MOUTH MOVIE MUDDY MUSIC NAIVE NASTY NAVAL NEEDY NERVE NEVER NEWLY NIECE NIGHT NINTH NOBLE NOISE NORTH NOTCH NOVEL NURSE NYLON OCCUR OCEAN OFFER OFTEN OLIVE ONION ONSET OPERA OPTIC ORBIT ORDER ORGAN OTHER OTTER OUGHT OUNCE OUTER OVERT OWNER OXIDE OZONE PAINT PANEL PANIC PAPER PARTY PASTA PASTE PATCH PATIO PAUSE PEACE PEACH PEARL PEDAL PENNY PERCH PHASE PHONE PHOTO PIANO PIECE PILOT PINCH PIZZA PLACE PLAID PLAIN PLANE PLANK PLANT PLATE PLAZA PLEAD PLUCK PLUMB PLUME PLUSH POINT POLAR POPPY PORCH POUCH POUND POWER PRESS PRICE PRIDE PRIME PRINT PRIOR PRIZE PROBE PROOF PROUD PROVE PROWL PULSE PUNCH PUPIL PUPPY PURSE QUACK QUAIL QUAKE QUALM QUART QUEEN QUERY QUEST QUEUE QUICK QUIET QUILT QUIRK QUITE QUOTA QUOTE RADAR RADIO RAINY RAISE RALLY RANCH RANGE RAPID RATIO RAVEN REACH REACT READY REALM REBEL REFER REIGN RELAX RELAY RENEW REPAY REPLY RESET RESIN RHINO RHYME RIDER RIDGE RIFLE RIGHT RIGID RINSE RIPEN RISEN RISKY RIVAL RIVER ROAST ROBIN ROBOT ROCKY ROGUE ROUGH ROUND ROUTE ROYAL RUGBY RULER RURAL RUSTY SADLY SAFER SAINT SALAD SALON SALSA SALTY SANDY SATIN SAUCE SAUNA SCALE SCARE SCARF SCARY SCENE SCENT SCOOP SCOPE SCORE SCOUT SCRAP SCREW SEIZE SENSE SERVE SEVEN SHADE SHAFT SHAKE SHALL SHAME SHAPE SHARE SHARK SHARP SHAWL SHEEP SHEER SHEET SHELF SHELL SHIFT SHINE SHINY SHIRT SHOCK SHORE SHORT SHOUT SHOVE SHOWN SHRUG SIGHT SILKY SILLY SINCE SIREN SIXTH SIXTY SKATE SKILL SKIRT SKULL SLATE SLEEK SLEEP SLEET SLICE SLIDE SLOPE SMALL SMART SMASH SMELL SMILE SMITH SMOKE SNACK SNAIL SNAKE SNEAK SNORE SNOWY SOLAR SOLID SOLVE SORRY SOUND SOUTH SPACE SPADE SPARE SPARK SPEAK SPEAR SPEED SPELL SPEND SPENT SPICE SPICY SPIKE SPILL SPINE SPIRE SPLIT SPOIL SPOKE SPOON SPORT SPRAY SPREE SQUAD STACK STAFF STAGE STAIN STAIR STAKE STALE STALL STAMP STAND STARE START STATE STEAK STEAL STEAM STEEL STEEP STEER STERN STICK STIFF STILL STING STOCK STOMP STONE STOOD STOOL STOOP STORE STORK STORM STORY STOVE STRAP STRAW STRAY STRIP STUCK STUDY STUFF STUMP STUNG STYLE SUGAR SUITE SUNNY SUPER SURGE SWAMP SWARM SWEAR SWEAT SWEEP SWEET SWELL SWEPT SWIFT SWING SWIRL SWORD SWORE SYRUP TABLE TAKEN TALLY TANGO TAPER TASTE TASTY TEACH TEETH TEMPO TENSE TENTH THANK THEFT THEIR THEME THERE THESE THICK THIEF THIGH THING THINK THIRD THORN THOSE THREE THREW THROW THUMB THYME TIDAL TIGER TIGHT TIMER TIMID TIRED TITLE TOAST TODAY TOKEN TONIC TOOTH TOPIC TORCH TOTAL TOUCH TOUGH TOWEL TOWER TOXIC TRACE TRACK TRADE TRAIL TRAIN TRAIT TRASH TREAT TREND TRIAL TRIBE TRICK TRIED TROOP TROUT TRUCK TRULY TRUNK TRUST TRUTH TULIP TUNIC TUTOR TWEED TWICE TWIST TYING ULTRA UNCLE UNDER UNDUE UNFIT UNION UNITE UNITY UNTIL UPPER UPSET URBAN USAGE USUAL UTTER VAGUE VALID VALUE VALVE VAPOR VAULT VENUE VERGE VERSE VIDEO VIGOR VILLA VINYL VIOLA VIRAL VIRUS VISIT VITAL VIVID VOCAL VODKA VOICE VOTER VOUCH VOWEL WAFER WAGON WAIST WATCH WATER WEARY WEAVE WEDGE WEIGH WEIRD WHALE WHEAT WHEEL WHERE WHICH WHILE WHIRL WHISK WHITE WHOLE WHOSE WIDEN WIDOW WIDTH WITCH WOMAN WORLD WORRY WORSE WORST WORTH WOULD WOUND WOVEN WRATH WRIST WRITE WRONG WROTE YACHT YEARN YEAST YIELD YOUNG YOUTH ZEBRA",
-    allowed: "ABACK ABAFT ABASE ABASH ABATE ABBES ABBEY ABBOT ABEAM ABETS ABHOR ABIDE ABLER ABLES ABODE ABORT ABOUT ABOVE ABSED ABUSE ABUTS ABUZZ ABYSS ACHED ACHES ACHOO ACIDS ACING ACMES ACNED ACNES ACORN ACRES ACRID ACTED ACTOR ACUTE ADAGE ADAPT ADDED ADDER ADDLE ADDLY ADEPT ADIEU ADMAN ADMEN ADMIN ADMIT ADMIX ADOBE ADOED ADOPT ADORE ADORN ADULT ADZED ADZES AEGIS AERIE AFARS AFFIX AFIRE AFOOT AFORE AFOUL AFTER AGAIN AGAPE AGARS AGATE AGAVE AGENT AGERS AGILE AGING AGLOW AGONY AGREE AGUES AHEAD AHEMS AHOYS AIDED AIDER AIDES AILED AILES AIMED AIMER AIMES AIRED AIREN AIRER AISLE AITCH ALACK ALARM ALBUM ALDER ALEPH ALERT ALGAE ALGAL ALIAS ALIBI ALIEN ALIGN ALIKE ALIVE ALKYD ALKYL ALLAY ALLEY ALLOT ALLOW ALLOY ALOES ALOFT ALOHA ALONE ALONG ALOOF ALOUD ALPED ALPHA ALTAR ALTER ALTOS ALUMS ALWAY AMAIN AMASS AMAZE AMBER AMBIT AMBLE AMEND AMENS AMIDE AMIDS AMIGO AMINE AMINO AMISS AMITY AMMOS AMOKS AMONG AMOUR AMPED AMPLE AMPLY AMUSE ANALD ANDED ANENT ANGEL ANGER ANGLE ANGRY ANGST ANIME ANION ANISE ANKHS ANKLE ANNAL ANNEX ANNOY ANNUL ANNUM ANODE ANONS ANTED ANTES ANTIC ANTIS ANTSY ANUSS ANVIL AORTA APACE APART APEXS APHID APING APISH APPAL APPLE APPLY APRON APSES APSIS APTER APTLY AQUAS ARBOR ARCED ARDOR AREAL AREAS ARENA ARGON ARGOT ARGUE ARIAS ARISE ARMED ARMER ARMOR AROMA AROSE ARRAS ARRAY ARROW ARSON ARTSY ARUMS ASCOT ASHED ASHEN ASHER ASHES ASIDE ASKED ASKER ASKEW ASKLY ASPEN ASPER ASPIC ASSAY ASSEN ASSET ASSOC ASTER ASTIR ATILT ATING ATLAS ATOLL ATOMS ATONE ATRIA ATTAR ATTIC AUDIO AUDIT AUGER AUGHT AUGUR AUNTS AUNTY AURAL AURAS AURIC AUTOS AUXIN AVAIL AVANT AVAST AVERS AVERT AVIAN AVING AVOID AVOWS AWAIT AWAKE AWARD AWARE AWASH AWAYS AWFUL AWING AWNED AWOKE AXERS AXIAL AXING AXIOM AXION AXLES AXONS AYAHS AYERS AZURE BAAED BAAES BABEL BABES BACKS BACON BADEN BADGE BADLY BAGEL BAGGY BAHTS BAIER BAILS BAIRN BAITS BAIZE BAKED BAKER BAKES BALDS BALDY BALED BALER BALES BALKS BALKY BALLS BALMS BALMY BALSA BALUN BANAL BANDS BANDY BANED BANES BANGS BANJO BANKS BANNS BARBS BARDS BARED BARER BARES BARFS BARGE BARGY BARKS BARMY BARNS BARON BARRE BASAL BASED BASER BASES BASIC BASIL BASIN BASIS BASKS BASSO BASSS BASTE BASTS BATCH BATED BATER BATES BATHE BATHS BATIK BATON BATTY BAUDS BAULK BAWDS BAWDY BAWLS BAYED BAYLY BAYOU BEACH BEADS BEADY BEAKS BEAMS BEANO BEANS BEARD BEARS BEAST BEATS BEAUS BEAUT BEBOP BECKS BEDIM BEECH BEEFS BEEFY BEENS BEEPS BEERS BEERY BEETS BEFIT BEFOG BEGAN BEGET BEGIN BEGOT BEGUM BEGUN BEIGE BEING BELAY BELCH BELIE BELLE BELLS BELLY BELOW BELTS BEMAN BENCH BENDS BENDY BENTS BERET BERGS BERKS BERMS BERRY BERTH BERYL BESET BESOM BESOT BESTS BETAS BETEL BEVEL BEVVY BEZEL BIBLE BICEP BIDDY BIDER BIDES BIDET BIERS BIFFS BIGHT BIGLY BIGOT BIJOU BIKED BIKER BIKES BILES BILGE BILKS BILLS BILLY BIMBO BINDS BINGE BINGO BIOGS BIOTA BIPED BIRCH BIRDS BIRTH BISON BITER BITES BITTY BLABS BLACK BLADE BLAGS BLAHS BLAME BLAMT BLANC BLAND BLANK BLARE BLAST BLATS BLAZE BLEAK BLEAR BLEAT BLEED BLEEP BLEND BLESS BLIMP BLIND BLING BLINI BLINK BLIPS BLISS BLITZ BLOAT BLOBS BLOCK BLOCS BLOGS BLOKE BLOND BLOOD BLOOM BLOOP BLOTS BLOWN BLOWS BLOWY BLUED BLUER BLUES BLUET BLUEY BLUFF BLUNT BLURB BLURS BLURT BLUSH BOARD BOARS BOAST BOATS BOBBY BOCKS BODED BODES BODGE BOGEY BOGGY BOGIE BOGUS BOILS BOINK BOLAS BOLDS BOLES BOLLS BOLOS BOLTS BOLUS BOMBS BONCE BONDS BONED BONES BONGO BONGS BONKS BONNY BONUS BOOED BOOES BOOKS BOOMS BOONS BOORS BOOST BOOTH BOOTS BOOTY BOOZE BOOZY BORAX BORED BORER BORES BORIC BORNE BORON BOSHS BOSOM BOSON BOSSY BOSUN BOTCH BOTHY BOUGH BOUND BOUTS BOWED BOWEL BOWEN BOWER BOWIE BOWLS BOXED BOXEN BOXER BOXES BOYER BOZOS BRACE BRACT BRADR BRADS BRAES BRAGS BRAID BRAIN BRAKE BRAND BRANS BRASH BRASS BRATS BRAVE BRAVO BRAWL BRAWN BRAYS BRAZE BREAD BREAK BREAM BREED BREVE BREWS BRIAR BRIBE BRICK BRIDE BRIEF BRIER BRIGS BRIMS BRINE BRING BRINK BRINY BRISK BROAD BROIL BROKE BRONC BROOD BROOK BROOM BROSE BROTH BROWN BROWS BRUIN BRUIT BRUNT BRUSH BRUTE BRUTT BUBOS BUCKS BUDDY BUDGE BUFFS BUGGY BUGLE BUILD BUILT BULBS BULGE BULGY BULKS BULKY BULLS BULLY BUMPS BUMPY BUNCH BUNCO BUNGS BUNKS BUNNY BUNTS BUOYS BURBS BURGH BURGS BURKA BURLS BURLY BURNS BURNT BURPS BURQA BURRO BURRS BURSA BURST BUSBY BUSED BUSES BUSHY BUSKS BUSTS BUSTY BUTCH BUTTE BUTTY BUTYL BUXOM BUYER BUZZR BUZZY BYERS BYLAW BYRES BYTES BYWAY CABAL CABBY CABER CABIN CABLE CACAO CACHE CACTI CADDY CADET CADGE CADRE CAECA CAFES CAFFS CAGED CAGER CAGES CAGEY CAIRN CAKED CAKES CALKS CALLA CALLS CALME CALMS CALVE CALYX CAMEL CAMEO CAMPS CAMPY CANAL CANDY CANED CANER CANES CANNY CANOE CANON CANST CANTO CANTS CAPED CAPER CAPES CAPON CAPOS CARAT CARDS CARED CARER CARES CARET CARGO CARNY CAROB CAROL CAROM CARPI CARPS CARRY CARTE CARTS CARVE CASED CASES CASHR CASKS CASTE CASTS CATCH CATER CATTY CAULK CAUSE CAVED CAVER CAVES CAVIL CAWED CEASE CECAL CECUM CEDAR CEDED CEDER CEDES CELEB CELLO CELLS CENTS CERTS CHADS CHAFE CHAFF CHAIN CHAIR CHALK CHAMP CHANT CHAOS CHAPS CHARD CHARM CHARS CHART CHARY CHASE CHASM CHATS CHEAP CHEAT CHECK CHEEK CHEEP CHEER CHEFS CHEMO CHERT CHESS CHEST CHEWS CHEWY CHICK CHICS CHIDE CHIED CHIEF CHILD CHILI CHILL CHIME CHIMP CHINA CHINE CHINK CHINO CHINS CHIPS CHIRP CHITS CHIVE CHIVY CHOCK CHOCS CHOIR CHOKE CHOMP CHOPS CHORD CHORE CHOSE CHOWS CHUBS CHUCK CHUFF CHUGS CHUMP CHUMS CHUNK CHURL CHURN CHUTE CHYME CIAOS CIDER CIGAR CILIA CINCH CIRCA CIRRI CISSY CITED CITES CIVET CIVIC CIVIL CLACK CLADS CLAIM CLAMP CLAMS CLANG CLANK CLANS CLAPS CLASH CLASP CLASS CLAVE CLAWS CLAYS CLEAN CLEAR CLEAT CLEFS CLEFT CLERK CLEWS CLICK CLIFF CLIMB CLIME CLING CLINK CLIPS CLITS CLOAK CLOCK CLODR CLODS CLOGS CLOMP CLONE CLONK CLOPS CLOSE CLOTH CLOTS CLOUD CLOUT CLOVE CLOWN CLOYS CLUBS CLUCK CLUED CLUES CLUMP CLUNG CLUNK COACH COALS COAST COATS COBLE COBRA COCAS COCCI COCKS COCKY COCOA COCOS CODAS CODEC CODED CODER CODES CODEX CODON COEDS COHOS COIFS COILS COINS COKED COKES COKEY COLAS COLDS COLED COLEN COLEY COLIC COLON COLOR COLTS COMAE COMAS COMBO COMBS COMER COMES COMET COMFY COMIC COMMA COMPO COMPS CONCH CONDO CONED CONES CONGA CONIC CONKS CONTD COOED COOES COOKS COOLE COOLS COONS COOPS COOTS COPAY COPED COPER COPES COPRA COPSE COPSS CORAL CORDS CORED CORER CORES CORGI CORKS CORMS CORNS CORNY CORPS COSED COSES COSTS COTED COTES COUCH COUGH COULD COUNT COUPE COUPS COURT COVED COVEN COVER COVES COVET COVEY COWED COWER COWLS COXED COXES COYED COYER COYLY COYPU COZEN CRABS CRACK CRAFT CRAGS CRAMP CRAMS CRANE CRANK CRAPE CRAPS CRASH CRASS CRATE CRAVE CRAWL CRAWS CRAYS CRAZE CRAZY CREAK CREAM CREDO CREED CREEK CREEL CREEP CREME CREPE CREPT CRESS CREST CREWS CRIBS CRICK CRIED CRIER CRIES CRIME CRIMP CRISP CRISS CROAK CROCK CROFT CRONE CRONY CROOK CROON CROPS CROSS CROUP CROWD CROWN CROWS CRUDE CRUDR CRUDS CRUEL CRUET CRUFT CRUMB CRUMP CRUSE CRUSH CRUST CRYPT CUBED CUBER CUBES CUBIC CUBIT CUFFS CUING CULLS CULPA CULTS CUMIN CUPID CUPPA CURBS CURDS CURED CURER CURES CURFS CURIA CURIE CURIO CURLS CURLY CURRY CURSE CURSS CURVE CURVY CUSHY CUSPS CUSSR CUTER CUTES CUTEY CUTIE CUTUP CYANS CYCAD CYCLE CYDER CYNIC CYSTS CZARS DACES DACHA DADDY DAFFY DAILY DAIRY DAISS DAISY DALES DALLY DAMED DAMES DAMNS DAMPE DAMPS DANCE DANDY DANGS DARED DARER DARES DARKS DARNS DARTS DATED DATER DATES DATUM DAUBS DAUNT DAVIT DAWNS DAZED DAZES DDING DEALS DEALT DEANS DEARS DEARY DEATH DEBAR DEBIT DEBTS DEBUG DEBUT DECAF DECAL DECAY DECKS DECOR DECOY DECRY DEEDS DEEMS DEEPS DEERS DEFER DEFIS DEFOG DEGAS DEGUM DEICE DEIFY DEIGN DEISM DEIST DEITY DELAY DELFS DELFT DELIS DELLS DELTA DELVE DEMIT DEMOB DEMON DEMOS DEMUR DENIM DENSE DENTS DEPOT DEPTH DERBY DERES DESKS DETER DETOX DEUCE DEVIL DEWAR DEWED DEXES DHOTI DHOWS DIALS DIARY DICED DICER DICES DICEY DICTA DIDST DIETS DIFFS DIGIT DIKED DIKER DILLS DILLY DIMER DIMES DIMLY DINAR DINED DINER DINES DINGO DINGS DINGY DINKY DINTS DIODE DIPPY DIPSO DIRER DIRGE DIRKS DIRTS DIRTY DISCO DISCS DISED DISHR DISKS DITCH DITSY DITTO DITTY DIVAN DIVAS DIVED DIVER DIVES DIVOT DIVVY DIZZY DOCKS DODGE DODGY DODOS DOERS DOEST DOFFS DOGES DOGGO DOGGY DOGIE DOGMA DOHED DOILY DOING DOLED DOLES DOLLS DOLLY DOLOR DOLTS DOMED DOMES DONAS DONGS DONOR DONUT DOOMS DOORS DOPAS DOPED DOPER DOPES DOPEY DORKS DORKY DORMS DOSED DOSES DOTED DOTER DOTES DOTTY DOUBT DOUGH DOUSE DOVER DOVES DOWDY DOWEL DOWER DOWNS DOWNY DOWRY DOWSE DOYEN DOZED DOZEN DOZER DOZES DRABS DRAFT DRAGS DRAIN DRAKE DRAMA DRAMS DRANK DRAPE DRATS DRAWL DRAWN DRAWS DRAYS DREAD DREAM DREAR DREGS DRESS DRIBS DRIED DRIER DRIES DRIFT DRILL DRINK DRIPS DRIVE DROID DROLL DRONE DROOL DROOP DROPS DROSS DROVE DROWN DRUBS DRUGS DRUID DRUMS DRUNK DRUPE DRYAD DRYER DRYLY DUALS DUCAL DUCAT DUCHY DUCKS DUCKY DUCTS DUDED DUDES DUELS DUETS DUFFS DUKED DUKES DULLS DULLY DUMBO DUMBS DUMMY DUMPS DUMPY DUNCE DUNES DUNGS DUNKS DUNNO DUPED DUPER DUPES DUPLE DURST DURUM DUSKS DUSKY DUSTS DUSTY DUTCH DUVET DUXES DWARF DWEEB DWELL DWELT DYADS DYERS DYING EAGER EAGLE EARED EARLS EARLY EARNS EARTH EASED EASEL EASER EASES EASTS EATEN EATER EATTH EAVES EBBED EBBES EBONY ECHOR ECLAT ECRUS EDEMA EDGED EDGER EDGES EDICT EDIFY EDITS EDUCE EERIE EFFED EGGED EGGER EGRET EIDER EIGHT EJECT EKING ELAND ELANS ELATE ELBOW ELDER ELECT ELEGY ELFIN ELIDE ELITE ELMER ELOPE ELUDE ELUTE ELVEN ELVER ELVES EMACS EMAIL EMBED EMBER EMCEE EMEND EMERY EMIRS EMITS EMOJI EMOTE EMPTS EMPTY ENACT ENDED ENDER ENDOW ENDUE ENEMA ENEMY ENJOY ENNUI ENROL ENSUE ENTER ENTRY ENVOY EPEES EPICS EPOCH EPOXY EQUAL EQUIP EQUIV ERASE ERECT ERGOT ERODE ERRED ERRLY ERROR ERUCT ERUPT ESSAY ESTER ETCHS ETHER ETHIC ETHOS ETHYL ETUDE EUROS EVADE EVENE EVENS EVENT EVERY EVICT EVILS EVOKE EWERS EXACT EXALT EXAMS EXCEL EXECS EXERT EXILE EXIST EXITS EXONS EXPAT EXPEL EXPOS EXTOL EXTRA EXUDE EXULT EXURB EYERS EYING FABLE FACED FACER FACES FACET FACTO FACTS FADDY FADED FADER FADES FAERY FAFFS FAILS FAINS FAINT FAIRE FAIRS FAIRY FAITH FAKED FAKEN FAKER FAKES FAKIR FALLS FALSE FAMED FAMES FANCY FANGS FANNY FARAD FARCE FARED FARER FARES FARMS FAROS FASTS FATAL FATED FATES FATLY FATSO FATTY FATWA FAULT FAUNA FAUNS FAVES FAVOR FAWNS FAXED FAXES FAYED FAYER FAZED FAZES FEARS FEAST FEATS FECAL FECES FEEDS FEELS FEELY FEIGN FEINT FELLA FELLS FELON FELTS FEMME FEMUR FENCE FENDS FERAL FERNS FERNY FERRO FERRY FESTS FETAL FETAS FETCH FETED FETES FETID FETUS FEUDS FEVER FEWER FEYER FEZED FIATS FIBER FIBRE FICES FICHE FICHU FICOS FICUS FIEFS FIELD FIEND FIERY FIFED FIFER FIFES FIFTH FIFTY FIGHT FILCH FILED FILER FILES FILLS FILLY FILMS FILMY FILTH FINAL FINCH FINDS FINED FINER FINES FINIS FINKS FINNY FIORD FIRED FIREN FIRER FIRES FIRMS FIRST FIRTH FISHR FISHY FISTS FITLY FIVER FIVES FIXED FIXER FIXES FIZZY FJORD FLABS FLACK FLAGS FLAIL FLAIR FLAKE FLAKS FLAKY FLAME FLAMY FLANK FLANS FLAPS FLARE FLASH FLASK FLATS FLAWS FLAXS FLAYS FLEAS FLECK FLEER FLEES FLEET FLESH FLEWS FLEXR FLICK FLIED FLIER FLIES FLING FLINT FLIPS FLIRT FLITS FLOAT FLOCK FLOES FLOGS FLOOD FLOOR FLOPS FLORA FLOSS FLOUR FLOUT FLOWN FLOWS FLUBS FLUED FLUES FLUFF FLUID FLUKE FLUKY FLUME FLUNG FLUNK FLUSH FLUTE FLUTY FLUXR FLYBY FLYER FOALS FOAMS FOAMY FOCAL FOCUS FOGEY FOGGY FOILS FOIST FOLDS FOLIO FOLKS FOLLY FONDS FONTS FOODS FOOLS FOOTS FORAY FORCE FORDS FORES FORGE FORGO FORKS FORMS FORTE FORTH FORTS FORTY FORUM FOULS FOUND FOUNT FOURS FOVEA FOWLS FOXED FOXES FOYER FRACK FRAGS FRAIL FRAME FRANC FRANK FRATS FRAUD FRAYS FREAK FREED FREER FREES FREON FRESH FRETS FRIAR FRIED FRIES FRIGS FRILL FRISK FRITZ FRIZZ FROCK FROGS FROID FROND FRONT FROSH FROST FROTH FROWN FROZE FRUIT FRUMP FRYER FUDGE FUELS FUGAL FUGUE FULLS FULLY FUMED FUMES FUNDS FUNED FUNGI FUNKS FUNKY FUNNY FURLS FUROR FURRY FURZE FUSED FUSEE FUSES FUSSR FUSSY FUSTY FUTON FUZZR FUZZY GABBY GABLE GAFFE GAFFS GAGED GAGER GAGES GAILY GAINS GAITS GALAS GALEN GALES GALLS GAMED GAMER GAMES GAMIN GAMMA GAMUT GANGS GAOLS GAPED GAPER GAPES GARBS GARDE GASES GASPS GASSY GATED GATES GATOR GAUDY GAUGE GAUNT GAUSS GAUZE GAUZY GAVEL GAWKS GAWKY GAWPS GAYER GAZED GAZER GAZES GEARS GECKO GEEKS GEEKY GEESE GEEST GELDS GELID GELST GEMMY GENES GENIE GENII GENRE GENTS GENUS GEODE GERMS GETUP GHATS GHOST GHOUL GIANT GIBED GIBER GIBES GIDDY GIFTS GILDS GILLS GILTS GIMME GIMPY GIPSY GIRDS GIRLS GIROS GIRTH GIRTS GISTS GITED GITES GIVEN GIVER GIVES GIZMO GLACE GLADE GLADS GLAND GLANS GLARE GLASS GLAZE GLEAM GLEAN GLEED GLEES GLENS GLIDE GLINT GLITZ GLOAT GLOBE GLOBS GLOOM GLOPS GLORY GLOSS GLOVE GLOWS GLUED GLUER GLUES GLUEY GLUMS GLUON GLUTS GLYPH GNARL GNASH GNATS GNAWS GNOME GOADS GOALS GOATS GODLY GOERS GOFER GOING GOLDS GOLFS GOLLY GONAD GONER GONGS GONKS GONNA GOODS GOODY GOOED GOOEY GOOFS GOOFY GOONS GOOPS GOOSE GORED GORES GORGE GORPS GORSE GOTTA GOUGE GOURD GOUTS GOUTY GOWNS GRABS GRACE GRADE GRADS GRADT GRAFT GRAIL GRAIN GRAMS GRAND GRANS GRANT GRAPE GRAPH GRASP GRASS GRATE GRAVE GRAVY GRAYS GRAZE GREAT GREBE GREED GREEN GREET GREPS GRIDS GRIEF GRILL GRIME GRIMY GRIND GRINS GRIPE GRIPS GRIST GRITS GROAN GROAT GROGS GROIN GROKS GROOM GROPE GROSS GROUP GROUT GROVE GROWL GROWN GROWS GRUBS GRUEL GRUES GRUFF GRUMP GRUNT GUANO GUARD GUAVA GUESS GUEST GUFFS GUIDE GUIER GUILD GUILE GUILT GUISE GULAG GULCH GULFS GULLS GULLY GULPS GUMBO GUMMY GUNKS GUNKY GUNNY GUPPY GURUS GUSHY GUSSY GUSTO GUSTS GUSTY GUTSY GUTTA GUTTY GUYED GUYER GYPSY GYROS GYVED GYVES HABIT HACKS HADED HADES HADST HAFTS HAGEN HAIER HAIKU HAILS HAIRS HAIRY HAJJI HAJJS HAKES HALAL HALED HALER HALES HALLO HALLS HALON HALOS HALTS HALVE HAMMY HANDS HANDY HANGS HANKS HANKY HAPLY HAPPY HARDS HARDY HARED HAREM HARES HARKS HARMS HARPS HARPY HARRY HARSH HARTS HASHR HASPS HASTE HASTY HATCH HATED HATER HATES HAULS HAUNT HAVEN HAVER HAVES HAVOC HAWED HAWKS HAYED HAYER HAZED HAZEL HAZER HAZES HDQRS HEADS HEADY HEALS HEAPS HEARD HEARS HEART HEATH HEATS HEAVE HEAVY HECKS HEDGE HEEDS HEELS HEFTS HEFTY HEIGH HEIRS HEIST HELIX HELLO HELLS HELMS HELOT HELPS HELVE HEMES HEMPS HENCE HENGE HENNA HENRY HERBS HERDS HERES HERON HEROS HERTZ HEWED HEWER HEXED HEXER HEXES HICKS HIDED HIDER HIDES HIDEY HIGHS HIGHT HIJAB HIKED HIKER HIKES HILLS HILLY HILTS HINDS HINGE HINGS HINTS HIPPO HIPPY HIRED HIRER HIRES HISSR HISTS HITCH HIVED HIVES HOARD HOARY HOAXR HOBBY HOBOS HOCKS HOCUS HODGE HOERS HOGAN HOICK HOIST HOITY HOKED HOKES HOKEY HOKUM HOLDS HOLED HOLES HOLEY HOLLY HOMED HOMER HOMES HOMEY HONED HONER HONES HONEY HONKS HONKY HONOR HOOCH HOODS HOOEY HOOFS HOOKS HOOKY HOOPS HOOTS HOPED HOPER HOPES HORAS HORDE HORNS HORSE HOSED HOSES HOSTS HOTEL HOTLY HOUGH HOUND HOURI HOURS HOUSE HOVEL HOVER HOWDY HOWLS HOYED HUBBA HUBBY HUFFS HUFFY HUGER HULAS HULKS HULLO HULLS HUMAN HUMID HUMOR HUMPH HUMPS HUMUS HUNCH HUNKS HUNKY HUNTS HURLS HURLY HURRY HURTS HUSKS HUSKY HUTCH HYDRA HYDRO HYENA HYING HYMEN HYMNS HYPED HYPER HYPES HYPOS HYRAX IAMBI IAMBS IBEXS IBISS ICIER ICILY ICING ICONS ICTUS IDEAL IDEAS IDIOM IDIOT IDLED IDLER IDLES IDOLS IDYLL IGLOO ILEUM ILIAC ILIUM ILLUS IMAGE IMAGO IMAMS IMBUE IMPED IMPEL IMPER IMPLY INANE INAPT INBOX INCED INCHR INCUR INDEX INDIE INEPT INERT INFER INFIX INFOS INFRA INGOT INION INKED INKER INLAY INLET INNED INNER INPUT INSET INSTR INTER INTRA INTRO INURE IOCTL IONIC IOTAS IRATE IRIDS IRING IRKED IRKLY IRONS IRONY ISLED ISLES ISLET ISSUE ITCHR ITCHY ITEMS IVIED IVIES IVORY JABOT JACKS JADED JADES JAGGY JAILS JAMBS JAMMY JAPAN JAPED JAPES JATOS JAUNT JAWED JAZZR JAZZY JEANS JEEPS JEERS JELLO JELLS JELLY JEMMY JENNY JERKS JERKY JERRY JESTS JETTY JEWEL JIBED JIBES JIFFS JIFFY JIHAD JILTS JIMMY JINGO JINKS JINNI JINNS JINXR JITSU JIVED JIVES JOCKS JOEYS JOHNS JOIER JOINS JOINT JOIST JOKED JOKER JOKES JOKEY JOLLY JOLTS JONGG JOULE JOUST JOWLS JOWLY JOYED JUDGE JUDOS JUICE JUICY JUKES JULEP JUMBO JUMPS JUMPY JUNCO JUNKS JUNKY JUNTA JUROR JUSTS JUTES KABOB KALES KAPOK KAPPA KAPUT KARAT KARMA KARTS KAYAK KAYOS KAZOO KEBAB KEELS KEENS KEEPS KEIER KELPS KEPIS KETCH KEYED KHAKI KHANS KICKS KICKY KIDDO KILLS KILNS KILOS KILTS KINDA KINDS KINES KINGS KINKS KINKY KIOSK KIRKS KITED KITER KITES KITHS KITTY KIWIS KLUGE KLUTZ KNACK KNAVE KNEAD KNEED KNEEL KNEES KNELL KNELT KNICK KNIFE KNISH KNITS KNOBS KNOCK KNOLL KNOTS KNOWN KNOWS KNURL KOALA KOANS KOLAS KOOKS KOOKY KRAAL KRAFT KRAUT KRILL KRONA KRONE KUDOS KUDZU LABEL LABIA LABOR LACED LACER LACES LACKS LADED LADEN LADES LADLE LAGER LAING LAIRD LAIRS LAITY LAKED LAKER LAKES LAMAS LAMBS LAMED LAMER LAMES LAMPS LANAI LANCE LANDS LANES LANKY LAPEL LAPIN LAPSE LAPSS LARCH LARDS LARDY LARGE LARGO LARKS LARVA LASED LASER LASES LASHR LASSO LASSS LASTS LATCH LATED LATER LATEX LATHE LATHS LATTE LAUDS LAUGH LAURA LAVAS LAVED LAVES LAWED LAWNS LAXER LAXES LAXLY LAYER LAYUP LAZED LAZES LEACH LEADS LEAFS LEAFY LEAKS LEAKY LEANS LEAPS LEARN LEASE LEASH LEASS LEAST LEAVE LEDGE LEECH LEEKS LEERS LEERY LEFTS LEFTY LEGAL LEGGY LEGIT LEMMA LEMME LEMON LEMUR LENDS LENSR LENTO LEPER LEPTA LETUP LEVEE LEVEL LEVER LEWIS LEXER LIARS LIBEL LICIT LICKS LIDOS LIEFS LIEGE LIENS LIEUS LIEUT LIEUX LIFER LIFTS LIGHT LIKED LIKEN LIKER LIKES LILAC LILLY LILOS LILTS LIMBO LIMBS LIMED LIMES LIMEY LIMIT LIMNS LIMOS LIMPE LIMPS LINED LINEN LINER LINES LINGO LINGS LINKS LINTS LINTY LIONS LIPID LIPPY LISLE LISPS LISTS LITER LITES LITHE LITRE LIVED LIVEN LIVER LIVES LIVID LLAMA LLANO LOADS LOAFS LOAMS LOAMY LOANS LOATH LOBAR LOBBY LOBED LOBES LOCAL LOCHS LOCKS LOCOS LOCUM LOCUS LODES LODGE LOFTS LOFTY LOGES LOGIA LOGIC LOGIN LOGON LOGOS LOINS LOLLS LOLLY LONER LONGS LOOED LOOKS LOOMS LOONS LOONY LOOPS LOOPY LOOSE LOOTS LOPED LOPER LOPES LORDS LORES LORIS LORRY LOSER LOSES LOSSS LOSSY LOTTO LOTUS LOUPE LOURS LOUSE LOUSY LOUTS LOVED LOVER LOVES LOVEY LOWED LOWER LOWLY LOXED LOXES LOYAL LUAUS LUBED LUBES LUCID LUCKS LUCKY LUCRE LUFFS LUGER LUGES LULLS LULUS LUMEN LUMPS LUMPY LUNAR LUNCH LUNGE LUNGS LUPIN LUPUS LURCH LURED LURER LURES LUREX LURID LURKS LUSTS LUSTY LUTED LUTES LUXES LYEED LYING LYMPH LYNCH LYNXS LYRES LYRIC MACAW MACED MACER MACES MACHO MACRO MADAM MADLY MAFIA MAGES MAGIC MAGMA MAGUS MAIDS MAIER MAILS MAIMS MAINS MAIZE MAJOR MAKER MAKES MALES MALLS MALTS MALTY MAMAS MAMBA MAMBO MAMMA MAMMY MANED MANES MANGA MANGE MANGO MANGY MANIA MANIC MANLY MANNA MANOR MANSE MANTA MAPLE MARCH MARES MARIA MARKS MARLS MARNE MARRY MARSH MARTS MASER MASES MASHR MASKS MASON MASTS MATCH MATED MATER MATES MATEY MATHS MATTE MATTT MATZO MAULS MAUVE MAVEN MAWED MAXED MAXES MAXIM MAXIS MAYBE MAYER MAYOR MAYOS MAYST MAZED MAZER MAZES MEADS MEALS MEALY MEANS MEANT MEANY MEATS MEATY MECCA MEDAL MEDIA MEDIC MEEDS MEETS MELDS MELEE MELON MELTS MEMES MEMOS MENDS MENUS MEOWS MERCY MERED MERER MERES MERGE MERIT MERRY MESAS MESES MESHR MESON MESSR MESSY METAL METED METER METES METRE METRO MEWED MEWLS MEWSS MEZZO MICAS MICKS MICRO MIDAS MIDDY MIDGE MIDIS MIDST MIENS MIFFS MIGHT MIKED MIKES MILCH MILDS MILER MILES MILKS MILKY MILLS MILTS MIMED MIMER MIMES MIMIC MINCE MINDS MINED MINER MINES MINIM MINIS MINKE MINKS MINOR MINTS MINTY MINUS MINXS MIRED MIRES MIRTH MISDO MISER MISES MISTS MISTY MITER MITES MITRE MITTS MIXED MIXER MIXES MOANS MOATS MOCHA MOCKS MODAL MODEL MODEM MODER MODES MODUS MOGUL MOILS MOIRE MOIST MOLAL MOLAR MOLDS MOLDY MOLES MOLLS MOLLY MOLTS MOMMA MOMMY MONAD MONEY MONKS MONOS MONTH MOOCH MOODS MOODY MOOED MOOES MOONS MOORS MOOSE MOOTS MOPED MOPER MOPES MOPEY MORAL MORAY MORED MOREL MORES MORNS MORON MORPH MOSES MOSEY MOSSR MOSSY MOSTD MOSTS MOTEL MOTES MOTET MOTHS MOTIF MOTOR MOTTO MOUED MOUES MOULD MOULT MOUND MOUNT MOURN MOUSE MOUSY MOUTH MOVED MOVER MOVES MOVIE MOWED MOWER MOXIE MUCHX MUCKS MUCKY MUCUS MUDDY MUFFS MUFTI MUGGY MULCH MULCT MULED MULES MULLS MULTI MUMBO MUMMY MUMPS MUNCH MUNGE MUNGS MURAL MURKS MURKY MUSED MUSER MUSES MUSHY MUSIC MUSKS MUSKY MUSSY MUSTS MUSTY MUTED MUTER MUTES MUTTS MUZAK MUZZY MYERS MYLAR MYNAH MYNAS MYRRH MYTHS NAANS NABOB NACHO NACRE NADIR NAIAD NAIFS NAILS NAIVE NAKED NAMBY NAMED NAMER NAMES NANED NANNY NAPES NAPPY NARCS NARKY NASAL NASTY NATAL NATCH NATTY NAVAL NAVEL NAVES NAVVY NEAPS NEARS NEATH NEATS NECKS NEEDS NEEDY NEIGH NEONS NERDS NERDY NERVE NERVY NESTS NETTS NEVER NEVUS NEWED NEWEL NEWER NEWLY NEWSY NEWTS NEXUS NICER NICHE NICKS NIECE NIFTY NIGHS NIGHT NILLY NIMBI NINES NINJA NINNY NINTH NIPPY NIQAB NISEI NITER NITRE NIXED NIXER NIXES NOBED NOBLE NOBLY NODAL NODDY NODES NOELS NOHOW NOIRE NOISE NOISY NOMAD NONCE NONES NOOKS NOONS NOOSE NOPES NORMS NORTH NOSED NOSES NOSEY NOSHR NOTCH NOTED NOTER NOTES NOUNS NOVAE NOVAS NOVEL NOWAY NROFF NUBBY NUDER NUDES NUDGE NUKED NUKES NULLS NUMBS NURSE NUTTY NYLON NYMPH OAKEN OAKUM OARED OASES OASIS OATEN OATER OATHS OBESE OBEYS OBIED OBITS OBOES OCCUR OCEAN OCHER OCHRE OCKER OCTAL OCTET ODDER ODDLY ODIUM ODORS ODOUR OFFAL OFFED OFFER OFTEN OFTER OGIVE OGLED OGLER OGLES OGRES OHMIC OILED OILER OINKS OKAPI OKAYS OKRAS OLDEN OLDER OLDIE OLEOS OLIVE OMEGA OMENS OMITS ONCER ONCES ONION ONSET ONUSS ONYXS OOHED OOHLY OOZED OOZES OPALS OPENS OPERA OPINE OPING OPIUM OPTED OPTIC OPTLY OPUSS ORALS ORANG ORATE ORBED ORBIT ORDER ORGAN ORIEL ORION ORRIS OSIER OTHER OTTER OUGHT OUNCE OUSTS OUTDO OUTED OUTER OUTGO OUZOS OVALS OVARY OVATE OVENS OVERS OVERT OVOID OVULE OVUMS OWING OWLED OWLER OWLET OWNED OWNER OXBOW OXIDE OZONE PACED PACER PACES PACEY PACKS PACTS PADDY PADRE PAEAN PAGAN PAGED PAGER PAGES PAILS PAINS PAINT PAIRS PALED PALER PALES PALLS PALLY PALMS PALMY PALSY PAMBY PANDA PANED PANEL PANES PANGS PANIC PANKY PANSY PANTO PANTS PAPAL PAPAS PAPAW PAPED PAPEN PAPER PAPPY PARAS PARCH PARED PARER PARES PARKA PARKS PARKY PARRY PARSE PARSS PARTS PARTY PASES PASHA PASSE PASTA PASTE PASTS PASTY PATCH PATED PATEN PATER PATES PATHS PATIO PATSY PATTY PAUSE PAVED PAVER PAVES PAWED PAWLS PAWNS PAXES PAYED PAYEE PAYER PEACE PEACH PEAKS PEAKY PEALS PEARL PEARS PEATS PEATY PECAN PECKS PEDAL PEEKS PEELS PEENS PEEPS PEEPY PEERS PEEVE PEKES PEKOE PELFS PELTS PENAL PENCE PENDS PENNY PENTS PEONS PEONY PEPPY PERCH PERIL PERKS PERKY PERMS PERRY PERTS PERVS PESKY PESOS PESTO PESTS PETAL PETER PETRI PETTY PEWEE PEWIT PHAGE PHASE PHEWS PHIAL PHISH PHLOX PHONE PHONY PHOTO PHYLA PIANO PICAS PICKS PICKY PICOT PIECE PIERS PIETY PIGGY PIING PIKED PIKER PIKES PILAF PILED PILES PILLS PILOT PINCE PINCH PINED PINES PINGS PINKO PINKS PINKY PINNA PINNY PINON PINTO PINTS PINUP PIOUS PIPED PIPER PIPES PIPIT PIQUE PISTE PITAS PITCH PITHS PITHY PITON PITTA PIVOT PIXED PIXEL PIXES PIXIE PIZZA PLACE PLAID PLAIN PLAIT PLANE PLANK PLANS PLANT PLASH PLASM PLATE PLATS PLATY PLAYS PLAZA PLEAD PLEAS PLEAT PLEBE PLEBS PLIED PLIER PLIES PLINK PLODS PLONK PLOPS PLOTS PLOWS PLOYS PLUCK PLUGS PLUMB PLUME PLUMP PLUMS PLUMY PLUNK PLUSH POACH POCKS POCUS PODGE PODGY POEMS POESY POETS POINT POISE POKED POKER POKES POKEY POLAR POLED POLER POLES POLIO POLIS POLKA POLLS POLOS POLYP POMMY POMPS PONCE PONDS PONES PONGS POOCH POOED POOFS POOHS POOLS POOPS POPES POPPA POPPY POPUP PORCH PORED PORER PORES PORGY PORKS PORKY PORTS POSED POSER POSES POSIT POSSE POSTS POTTY POUCH POUFS POUND POURS POUTS POWER POXED POXES PRAMS PRANG PRANK PRATE PRATS PRAWN PRAYS PREEN PREPS PRESS PREYS PRICE PRIDE PRIED PRIER PRIES PRIGS PRIME PRIMP PRIMS PRINT PRION PRIOR PRISE PRISM PRIVY PRIZE PROBE PRODS PROFS PROLE PROMO PROMS PRONE PRONG PROOF PROPS PROSE PROSY PROUD PROVE PROWL PROWS PROXY PRUDE PRUNE PSALM PSEUD PSHAW PSSTS PSYCH PUBIS PUCES PUCKS PUDGY PUERS PUFFS PUFFY PUKED PUKES PUKKA PULED PULES PULLS PULPS PULPY PULSE PUMAS PUMPS PUNCH PUNKS PUNKY PUNTS PUPAE PUPAL PUPIL PUPPY PURED PUREE PURER PURGE PURLS PURRS PURSE PUSES PUSHY PUTTS PUTTY PWNED PYGMY PYLON PYRES PYXED PYXES PYXIS QUACK QUADS QUAFF QUAIL QUAKE QUAKY QUALM QUARK QUART QUASH QUASI QUAYS QUEEN QUELL QUERN QUERY QUEST QUEUE QUICK QUIDS QUIET QUIFF QUILL QUILT QUINE QUINS QUINT QUIPS QUIRE QUIRK QUIRT QUITE QUITS QUOIN QUOIT QUOTA QUOTE QUOTH RABBI RABID RABIS RACED RACER RACES RACKS RADAR RADII RADIO RADIX RADON RAFTS RAGAS RAGED RAGES RAHED RAIDS RAIER RAILS RAINS RAINY RAISE RAJAH RAKED RAKER RAKES RALLY RAMIE RAMPS RANCH RANDS RANDY RANEE RANGE RANGY RANKS RANTS RAPID RARED RARER RARES RASPS RASPY RATED RATER RATES RATIO RATTY RAVED RAVEL RAVEN RAVER RAVES RAWER RAWLY RAYED RAYON RAZED RAZER RAZES RAZOR REACH REACT READS READY REALM REALS REAMS REAPS REARM REARS REBEL REBID REBUS REBUT RECAP RECCE RECON RECTO RECUR REDDY REDID REDLY REDYE REEDS REEDY REEFS REEKS REELS REEVE REFED REFER REFIT REFRY REGAL REGEX REHAB REIGN REINS REJIG RELAX RELAY RELIC RELIT REMAP REMIT REMIX RENAL RENDS RENEW RENOS RENTS REORG REPAY REPEL REPLY RERAN RERUN RESAT RESET RESEW RESIN RESIT RESOW RESTS RETCH RETIE RETRO RETRY REUSE REVEL REVET REVUE REWED REXES RHEAS RHEUM RHINO RHOED RHYME RIALS RICED RICER RICES RICKS RIDER RIDES RIDGE RIDGY RIFER RIFFS RIFLE RIFTS RIGHT RIGID RIGOR RILED RILES RILLS RIMED RIMER RIMES RINDS RINGS RINKS RINSE RIOTS RIPED RIPEN RIPER RIPES RISEN RISER RISES RISKS RISKY RITED RITES RITZY RIVAL RIVED RIVEN RIVER RIVES RIVET RIYAL ROACH ROADS ROAMS ROANS ROARS ROAST ROBED ROBES ROBIN ROBOT ROCKS ROCKY RODED RODEO RODES ROGER ROGUE ROILS ROLES ROLLS ROMAN ROMEO ROMPS RONDO ROODS ROOFS ROOKS ROOMS ROOMY ROOST ROOTS ROPED ROPER ROPES ROPEY ROSED ROSES ROSIN ROTAS ROTED ROTES ROTOR ROUES ROUGE ROUGH ROUND ROUSE ROUST ROUTE ROUTS ROVED ROVER ROVES ROWAN ROWDY ROWED ROWEL ROWEN ROWER ROYAL RUBES RUBLE RUCKS RUDDY RUDER RUFFS RUGBY RUING RUINS RULED RULER RULES RUMBA RUMEN RUMMY RUMOR RUMPS RUNES RUNGS RUNIC RUNNY RUNTS RUNTY RUPEE RURAL RUSES RUSHY RUSKS RUSTS RUSTY RUTTY SABER SABLE SABOT SABRA SABRE SACKS SACRA SADES SADHU SADLY SAFER SAFES SAGAS SAGER SAGES SAGGY SAGOS SAHIB SAIDS SAILS SAINT SAITH SAKER SAKES SALAD SALES SALLY SALON SALSA SALTS SALTY SALVE SALVO SAMBA SAMES SANDS SANDY SANED SANER SANES SANGS SAPPY SARAN SARGE SARIS SASSY SATED SATES SATIN SATYR SAUCE SAUCY SAUNA SAUTE SAVED SAVER SAVES SAVOR SAVOY SAVVY SAWED SAWER SAXES SAYER SCABS SCADS SCAGS SCALD SCALE SCALP SCALY SCAMP SCAMS SCANS SCANT SCAPE SCARE SCARF SCARP SCARS SCARY SCATS SCENE SCENT SCHMO SCHWA SCION SCOFF SCOLD SCONE SCOOP SCOOT SCOPE SCOPS SCORE SCORN SCORT SCOUR SCOUT SCOWL SCOWS SCRAG SCRAM SCRAP SCREE SCREW SCRIM SCRIP SCROD SCROG SCRUB SCRUM SCUBA SCUDS SCUFF SCULL SCUMS SCURF SEALS SEALY SEAMS SEAMY SEARS SEATS SECTS SEDAN SEDGE SEDGY SEEDS SEEDY SEEKS SEEMS SEEPS SEERS SEGUE SEINE SEIZE SELFS SELLS SEMIS SENDS SENNA SENOR SENSE SEPAL SEPIA SEPOY SEPTA SERED SERER SERES SERFS SERGE SERIF SERUM SERVE SERVO SETTS SETUP SEVEN SEVER SEWED SEWER SHACK SHADE SHADS SHADY SHAFT SHAGS SHAHS SHAKE SHAKY SHALE SHALL SHALT SHAME SHAMS SHANK SHAPE SHARD SHARE SHARK SHARP SHAVE SHAWL SHAWM SHAYS SHCHI SHEAF SHEAR SHEDS SHEED SHEEN SHEEP SHEER SHEET SHEIK SHELF SHELL SHEWN SHEWS SHIED SHIER SHIES SHIFT SHILL SHIMS SHINE SHINS SHINY SHIPS SHIRE SHIRK SHIRR SHIRT SHIVS SHOAL SHOAT SHOCK SHOES SHONE SHOOK SHOOS SHOOT SHOPS SHORE SHORN SHORT SHOTS SHOUT SHOVE SHOWN SHOWS SHOWY SHRED SHREW SHRUB SHRUG SHUCK SHUNS SHUNT SHUSH SHUTS SHYER SHYLY SIBYL SICKO SICKS SIDED SIDER SIDES SIDLE SIEGE SIEVE SIFTS SIGHS SIGHT SIGMA SIGNS SILED SILKS SILKY SILLS SILLY SILOS SILTS SILTY SIMON SINCE SINES SINEW SINGE SINGS SINKS SINUS SIRED SIREN SIRES SISAL SISES SISSY SITAR SITED SITES SITUS SIXER SIXES SIXTH SIXTY SIZED SIZER SIZES SKATE SKEET SKEIN SKEWS SKIDS SKIED SKIEN SKIER SKIES SKIFF SKILL SKIMP SKIMS SKINS SKIPS SKIRT SKITS SKIVE SKOAL SKUAS SKULK SKULL SKUNK SKYEY SLABS SLACK SLAGS SLAIN SLAKE SLAMS SLANG SLANT SLAPS SLASH SLATE SLATS SLAVE SLAVT SLAWS SLAYS SLEDS SLEEK SLEEP SLEET SLEPT SLEWS SLICE SLICK SLIDE SLIER SLIME SLIMS SLIMY SLING SLINK SLIPS SLITS SLOBS SLOES SLOGI SLOGS SLOOP SLOPE SLOPS SLOSH SLOTH SLOTS SLOWS SLUED SLUES SLUGS SLUMP SLUMS SLUNG SLUNK SLURP SLURS SLUSH SLYLY SMACK SMALL SMART SMASH SMEAR SMELL SMELT SMILE SMIRK SMITE SMITH SMOCK SMOGS SMOKE SMOKY SMOTE SMUGS SMURF SNACK SNAFU SNAGS SNAIL SNAKE SNAKY SNAPS SNARE SNARF SNARK SNARL SNEAK SNEER SNICK SNIDE SNIFF SNIPE SNIPS SNITS SNOBS SNOGS SNOOD SNOOK SNOOP SNOOT SNORE SNORT SNOTS SNOUT SNOWS SNOWY SNUBS SNUFF SNUGS SOAKS SOAPS SOAPY SOARS SOBER SOCIO SOCKS SODAS SOFAS SOFTS SOFTY SOGGY SOILS SOLAR SOLED SOLER SOLES SOLID SOLOS SOLVE SONAR SONGS SONIC SONLY SONNY SOOTH SOOTS SOOTY SOPPY SORED SORER SORES SORRY SORTA SORTS SOUGH SOUKS SOULS SOUND SOUPS SOUPY SOURS SOUSE SOUSS SOUTH SOWED SOWER SPACE SPACT SPADE SPAKE SPAMS SPANK SPANS SPARE SPARK SPARS SPASM SPATE SPATS SPAWN SPAYS SPEAK SPEAR SPECK SPECS SPEED SPEER SPELL SPELT SPEND SPENT SPEWS SPICE SPICY SPIED SPIEL SPIER SPIES SPIFF SPIKE SPIKY SPILL SPINE SPINS SPINY SPIRE SPIRY SPITE SPITS SPIVS SPLAT SPLAY SPLIT SPOIL SPOKE SPOOF SPOOK SPOOL SPOON SPOOR SPORE SPORT SPOTS SPOUT SPRAT SPRAY SPREE SPRIG SPROG SPRUE SPUDR SPUDS SPUME SPUMY SPURN SPURS SPURT SPUTA SQUAB SQUAD SQUAT SQUAW SQUIB SQUID STABS STACK STAFF STAGE STAGS STAGY STAID STAIN STAIR STAKE STALE STALK STALL STAMP STAND STANK STAPH STARE STARK STARS START STASH STATE STATS STAVE STAYS STDIO STEAD STEAK STEAL STEAM STEED STEEL STEEP STEER STEIN STEMS STENO STENT STEPS STERN STETS STEWS STICK STIED STIES STIFF STILE STILL STILT STING STINK STINT STIRS STOAT STOCK STOGY STOIC STOKE STOLE STOMA STOMP STONE STONT STONY STOOD STOOL STOOP STOPS STORE STORK STORM STORT STORY STOUP STOUT STOVE STOWS STRAP STRAW STRAY STREP STREW STRIA STRIM STRIP STROP STRUM STRUT STUBS STUCK STUDR STUDS STUDY STUFF STUMP STUNG STUNK STUNS STUNT STYLE STYLI SUAVE SUCKS SUDSY SUEDE SUERS SUETS SUETY SUGAR SUING SUITE SUITS SULFA SULKS SULKY SULLY SUMAC SUMER SUMOS SUMPS SUNKS SUNNY SUNUP SUPER SUPPL SUPRA SURED SURER SURFS SURGE SURLY SUSHI SUSSS SWABS SWAGS SWAIN SWAMI SWAMP SWANK SWANS SWAPS SWARD SWARM SWART SWASH SWATH SWATS SWAYS SWEAR SWEAT SWEDE SWEEP SWEET SWELL SWEPT SWIFT SWIGS SWILL SWIMS SWINE SWING SWIPE SWIRL SWISH SWISS SWIZZ SWOON SWOOP SWORD SWORE SWORN SWOTS SWUNG SYLPH SYNCH SYNCS SYNOD SYNTH SYRUP SYSOP TABBY TABLA TABLE TABOO TABOR TACIT TACKS TACKY TACOS TACTS TAFFY TAIGA TAILS TAINT TAKEN TAKER TAKES TALCS TALER TALES TALKS TALKY TALLY TALON TALUS TAMED TAMER TAMES TAMPS TANGO TANGS TANGY TANKS TANSY TAPED TAPER TAPES TAPIR TARDY TARED TARES TARNS TAROS TAROT TARPS TARRY TARSI TARTS TARTY TASER TASKS TASTE TASTY TATER TATTY TAUED TAUNT TAUPE TAUTS TAWNY TAXED TAXER TAXES TAXIS TEACH TEAED TEAKS TEALS TEAMS TEARS TEARY TEASE TEASS TEATS TECHS TEDDY TEEMS TEENS TEENY TEETH TELEX TELLS TELLY TEMPO TEMPS TEMPT TENCH TENDS TENET TENON TENOR TENSE TENTH TENTS TEPEE TEPID TERMS TERNS TERRS TERRY TERSE TESTS TESTY TETRA TEXTS THANE THANK THATS THAWS THEED THEES THEFT THEIR THEME THENS THERE THERM THESE THETA THEWS THICK THIEF THIGH THINE THING THINK THINS THIRD THOLE THONG THORN THOSE THOUS THREE THREW THROB THROE THROW THRUM THUDR THUDS THUGS THUMB THUMP THUNK THYME TIARA TIBIA TICKS TIDAL TIDED TIDES TIERS TIFFS TIGER TIGHT TILDE TILED TILER TILES TILLS TILTH TILTS TIMED TIMER TIMES TIMID TINED TINES TINGE TINGS TINNY TINTS TIPPY TIPSY TIRED TIRES TITAN TITCH TITER TITHE TITLE TITRE TIZZY TOADS TOADY TOAST TODAY TODDY TOFFS TOFUS TOGAS TOIER TOILS TOITY TOKED TOKEN TOKES TOLED TOLES TOLLS TOMBS TOMES TOMMY TONAL TONED TONER TONES TONGS TONIC TONKS TONNE TOOLS TOOTH TOOTS TOPAZ TOPED TOPEE TOPER TOPIC TOPSY TOQUE TORCH TORED TORES TORSO TORTE TORTS TORUS TOTAL TOTED TOTEM TOTER TOTES TOUCH TOUGH TOURS TOUTS TOWED TOWEL TOWER TOWES TOWNS TOXIC TOXIN TOYED TOYER TRACE TRACK TRACT TRADE TRADT TRAIL TRAIN TRAIT TRAMP TRAMS TRANS TRAPS TRASH TRAWL TRAYS TREAD TREAS TREAT TREED TREES TREKS TREND TRESS TREWS TREYS TRIAD TRIAL TRIBE TRICE TRICK TRIED TRIER TRIES TRIGS TRIKE TRILL TRIMS TRIOS TRIPE TRIPS TRITE TROFF TROLL TROMP TRONS TROOP TROPE TROTH TROTS TROUT TROVE TROWS TROYS TRUCE TRUCK TRUED TRUER TRUES TRUGS TRULY TRUMP TRUNK TRUSS TRUST TRUTH TRYST TUBAE TUBAL TUBAS TUBBY TUBED TUBER TUBES TUCKS TUFTS TUFTY TULIP TULLE TUMID TUMMY TUMOR TUNAS TUNED TUNEN TUNER TUNES TUNIC TUNNY TUPLE TUQUE TURBO TURFS TURFY TURKS TURNS TURVY TUSKS TUTOR TUTTI TUTUS TUXES TWAIN TWANG TWEAK TWEED TWEEN TWEER TWEET TWERK TWERP TWICE TWIGS TWILL TWINE TWINK TWINS TWIRL TWIST TWITS TWIXT TYING TYKES TYPED TYPER TYPES TYPOS TYREO TYROS UDDER UGLIS UKASE ULCER ULNAE ULNAR ULTRA UMBEL UMBER UMBRA UMIAK UMPED UNAPT UNARY UNBAN UNBAR UNBID UNCAP UNCLE UNCUT UNDER UNDID UNDUE UNFED UNFIT UNFIX UNGOT UNIFY UNION UNITE UNITS UNITY UNJAM UNLAP UNLIT UNMAN UNMET UNPIN UNSAY UNSEE UNSET UNTIE UNTIL UNWED UNZIP UPEND UPPED UPPER UPSET URBAN UREAS URGED URGER URGES URINE URNED USAGE USERS USHER USING USUAL USURP USURY UTANS UTERI UTILE UTTER UVULA VACUA VACUO VAGUE VALES VALET VALID VALOR VALUE VALVE VAMPS VANED VANES VAPED VAPES VAPID VAPOR VASES VASTS VAULT VAUNT VEALS VEEPS VEERS VEGAN VEGES VEILS VEINS VELAR VELDS VELDT VELOR VELUM VENAL VENDS VENOM VENTS VENUE VERBS VERGE VERSA VERSE VERSO VERVE VESTS VETCH VETER VETOR VEXED VEXES VIALS VIAND VIBES VICAR VICED VICES VIDEO VIEWS VIGIL VIGOR VILER VILLA VILLE VILLI VIMED VINED VINES VINOS VINYL VIOLA VIOLS VIPER VIRAL VIREO VIRUS VISAS VISED VISES VISIT VISOR VISTA VITAE VITAL VITRO VIVAS VIVID VIXEN VOCAB VOCAL VODKA VOGUE VOICE VOIDS VOILE VOLAR VOLED VOLES VOLTE VOLTS VOMIT VOTED VOTER VOTES VOUCH VOWED VOWEL VOWER VYING WACKO WACKS WACKY WADED WADER WADES WADGE WADIS WAFER WAFTS WAGED WAGER WAGES WAGON WAIFS WAILS WAINS WAIST WAITS WAIVE WAKED WAKEN WAKER WAKES WALDO WALED WALER WALES WALKS WALLS WALLY WALTZ WANDS WANED WANES WANLY WANNA WANTS WARDS WARED WARES WARMS WARNS WARPS WARTS WARTY WASES WASHY WASPS WASTE WASTS WATCH WATER WATTS WAVED WAVER WAVES WAXED WAXEN WAXER WAXES WAZOO WEALS WEANS WEARS WEARY WEAVE WEBER WEDGE WEEDS WEEDY WEEKS WEENS WEENY WEEPS WEEPY WEEST WEFTS WEIGH WEIRD WEIRS WELDS WELLS WELLY WELSH WELTS WENCH WENDS WESTS WETLY WHACK WHALE WHAMS WHARF WHATS WHEAL WHEAT WHEEL WHEES WHELK WHELM WHELP WHENS WHERE WHETS WHEWS WHEYS WHICH WHIFF WHIGS WHILE WHIMS WHINE WHINY WHIPS WHIRL WHIRR WHIRS WHISK WHIST WHITE WHITS WHOAS WHOED WHOLE WHOOP WHOPS WHORL WHOSE WHOSO WHUPS WICKS WIDEN WIDER WIDES WIDOW WIDTH WIELD WIFED WIFES WIGHT WIKIS WILDS WILED WILES WILLS WILLY WILTS WIMPS WIMPY WINCE WINCH WINDS WINDY WINED WINER WINES WINGS WINKS WINOS WIPED WIPER WIPES WIRED WIRER WIRES WISED WISER WISES WISHY WISPS WISPY WISTS WITCH WITHE WITHS WITTY WIVED WIVES WIZEN WOADS WODGE WOKEN WOLDS WOLFS WOMAN WOMBS WOMEN WONKS WONKY WONTS WOODS WOODY WOOED WOOER WOOFS WOOLS WOOLY WOOZY WORDS WORDY WORKS WORLD WORMS WORMY WORRY WORSE WORST WORTH WORTS WOULD WOUND WOVEN WOWED WOWES WRACK WRAPS WRATH WREAK WRECK WRENS WREST WRIED WRIES WRING WRIST WRITE WRITS WRONG WROTE WROTH WRUNG WRYER WRYLY WURST WUSSY XENON XEROX XREFS XTERM XVIII XYLEM YACHT YAHOO YAKED YANGS YANKS YARDS YARNS YAWED YAWES YAWLS YAWNS YEAHS YEARN YEARS YEAST YECCH YEGGS YELLS YELPS YESES YETIS YIELD YIKES YIPES YOBBO YODEL YOGAS YOGIS YOKED YOKEL YOKES YOLKS YORES YOUNG YOURS YOUTH YOWLS YUCCA YUCKS YUCKY YULES YUMMY YURTS ZEALS ZEBRA ZEBUS ZEROS ZESTS ZESTY ZETAS ZILCH ZINCS ZINES ZINGS ZINGY ZIPPY ZLOTY ZONAL ZONED ZONER ZONES ZOOMS",
-  },
-};
-// </WORDS>
-
-const LANGS = ['da', 'en'];
-const WORD_LENGTH = 5;
-const MAX_GUESSES = 6;
-const ANSWERS = {};
-const ALLOWED = {};
-for (const lang of LANGS) {
-  ANSWERS[lang] = WORDS[lang].answers.split(' ');
-  ALLOWED[lang] = new Set(WORDS[lang].allowed.split(' '));
-}
-const ALPHABET = {
-  en: new Set('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-  da: new Set('ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ'),
-};
-const KEY_ROWS = {
-  en: ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'],
-  da: ['QWERTYUIOPÅ', 'ASDFGHJKLÆØ', 'ZXCVBNM'],
-};
-
-/* ==========================================================================
-   I18N STRINGS
-   ========================================================================== */
-const STRINGS = {
-  da: {
-    brand: 'Kodeord',
-    language: 'Sprog',
-    langDa: 'Dansk',
-    langEn: 'Engelsk',
-    modeGroup: 'Spiltype',
-    daily: 'Dagens ord',
-    practice: 'Øvelse',
-    newWord: 'Nyt ord',
-    newWordHint: 'Start et nyt øvelsesspil',
-    help: 'Sådan spiller du',
-    stats: 'Statistik',
-    close: 'Luk',
-    contrastOn: 'Slå høj kontrast fra',
-    contrastOff: 'Slå høj kontrast til (orange og blå)',
-    share: 'Del',
-    shareHint: 'Kopiér resultatet',
-    notEnough: 'Ikke nok bogstaver',
-    notInList: 'Ikke på ordlisten',
-    copied: 'Kopieret',
-    copyFailed: 'Kunne ikke kopiere',
-    newDay: 'Der er et nyt dagens ord',
-    wins: ['Utroligt!', 'Fantastisk!', 'Imponerende!', 'Flot klaret!', 'Godt gået!', 'Puha!'],
-    lost: 'Ordet var {word}',
-    statusDaily: 'Gæt dagens ord på seks forsøg',
-    statusNext: 'Næste ord om {time}',
-    statusLost: 'Ordet var {word} · næste om {time}',
-    statusPractice: 'Øvelsesspil tæller ikke i statistikken',
-    statusPracticeDone: 'Ordet var {word}',
-    played: 'Spillet',
-    winPct: 'Vundet %',
-    streak: 'Stime',
-    maxStreak: 'Bedste stime',
-    distribution: 'Fordeling af gæt',
-    distRow: '{n} gæt: {count} spil',
-    nextWord: 'Næste ord',
-    wonToday: 'Du gættede dagens ord',
-    lostToday: 'Ordet var {word}',
-    statsNote: 'Statistikken gælder dagens ord på dansk. Øvelsesspil tælles ikke med.',
-    practiceShare: 'Øvelse',
-    helpIntro: 'Gæt ordet på seks forsøg. Hvert gæt skal være et gyldigt ord på fem bogstaver.',
-    helpAfter: 'Efter hvert gæt skifter felterne farve og viser, hvor tæt du var på:',
-    helpEnd: 'Æ, Ø og Å tæller som ét bogstav. Hver dag er der et nyt dagens ord. I øvelse kan du spille så meget du vil, uden at det tæller i statistikken.',
-    examples: [
-      { word: 'KAGEN', at: 0, state: 'correct', text: 'K står på den rigtige plads.' },
-      { word: 'BOLIG', at: 2, state: 'present', text: 'L er med i ordet, men på en anden plads.' },
-      { word: 'STORM', at: 3, state: 'absent', text: 'R er ikke med i ordet.' },
-    ],
-    board: 'Spillebræt',
-    keyboard: 'Tastatur',
-    row: 'Række {n}',
-    tileEmpty: 'tomt felt',
-    tileTbd: '{letter}',
-    correct: 'rigtig plads',
-    present: 'forkert plads',
-    absent: 'ikke med',
-    enter: 'Send gæt',
-    backspace: 'Slet bogstav',
-    guessSummary: 'Gæt {n}: {tiles}',
-  },
-  en: {
-    brand: 'Codeword',
-    language: 'Language',
-    langDa: 'Danish',
-    langEn: 'English',
-    modeGroup: 'Game mode',
-    daily: 'Daily',
-    practice: 'Practice',
-    newWord: 'New word',
-    newWordHint: 'Start a new practice game',
-    help: 'How to play',
-    stats: 'Statistics',
-    close: 'Close',
-    contrastOn: 'Turn off high contrast',
-    contrastOff: 'Turn on high contrast (orange and blue)',
-    share: 'Share',
-    shareHint: 'Copy your result',
-    notEnough: 'Not enough letters',
-    notInList: 'Not in word list',
-    copied: 'Copied',
-    copyFailed: 'Could not copy',
-    newDay: 'A new daily word is ready',
-    wins: ['Unreal!', 'Brilliant!', 'Superb!', 'Nice work!', 'Solid!', 'Phew!'],
-    lost: 'The word was {word}',
-    statusDaily: 'Guess the daily word in six tries',
-    statusNext: 'Next word in {time}',
-    statusLost: 'It was {word} · next in {time}',
-    statusPractice: 'Practice games are not counted in stats',
-    statusPracticeDone: 'The word was {word}',
-    played: 'Played',
-    winPct: 'Win %',
-    streak: 'Streak',
-    maxStreak: 'Best streak',
-    distribution: 'Guess distribution',
-    distRow: '{n} guesses: {count} games',
-    nextWord: 'Next word',
-    wonToday: 'You got today’s word',
-    lostToday: 'The word was {word}',
-    statsNote: 'Stats cover the English daily word. Practice games are not counted.',
-    practiceShare: 'Practice',
-    helpIntro: 'Guess the word in six tries. Each guess must be a valid five-letter word.',
-    helpAfter: 'After each guess, the tiles change color to show how close you were:',
-    helpEnd: 'There is a new daily word every day. In practice you can play as much as you like without affecting your stats.',
-    examples: [
-      { word: 'BRAVE', at: 0, state: 'correct', text: 'B is in the right spot.' },
-      { word: 'CLOUD', at: 2, state: 'present', text: 'O is in the word, but in another spot.' },
-      { word: 'STORM', at: 3, state: 'absent', text: 'R is not in the word.' },
-    ],
-    board: 'Game board',
-    keyboard: 'Keyboard',
-    row: 'Row {n}',
-    tileEmpty: 'empty',
-    tileTbd: '{letter}',
-    correct: 'correct',
-    present: 'wrong spot',
-    absent: 'not in word',
-    enter: 'Submit guess',
-    backspace: 'Delete letter',
-    guessSummary: 'Guess {n}: {tiles}',
-  },
-};
-
-function t(key, vars) {
-  let text = STRINGS[store.lang][key];
-  if (vars) for (const name in vars) text = text.replace('{' + name + '}', vars[name]);
-  return text;
-}
-
-/* ==========================================================================
-   STATE
-   ========================================================================== */
-const STORAGE_KEY = 'kodeord.v1';
-const EPOCH = '2026-01-01';
-const SHUFFLE_SEED = { da: 0x4b4f4445, en: 0x434f4445 };
-
-const freshDaily = (date) => ({ date, guesses: [], draft: '', finished: false, won: false });
-const freshPractice = (answer) => ({ answer, guesses: [], draft: '', finished: false, won: false });
-const freshStats = () => ({
-  played: 0, wins: 0, streak: 0, maxStreak: 0, dist: [0, 0, 0, 0, 0, 0], lastPlayedDate: null, lastWinDate: null,
-});
-
-function defaultStore() {
-  const games = {};
-  const stats = {};
-  for (const lang of LANGS) {
-    games[lang] = { daily: freshDaily(todayKey()), practice: freshPractice(pickPractice(lang, null)) };
-    stats[lang] = freshStats();
-  }
-  return { v: 1, lang: detectLang(), mode: 'daily', contrast: false, seenHelp: false, games, stats };
-}
-
-let store = null;                 // Everything that is persisted.
-const ui = {                      // Everything that is not.
-  reveal: null,                   // { row } while a guess is being flipped.
-  timers: [],                     // Pending animation timers, cancelled on any context switch.
-  modal: null,                    // 'help' | 'stats' | null
-  opener: null,                   // Element to refocus when the modal closes.
-  toastTimer: 0,
-  tiles: [],                      // tiles[row][col]
-  rows: [],
-  keys: new Map(),                // letter or ENTER/BACK -> button
-};
-const el = {};
-
-/* ==========================================================================
-   GAME LOGIC (pure functions, covered by tools/validate.mjs)
-   ========================================================================== */
-
-/** Two passes: greens first, then yellows only while unused copies of the letter remain. */
-function scoreGuess(guess, answer) {
-  const result = new Array(WORD_LENGTH).fill('absent');
-  const unused = {};
-  for (let i = 0; i < WORD_LENGTH; i++) {
-    if (guess[i] === answer[i]) result[i] = 'correct';
-    else unused[answer[i]] = (unused[answer[i]] || 0) + 1;
-  }
-  for (let i = 0; i < WORD_LENGTH; i++) {
-    if (result[i] === 'correct') continue;
-    if (unused[guess[i]] > 0) {
-      result[i] = 'present';
-      unused[guess[i]]--;
-    }
-  }
-  return result;
-}
-
-const STATE_RANK = { absent: 1, present: 2, correct: 3 };
-
-/** Best state per letter across guesses; a key can only ever move up. */
-function keyStates(guesses, answer) {
-  const best = {};
-  for (const guess of guesses) {
-    const states = scoreGuess(guess, answer);
-    for (let i = 0; i < WORD_LENGTH; i++) {
-      const prev = best[guess[i]];
-      if (!prev || STATE_RANK[states[i]] > STATE_RANK[prev]) best[guess[i]] = states[i];
-    }
-  }
-  return best;
-}
-
-function dateKey(d) {
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function todayKey() { return dateKey(new Date()); }
-
-/** Calendar days as integers. Going through UTC keeps this immune to DST. */
-function dayIndex(key) {
-  const [y, m, d] = key.split('-').map(Number);
-  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
-}
-function dayNumber(key) { return dayIndex(key) - dayIndex(EPOCH); }
-
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return function () {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let z = a;
-    z = Math.imul(z ^ (z >>> 15), z | 1);
-    z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
-    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function seededShuffle(list, seed) {
-  const out = list.slice();
-  const random = mulberry32(seed);
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
-
-const DAILY_ORDER = {};
-function dailyOrder(lang) {
-  if (!DAILY_ORDER[lang]) DAILY_ORDER[lang] = seededShuffle(ANSWERS[lang], SHUFFLE_SEED[lang]);
-  return DAILY_ORDER[lang];
-}
-
-function dailyAnswer(lang, key) {
-  const order = dailyOrder(lang);
-  const n = order.length;
-  return order[((dayNumber(key) % n) + n) % n];
-}
-
-/** A random answer that differs from the current practice word and from today's daily word. */
-function pickPractice(lang, current) {
-  const daily = dailyAnswer(lang, todayKey());
-  const list = ANSWERS[lang];
-  let word;
-  do {
-    word = list[Math.floor(Math.random() * list.length)];
-  } while (word === current || word === daily);
-  return word;
-}
-
-/** Updates a stats object for one finished daily game. Each date counts once. */
-function recordDailyResult(stats, date, won, guessCount) {
-  if (stats.lastPlayedDate === date) return stats;
-  stats.played++;
-  stats.lastPlayedDate = date;
-  if (won) {
-    stats.wins++;
-    stats.dist[guessCount - 1]++;
-    const continues = stats.lastWinDate && dayIndex(date) - dayIndex(stats.lastWinDate) === 1;
-    stats.streak = continues ? stats.streak + 1 : 1;
-    stats.lastWinDate = date;
-    stats.maxStreak = Math.max(stats.maxStreak, stats.streak);
-  } else {
-    stats.streak = 0;
-  }
-  return stats;
-}
-
-/** A streak dies as soon as a day has passed without a win. */
-function expireStreak(stats, today) {
-  if (stats.streak > 0 && (!stats.lastWinDate || dayIndex(today) - dayIndex(stats.lastWinDate) > 1)) stats.streak = 0;
-  return stats;
-}
-
-function shareText(lang, mode, date, guesses, answer, won) {
-  const s = STRINGS[lang];
-  const tag = mode === 'daily' ? '#' + (dayNumber(date) + 1) : s.practiceShare;
-  const score = won ? guesses.length : 'X';
-  const emoji = { correct: '🟩', present: '🟨', absent: '⬛' };
-  const grid = guesses.map((g) => scoreGuess(g, answer).map((st) => emoji[st]).join('')).join('\n');
-  return s.brand + ' ' + lang.toUpperCase() + ' ' + tag + ' ' + score + '/' + MAX_GUESSES + '\n\n' + grid;
-}
-
-/** Normalizes event.key to an uppercase letter of the language, or null. */
-function normalizeLetter(key, lang) {
-  if (typeof key !== 'string') return null;
-  const composed = key.normalize('NFC');
-  if (composed.length !== 1) return null;
-  const upper = composed.toUpperCase();
-  return ALPHABET[lang].has(upper) ? upper : null;
-}
-
-function currentGame() { return store.games[store.lang][store.mode]; }
-function currentAnswer() {
-  const game = currentGame();
-  return store.mode === 'daily' ? dailyAnswer(store.lang, game.date) : game.answer;
-}
-function inputLocked() { return !!ui.reveal || !!ui.modal || currentGame().finished; }
-
-function typeLetter(letter) {
-  const game = currentGame();
-  if (inputLocked() || game.draft.length >= WORD_LENGTH) return;
-  game.draft += letter;
-  const col = game.draft.length - 1;
-  renderBoard();
-  const tile = ui.tiles[game.guesses.length][col];
-  tile.classList.remove('pop');
-  void tile.offsetWidth;
-  tile.classList.add('pop');
-  saveStore();
-}
-
-function deleteLetter() {
-  const game = currentGame();
-  if (inputLocked() || !game.draft) return;
-  game.draft = game.draft.slice(0, -1);
-  renderBoard();
-  saveStore();
-}
-
-function submitGuess() {
-  const game = currentGame();
-  if (inputLocked()) return;
-  const guess = game.draft;
-  if (guess.length < WORD_LENGTH) return rejectGuess('notEnough');
-  if (!ALLOWED[store.lang].has(guess)) return rejectGuess('notInList');
-
-  const answer = currentAnswer();
-  game.guesses.push(guess);
-  game.draft = '';
-  game.won = guess === answer;
-  game.finished = game.won || game.guesses.length >= MAX_GUESSES;
-  if (game.finished && store.mode === 'daily') {
-    recordDailyResult(store.stats[store.lang], game.date, game.won, game.guesses.length);
-  }
-  saveStore();
-  startReveal(game.guesses.length - 1);
-}
-
-function rejectGuess(key) {
-  showToast(t(key));
-  const row = ui.rows[currentGame().guesses.length];
-  row.classList.remove('shake');
-  void row.offsetWidth;
-  row.classList.add('shake');
-  later(500, () => row.classList.remove('shake'));
-}
-
-function setLang(lang) {
-  if (lang === store.lang) return;
-  cancelEffects();
-  store.lang = lang;
-  saveStore();
-  buildKeyboard();
-  renderAll();
-}
-
-function setMode(mode) {
-  if (mode === store.mode) return;
-  cancelEffects();
-  store.mode = mode;
-  saveStore();
-  renderAll();
-}
-
-function newPracticeWord() {
-  cancelEffects();
-  const lang = store.lang;
-  const previous = store.games[lang].practice.answer;
-  store.games[lang].practice = freshPractice(pickPractice(lang, previous));
-  saveStore();
-  renderAll();
-}
-
-/** Moves every language to today's game when the local date changes. */
-function rolloverIfNeeded() {
-  if (ui.reveal) return;
-  const today = todayKey();
-  let changed = false;
-  for (const lang of LANGS) {
-    expireStreak(store.stats[lang], today);
-    if (store.games[lang].daily.date !== today) {
-      store.games[lang].daily = freshDaily(today);
-      changed = true;
-    }
-  }
-  if (!changed) return;
-  saveStore();
-  renderAll();
-  if (store.mode === 'daily') showToast(t('newDay'));
-}
-
-/* ==========================================================================
-   RENDERING
-   ========================================================================== */
-const FLIP_MS = 480;
-
-/** Tailwind classes for content built at runtime. init() renders them once so the CDN compiles them up front. */
-const TW = {
-  body: 'text-sm leading-relaxed mt-2 first:mt-0',
-  example: 'text-sm',
-  statBox: 'text-center rounded-[10px] bg-[var(--panel-2)] pt-2.5 pb-2 px-0.5',
-  statNum: 'text-2xl font-extrabold leading-tight tabular-nums',
-  statLabel: 'mt-0.5 text-[11px] leading-tight text-[color:var(--muted)]',
-  distTitle: 'text-[13px] font-bold mb-2',
-  distRow: 'mb-1 text-[13px] font-bold tabular-nums',
-  resultBox: 'mt-4 pt-3.5 border-t border-[color:var(--line)]',
-  resultText: 'text-[13px] leading-snug tabular-nums text-[color:var(--muted)]',
-  resultHead: 'text-[15px] font-bold text-[color:var(--text)]',
-  note: 'mt-3 text-xs leading-normal text-[color:var(--muted)]',
-  toast: 'text-sm font-bold',
-};
-const STAGGER_MS = 240;
-
-function prefersReducedMotion() {
-  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-}
-
-function later(ms, fn) {
-  const id = setTimeout(() => {
-    ui.timers = ui.timers.filter((x) => x !== id);
-    fn();
-  }, ms);
-  ui.timers.push(id);
-}
-
-/** Stops all running effects. The stored state is already final, so nothing is lost. */
-function cancelEffects() {
-  ui.timers.forEach(clearTimeout);
-  ui.timers = [];
-  ui.reveal = null;
-  for (const row of ui.rows) row.classList.remove('shake');
-  for (const row of ui.tiles) for (const tile of row) {
-    tile.classList.remove('pop', 'flip', 'hop');
-    tile.style.animationDelay = '';
-  }
-  clearToast();
-}
-
-function buildBoard() {
-  el.board.textContent = '';
-  ui.tiles = [];
-  ui.rows = [];
-  for (let r = 0; r < MAX_GUESSES; r++) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    row.setAttribute('role', 'group');
-    const tiles = [];
-    for (let c = 0; c < WORD_LENGTH; c++) {
-      const tile = document.createElement('div');
-      tile.className = 'tile';
-      tile.setAttribute('role', 'img');
-      tile.dataset.state = 'empty';
-      row.appendChild(tile);
-      tiles.push(tile);
-    }
-    el.board.appendChild(row);
-    ui.rows.push(row);
-    ui.tiles.push(tiles);
-  }
-}
-
-const BACKSPACE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>';
-
-function makeKey(id, wide) {
-  const key = document.createElement('button');
-  key.type = 'button';
-  key.className = wide ? 'key key-wide' : 'key';
-  key.dataset.key = id;
-  if (id === 'BACK') key.innerHTML = BACKSPACE_ICON;
-  else key.textContent = id;
-  ui.keys.set(id, key);
-  return key;
-}
-
-function buildKeyboard() {
-  el.keyboard.textContent = '';
-  ui.keys.clear();
-  KEY_ROWS[store.lang].forEach((letters, index) => {
-    const row = document.createElement('div');
-    row.className = 'kb-row';
-    const spaced = letters.length === 9;
-    const gap = () => { const g = document.createElement('span'); g.className = 'key-gap'; return g; };
-    if (spaced) row.appendChild(gap());
-    if (index === 2) row.appendChild(makeKey('ENTER', true));
-    for (const letter of letters) row.appendChild(makeKey(letter, false));
-    if (index === 2) row.appendChild(makeKey('BACK', true));
-    if (spaced) row.appendChild(gap());
-    el.keyboard.appendChild(row);
-  });
-}
-
-function setTile(tile, letter, state, row, col) {
-  if (tile.textContent !== letter) tile.textContent = letter;
-  tile.dataset.state = state;
-  const place = t('row', { n: row + 1 }) + ', ' + (col + 1);
-  let label = t('tileEmpty');
-  if (letter) label = STATE_RANK[state] ? letter + ', ' + t(state) : letter;
-  tile.setAttribute('aria-label', place + ': ' + label);
-}
-
-function renderBoard() {
-  const game = currentGame();
-  const answer = currentAnswer();
-  for (let r = 0; r < MAX_GUESSES; r++) {
-    ui.rows[r].setAttribute('aria-label', t('row', { n: r + 1 }));
-    const guess = game.guesses[r];
-    const hidden = ui.reveal && ui.reveal.row === r;
-    const states = guess && !hidden ? scoreGuess(guess, answer) : null;
-    const isDraftRow = r === game.guesses.length && !game.finished;
-    for (let c = 0; c < WORD_LENGTH; c++) {
-      if (guess) setTile(ui.tiles[r][c], guess[c], hidden ? 'tbd' : states[c], r, c);
-      else if (isDraftRow && game.draft[c]) setTile(ui.tiles[r][c], game.draft[c], 'tbd', r, c);
-      else setTile(ui.tiles[r][c], '', 'empty', r, c);
-    }
-  }
-}
-
-function renderKeyboard() {
-  const game = currentGame();
-  const settled = ui.reveal ? game.guesses.slice(0, ui.reveal.row) : game.guesses;
-  const best = keyStates(settled, currentAnswer());
-  for (const [id, key] of ui.keys) {
-    if (id === 'ENTER') {
-      key.setAttribute('aria-label', t('enter'));
-    } else if (id === 'BACK') {
-      key.setAttribute('aria-label', t('backspace'));
-    } else {
-      const state = best[id];
-      if (state) key.dataset.state = state; else delete key.dataset.state;
-      key.setAttribute('aria-label', state ? id + ', ' + t(state) : id);
-    }
-  }
-}
-
-function timeToNextWord() {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const total = Math.max(0, Math.floor((next - now) / 1000));
-  const pad = (n) => String(n).padStart(2, '0');
-  return pad(Math.floor(total / 3600)) + ':' + pad(Math.floor(total / 60) % 60) + ':' + pad(total % 60);
-}
-
-function renderStatus() {
-  const game = currentGame();
-  const daily = store.mode === 'daily';
-  const done = game.finished && !ui.reveal;
-  let text;
-  if (daily) {
-    if (!done) text = t('statusDaily');
-    else if (game.won) text = t('statusNext', { time: timeToNextWord() });
-    else text = t('statusLost', { word: currentAnswer(), time: timeToNextWord() });
-  } else {
-    text = done ? t('statusPracticeDone', { word: currentAnswer() }) : t('statusPractice');
-  }
-  el.statusText.textContent = text;
-  el.btnShareInline.hidden = !done;
-  el.dayNo.hidden = !daily;
-  el.btnNew.hidden = daily;
-  if (daily) el.dayNo.textContent = '#' + (dayNumber(game.date) + 1);
-
-  const countdown = document.getElementById('countdown');
-  if (countdown) countdown.textContent = timeToNextWord();
-}
-
-function label(node, text) {
-  node.setAttribute('aria-label', text);
-  node.title = text;
-}
-
-function renderText() {
-  document.documentElement.lang = store.lang;
-  document.title = t('brand');
-  el.brandName.textContent = t('brand');
-  label(document.getElementById('allGames'), store.lang === 'da' ? 'Alle spil' : 'All games');
-  el.board.setAttribute('aria-label', t('board'));
-  el.keyboard.setAttribute('aria-label', t('keyboard'));
-  el.langSwitch.setAttribute('aria-label', t('language'));
-  el.modeSwitch.setAttribute('aria-label', t('modeGroup'));
-  for (const btn of el.langSwitch.querySelectorAll('button')) {
-    const on = btn.dataset.lang === store.lang;
-    btn.setAttribute('aria-pressed', String(on));
-    label(btn, t(btn.dataset.lang === 'da' ? 'langDa' : 'langEn'));
-  }
-  for (const btn of el.modeSwitch.querySelectorAll('button')) {
-    btn.textContent = t(btn.dataset.mode);
-    btn.setAttribute('aria-pressed', String(btn.dataset.mode === store.mode));
-  }
-  label(el.btnHelp, t('help'));
-  label(el.btnStats, t('stats'));
-  label(el.btnContrast, t(store.contrast ? 'contrastOn' : 'contrastOff'));
-  el.btnContrast.setAttribute('aria-pressed', String(store.contrast));
-  el.btnNew.textContent = t('newWord');
-  el.btnNew.title = t('newWordHint');
-  el.btnShareInline.textContent = t('share');
-  el.btnShareInline.title = t('shareHint');
-  label(el.dialogClose, t('close'));
-}
-
-function renderContrast() {
-  document.documentElement.classList.toggle('contrast', store.contrast);
-}
-
-function renderAll() {
-  renderText();
-  renderContrast();
-  renderBoard();
-  renderKeyboard();
-  renderStatus();
-}
-
-/* Reveal and end-of-game effects ------------------------------------------ */
-
-function startReveal(row) {
-  const game = currentGame();
-  const word = game.guesses[row];
-  const states = scoreGuess(word, currentAnswer());
-
-  if (prefersReducedMotion()) {
-    renderBoard();
-    renderKeyboard();
-    afterReveal(row, states);
-    return;
-  }
-
-  ui.reveal = { row };
-  renderBoard();
-  ui.tiles[row].forEach((tile, col) => {
-    const delay = col * STAGGER_MS;
-    tile.classList.remove('pop');
-    tile.style.animationDelay = delay + 'ms';
-    tile.classList.add('flip');
-    later(delay + FLIP_MS / 2, () => setTile(tile, word[col], states[col], row, col));
-  });
-  later((WORD_LENGTH - 1) * STAGGER_MS + FLIP_MS, () => {
-    for (const tile of ui.tiles[row]) {
-      tile.classList.remove('flip');
-      tile.style.animationDelay = '';
-    }
-    ui.reveal = null;
-    renderKeyboard();
-    afterReveal(row, states);
-  });
-}
-
-function afterReveal(row, states) {
-  const game = currentGame();
-  const summary = game.guesses[row].split('').map((letter, i) => letter + ' ' + t(states[i])).join(', ');
-  announce(t('guessSummary', { n: row + 1, tiles: summary }));
-  renderStatus();
-  if (!game.finished) return;
-
-  const motion = !prefersReducedMotion();
-  if (game.won) {
-    showToast(STRINGS[store.lang].wins[row], 2000);
-    if (motion) {
-      ui.tiles[row].forEach((tile, col) => {
-        tile.style.animationDelay = col * 90 + 'ms';
-        tile.classList.add('hop');
-      });
-    }
-  } else {
-    showToast(t('lost', { word: currentAnswer() }), 3200);
-  }
-  if (store.mode === 'daily') later(motion ? 1500 : 400, () => openStats());
-}
-
-/* Toasts ------------------------------------------------------------------ */
-
-function showToast(message, ms) {
-  clearTimeout(ui.toastTimer);
-  el.toasts.textContent = '';
-  const toast = document.createElement('div');
-  toast.className = 'toast ' + TW.toast;
-  toast.textContent = message;
-  el.toasts.appendChild(toast);
-  ui.toastTimer = setTimeout(clearToast, ms || 1500);
-}
-
-function clearToast() {
-  clearTimeout(ui.toastTimer);
-  if (el.toasts) el.toasts.textContent = '';
-}
-
-function announce(message) {
-  el.srLive.textContent = message;
-}
-
-/* Modals ------------------------------------------------------------------ */
-
-function openModal(name, title, fillBody) {
-  if (ui.modal) closeModal();
-  clearToast();
-  ui.modal = name;
-  ui.opener = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
-  el.dialogTitle.textContent = title;
-  el.dialogBody.textContent = '';
-  fillBody(el.dialogBody);
-  el.overlay.hidden = false;
-  el.app.inert = true;
-  el.dialog.scrollTop = 0;
-  el.dialog.focus();
-}
-
-function closeModal() {
-  if (!ui.modal) return;
-  ui.modal = null;
-  el.overlay.hidden = true;
-  el.app.inert = false;
-  el.dialogBody.textContent = '';
-  if (ui.opener && ui.opener.isConnected) ui.opener.focus();
-  ui.opener = null;
-}
-
-function node(tag, className, text) {
-  const n = document.createElement(tag);
-  if (className) n.className = className;
-  if (text !== undefined) n.textContent = text;
-  return n;
-}
-
-function openHelp() {
-  openModal('help', t('help'), (body) => {
-    body.appendChild(node('p', TW.body, t('helpIntro')));
-    body.appendChild(node('p', TW.body, t('helpAfter')));
-    for (const example of STRINGS[store.lang].examples) {
-      const row = node('div', 'ex-row');
-      [...example.word].forEach((letter, i) => {
-        const state = i === example.at ? example.state : 'tbd';
-        const tile = node('div', 'tile', letter);
-        tile.dataset.state = state;
-        tile.setAttribute('role', 'img');
-        tile.setAttribute('aria-label', STATE_RANK[state] ? letter + ', ' + t(state) : letter);
-        row.appendChild(tile);
-      });
-      body.appendChild(row);
-      body.appendChild(node('p', TW.example, example.text));
-    }
-    body.appendChild(node('p', TW.note, t('helpEnd')));
-  });
-}
-
-function openStats() {
-  const lang = store.lang;
-  const game = store.games[lang].daily;
-  const stats = expireStreak(store.stats[lang], todayKey());
-  openModal('stats', t('stats') + ' · ' + lang.toUpperCase(), (body) => {
-    const grid = node('div', 'stat-grid');
-    const pct = stats.played ? Math.round((stats.wins / stats.played) * 100) : 0;
-    [['played', stats.played], ['winPct', pct], ['streak', stats.streak], ['maxStreak', stats.maxStreak]].forEach(([key, value]) => {
-      const box = node('div', TW.statBox);
-      box.appendChild(node('span', TW.statNum, String(value)));
-      box.appendChild(node('span', TW.statLabel, t(key)));
-      grid.appendChild(box);
-    });
-    body.appendChild(grid);
-
-    body.appendChild(node('h3', TW.distTitle, t('distribution')));
-    const top = Math.max(1, ...stats.dist);
-    const currentRow = game.finished && game.won ? game.guesses.length : 0;
-    stats.dist.forEach((count, i) => {
-      const row = node('div', 'dist-row ' + TW.distRow);
-      row.dataset.current = String(i + 1 === currentRow);
-      row.setAttribute('role', 'img');
-      row.setAttribute('aria-label', t('distRow', { n: i + 1, count }));
-      row.appendChild(node('span', '', String(i + 1)));
-      const track = node('span', 'dist-track');
-      const bar = node('span', 'dist-bar', String(count));
-      bar.style.width = Math.max(7, (count / top) * 100) + '%';
-      track.appendChild(bar);
-      row.appendChild(track);
-      body.appendChild(row);
-    });
-
-    if (game.finished) {
-      const box = node('div', 'result-box ' + TW.resultBox);
-      const text = node('div', TW.resultText);
-      text.appendChild(node('strong', TW.resultHead, game.won ? t('wonToday') : t('lostToday', { word: dailyAnswer(lang, game.date) })));
-      text.appendChild(document.createTextNode(t('nextWord') + ' '));
-      const countdown = node('span', '', timeToNextWord());
-      countdown.id = 'countdown';
-      text.appendChild(countdown);
-      box.appendChild(text);
-      const share = node('button', 'btn btn-primary', t('share'));
-      share.type = 'button';
-      share.title = t('shareHint');
-      share.addEventListener('click', () => shareResult('daily'));
-      box.appendChild(share);
-      body.appendChild(box);
-    }
-    body.appendChild(node('p', TW.note, t('statsNote')));
-  });
-}
-
-function trapFocus(event) {
-  const items = [...el.dialog.querySelectorAll('button:not([disabled])')].filter((b) => b.offsetParent !== null);
-  if (!items.length) { event.preventDefault(); return; }
-  const first = items[0];
-  const last = items[items.length - 1];
-  const active = document.activeElement;
-  if (event.shiftKey && (active === first || active === el.dialog)) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && active === last) {
-    event.preventDefault();
-    first.focus();
-  } else if (!el.dialog.contains(active)) {
-    event.preventDefault();
-    first.focus();
-  }
-}
-
-/* Share ------------------------------------------------------------------- */
-
-async function copyText(text) {
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch (err) { /* fall through to the legacy path */ }
-  try {
-    const area = document.createElement('textarea');
-    area.value = text;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    (ui.modal ? el.dialog : document.body).appendChild(area);
-    area.select();
-    const ok = document.execCommand('copy');
-    area.remove();
-    return ok;
-  } catch (err) {
-    return false;
-  }
-}
-
-async function shareResult(mode) {
-  const lang = store.lang;
-  const game = store.games[lang][mode];
-  const answer = mode === 'daily' ? dailyAnswer(lang, game.date) : game.answer;
-  const ok = await copyText(shareText(lang, mode, game.date, game.guesses, answer, game.won));
-  showToast(t(ok ? 'copied' : 'copyFailed'));
-}
-
-/* ==========================================================================
-   INPUT
-   ========================================================================== */
-
-function handleKeydown(event) {
-  if (ui.modal) {
-    if (event.key === 'Escape') { event.preventDefault(); closeModal(); }
-    else if (event.key === 'Tab') trapFocus(event);
-    return;
-  }
-  if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
-
-  // A keyboard user activating a focused control must not also submit a guess.
-  const onControl = event.target && event.target.closest && event.target.closest('button');
-  if (onControl && (event.key === 'Enter' || event.key === ' ')) return;
-
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    if (!event.repeat) submitGuess();
-  } else if (event.key === 'Backspace') {
-    event.preventDefault();
-    deleteLetter();
-  } else {
-    const letter = normalizeLetter(event.key, store.lang);
-    if (letter) {
-      event.preventDefault();
-      typeLetter(letter);
-    }
-  }
-}
-
-function bindEvents() {
-  // Pointer clicks must not leave focus on a button, or physical Enter would press it again.
-  document.addEventListener('click', (event) => {
-    const button = event.target.closest && event.target.closest('button');
-    if (button && event.detail > 0) button.blur();
-  }, true);
-
-  document.addEventListener('keydown', handleKeydown);
-
-  el.keyboard.addEventListener('click', (event) => {
-    const key = event.target.closest('.key');
-    if (!key) return;
-    const id = key.dataset.key;
-    if (id === 'ENTER') submitGuess();
-    else if (id === 'BACK') deleteLetter();
-    else typeLetter(id);
-  });
-
-  el.langSwitch.addEventListener('click', (event) => {
-    const button = event.target.closest('button');
-    if (button) setLang(button.dataset.lang);
-  });
-  el.modeSwitch.addEventListener('click', (event) => {
-    const button = event.target.closest('button');
-    if (button) setMode(button.dataset.mode);
-  });
-
-  el.btnNew.addEventListener('click', newPracticeWord);
-  el.btnHelp.addEventListener('click', openHelp);
-  el.btnStats.addEventListener('click', openStats);
-  el.btnShareInline.addEventListener('click', () => shareResult(store.mode));
-  el.btnContrast.addEventListener('click', () => {
-    store.contrast = !store.contrast;
-    saveStore();
-    renderContrast();
-    renderText();
-  });
-
-  el.dialogClose.addEventListener('click', closeModal);
-  el.overlay.addEventListener('mousedown', (event) => {
-    if (event.target === el.overlay) closeModal();
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) rolloverIfNeeded();
-  });
-  window.addEventListener('focus', rolloverIfNeeded);
-
-  // Another tab finished or changed a game: adopt its state instead of overwriting it later.
-  window.addEventListener('storage', (event) => {
-    if (event.key !== STORAGE_KEY || ui.modal) return;
-    cancelEffects();
-    store = loadStore();
-    buildKeyboard();
-    renderAll();
-  });
-}
-
-/* ==========================================================================
-   STORAGE
-   ========================================================================== */
-
-function storageRead() {
-  try { return window.localStorage.getItem(STORAGE_KEY); } catch (err) { return null; }
-}
-
-function saveStore() {
-  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); } catch (err) { /* in-memory only */ }
-}
-
-function detectLang() {
-  let language = '';
-  try { language = (navigator.language || '').toLowerCase(); } catch (err) { /* keep default */ }
-  return language.startsWith('da') ? 'da' : 'en';
-}
-
-function cleanWord(value, lang) {
-  return typeof value === 'string' && value.length === WORD_LENGTH && [...value].every((c) => ALPHABET[lang].has(c));
-}
-
-function cleanDraft(value, lang) {
-  return typeof value === 'string' && value.length < WORD_LENGTH + 1 && [...value].every((c) => ALPHABET[lang].has(c)) ? value : '';
-}
-
-/** Restores a saved game. "finished" and "won" are recomputed so bad data cannot wedge a game. */
-function restoreGame(saved, fresh, answer, lang) {
-  if (!saved || typeof saved !== 'object' || !Array.isArray(saved.guesses)) return fresh;
-  let guesses = saved.guesses.filter((g) => cleanWord(g, lang)).slice(0, MAX_GUESSES);
-  const hit = guesses.indexOf(answer);
-  if (hit >= 0) guesses = guesses.slice(0, hit + 1);
-  fresh.guesses = guesses;
-  fresh.won = hit >= 0;
-  fresh.finished = fresh.won || guesses.length >= MAX_GUESSES;
-  fresh.draft = fresh.finished ? '' : cleanDraft(saved.draft, lang);
-  return fresh;
-}
-
-const count = (value) => (Number.isFinite(value) && value > 0 ? Math.floor(value) : 0);
-const dateOrNull = (value) => (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null);
-
-function restoreStats(saved) {
-  const stats = freshStats();
-  if (!saved || typeof saved !== 'object') return stats;
-  stats.played = count(saved.played);
-  stats.wins = count(saved.wins);
-  stats.streak = count(saved.streak);
-  stats.maxStreak = count(saved.maxStreak);
-  if (Array.isArray(saved.dist)) stats.dist = stats.dist.map((_, i) => count(saved.dist[i]));
-  stats.lastPlayedDate = dateOrNull(saved.lastPlayedDate);
-  stats.lastWinDate = dateOrNull(saved.lastWinDate);
-  return stats;
-}
-
-function loadStore() {
-  const base = defaultStore();
-  const raw = storageRead();
-  if (!raw) return base;
-  let saved;
-  try { saved = JSON.parse(raw); } catch (err) { return base; }
-  if (!saved || typeof saved !== 'object' || saved.v !== 1) return base;
-
-  if (LANGS.includes(saved.lang)) base.lang = saved.lang;
-  if (saved.mode === 'daily' || saved.mode === 'practice') base.mode = saved.mode;
-  base.contrast = saved.contrast === true;
-  base.seenHelp = saved.seenHelp === true;
-
-  const today = todayKey();
-  for (const lang of LANGS) {
-    const games = saved.games && saved.games[lang];
-    if (games && games.daily && games.daily.date === today) {
-      base.games[lang].daily = restoreGame(games.daily, freshDaily(today), dailyAnswer(lang, today), lang);
-    }
-    if (games && games.practice && ANSWERS[lang].includes(games.practice.answer)) {
-      const answer = games.practice.answer;
-      base.games[lang].practice = restoreGame(games.practice, freshPractice(answer), answer, lang);
-    }
-    base.stats[lang] = expireStreak(restoreStats(saved.stats && saved.stats[lang]), today);
-  }
-  return base;
-}
-
-/* ==========================================================================
-   INIT
-   ========================================================================== */
-
-function init() {
-  for (const id of ['app', 'board', 'keyboard', 'brandName', 'langSwitch', 'modeSwitch', 'btnHelp', 'btnStats', 'btnContrast',
-    'btnNew', 'btnShareInline', 'dayNo', 'statusText', 'toasts', 'srLive', 'overlay', 'dialog', 'dialogTitle', 'dialogBody', 'dialogClose']) {
-    el[id] = document.getElementById(id);
-  }
-  const compileHint = node('div', Object.values(TW).join(' '));
-  compileHint.hidden = true;
-  document.body.appendChild(compileHint);
-
-  store = loadStore();
-  buildBoard();
-  buildKeyboard();
-  bindEvents();
-  renderAll();
-  saveStore();
-  setInterval(() => {
-    rolloverIfNeeded();
-    if (!ui.reveal) renderStatus();
-  }, 1000);
-  if (!store.seenHelp) {
-    store.seenHelp = true;
-    saveStore();
-    openHelp();
-  }
-}
-
-if (typeof document !== 'undefined') init();
-</script>
+    <section class="wrap more divided" aria-labelledby="more-title">
+      <nav class="pager" aria-label="Previous and next game">
+        <a class="pg" href="../tessera/" rel="prev"><span>&lsaquo; Previous game</span><b>Tessera</b></a>
+        <a class="pg next" href="../zigwave/" rel="next"><span>Next game &rsaquo;</span><b>ZIGWAVE</b></a>
+      </nav>
+      <div class="title-row">
+        <h2 id="more-title"><span>//</span>More games</h2>
+        <a class="see-all" href="../#games">See all 8 &rarr;</a>
+      </div>
+      <div class="grid">
+        <article class="card" data-genre="Puzzle" data-tags="Thinking|Take your time|Endless">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/tessera</span></div><img src="../tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Puzzle</span>
+            <h3><a class="card-link" href="../tessera/">Tessera</a></h3>
+            <p>Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="../?tag=Endless#games" data-tag="Endless">Endless</a></li></ul>
+          </div>
+        </article>
+        <article class="card" data-genre="Casino" data-tags="Virtual coins only|Take your time">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/orechip</span></div><img src="../orechip/cover.jpg" width="1600" height="900" alt="A Mines round in OreChip Casino, with six green pixel gems uncovered and a yellow Cash out button beside the board." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Casino</span>
+            <h3><a class="card-link" href="../orechip/">OreChip Casino</a></h3>
+            <p>Seventeen casino games played with free coins and no real money.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Virtual%20coins%20only#games" data-tag="Virtual coins only">Virtual coins only</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li></ul>
+          </div>
+        </article>
+        <article class="card" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/flipklods</span></div><img src="../flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Arcade</span>
+            <h3><a class="card-link" href="../flipklods/">Flipklods</a></h3>
+            <p>The block runs by itself. You choose floor or ceiling.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="../?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>© 2026 Slowwater Games</p>
+  </footer>
 </body>
 </html>

@@ -1,0 +1,154 @@
+<!doctype html><html lang="da"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="description" content="An endless road in the sky, and one button to drive it.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+</head><body>
+<title>Luftvejen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Baloo+2:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="css/style.css">
+
+<div id="app" lang="da">
+  <canvas id="game" aria-label="Spillet. Hold mellemrum nede for at dreje til højre, slip for at dreje til venstre."></canvas>
+
+  <!-- In-game HUD -->
+  <div id="hud" hidden>
+    <div class="hud-left" id="buffs"></div>
+    <div class="hud-center">
+      <div id="score" class="score">0</div>
+      <div class="combo">
+        <span id="comboLabel" class="combo-label">×1,0</span>
+        <div class="combo-bar"><i id="comboFill"></i></div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div id="coinPill" class="coin-pill"><span class="coin-ico"></span><span id="hudCoins">0</span></div>
+      <button id="pauseBtn" class="pause-btn" aria-label="Pause"><svg viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="256" fill="#ef5552"/><rect x="150" y="118" width="78" height="276" rx="39" fill="#fff"/><rect x="284" y="118" width="78" height="276" rx="39" fill="#fff"/></svg></button>
+    </div>
+  </div>
+
+  <div id="banner" class="banner" hidden>
+    <span id="bannerKicker" class="banner-kicker">Ny verden</span>
+    <b id="bannerName">Stranden</b>
+    <span id="bannerTip">Sandet er lidt glat</span>
+  </div>
+
+  <div id="goText" class="go-text" hidden aria-hidden="true">KØR!</div>
+
+  <div id="hint" class="hint" hidden>
+    <div id="hintBig" class="hint-big">Tryk for at starte</div>
+    <div id="hintSmall" class="hint-small"></div>
+  </div>
+
+  <!-- Main menu -->
+  <section id="menu" class="screen" aria-label="Hovedmenu">
+    <div class="menu-wrap">
+      <div class="panel menu-panel">
+        <p class="eyebrow">Én knap · uendelig vej i himlen</p>
+        <h1 class="logo"><span class="l1">Luft</span><span class="l2">vejen</span></h1>
+        <p class="how"><b class="hold">Hold mellemrum nede</b> for at dreje til højre. <b class="release">Slip</b> for at dreje til venstre. Pas på, bilen skrider i svingene!</p>
+        <div id="playerPick" class="player-pick">
+          <label for="playerSelect" class="lbl">Spiller</label>
+          <select id="playerSelect" class="player-select"></select>
+        </div>
+        <div class="menu-stats">
+          <div><span class="lbl">Rekord</span><b><img class="ico" src="icons/star.png" alt=""><span id="menuBest">0</span></b></div>
+          <div><span class="lbl">Mønter</span><b><span class="coin-ico"></span><span id="menuCoins">0</span></b></div>
+          <div><span class="lbl">Ture</span><b><img class="ico" src="icons/car.png" alt=""><span id="menuRuns">0</span></b></div>
+        </div>
+        <button id="playBtn" class="btn primary big" disabled>Kør!</button>
+        <p id="playNote" class="play-note">Lav en spiller nedenfor for at køre.</p>
+        <form id="nameForm" class="name-form" autocomplete="off">
+          <label for="nameInput" class="lbl">Ny spiller</label>
+          <div class="name-row">
+            <input id="nameInput" class="name-input" type="text" maxlength="16" placeholder="Skriv et navn" spellcheck="false">
+            <button id="createBtn" type="submit" class="btn" disabled>Lav spiller</button>
+          </div>
+          <p id="nameHelp" class="name-help" hidden>Skriv et navn på mindst 2 tegn.</p>
+        </form>
+        <button id="modeBtn" class="btn mode-btn" aria-pressed="false"><span class="product-ico" aria-hidden="true"></span><span id="modeLabel">Skønhedstilstand: fra</span></button>
+        <div class="row">
+          <button id="boardBtn" class="btn board-btn icon-label"><img class="ico" src="icons/trophy.png" alt="">Rangliste</button>
+          <button id="muteBtn" class="btn ghost icon-label" aria-pressed="true"><img id="muteIco" class="ico" src="icons/volume.png" alt=""><span id="muteLabel">Lyd til</span></button>
+        </div>
+        <p class="keys">Styr med mellemrumstasten · på mobil med fingeren</p>
+        <p class="keys"><a href="../../" style="color:inherit;font-weight:700">Alle spil</a></p>
+        <p class="credit">Ikoner lavet af <a href="https://www.flaticon.com/authors/freepik" target="_blank" rel="noopener">Freepik</a> fra <a href="https://www.flaticon.com/" target="_blank" rel="noopener">www.flaticon.com</a></p>
+      </div>
+      <aside class="panel side-board" aria-label="Rangliste">
+        <h2><img class="ico" src="icons/trophy.png" alt="">Rangliste</h2>
+        <p class="sub">De bedste scorer på denne enhed</p>
+        <p class="board-warn" hidden>Du kan se ranglisten, men din score kan ikke gemmes her.</p>
+        <div data-board="10" class="board"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Leaderboard -->
+  <section id="board" class="screen dim center" aria-label="Rangliste" hidden>
+    <div class="panel board-panel">
+      <header class="panel-head">
+        <h2><img class="ico" src="icons/trophy.png" alt="">Rangliste</h2>
+        <button id="boardClose" class="btn small ghost">Tilbage</button>
+      </header>
+      <p class="sub">De bedste scorer på denne enhed</p>
+      <p class="board-warn" hidden>Du kan se ranglisten, men din score kan ikke gemmes her.</p>
+      <div data-board="50" class="board scroll"></div>
+    </div>
+  </section>
+
+  <!-- Crash screen -->
+  <section id="over" class="screen dim center" aria-label="Turen er slut" hidden>
+    <div class="panel over-panel">
+      <p class="eyebrow warn"><span id="overName">Du</span> røg ud over kanten</p>
+      <div class="final">
+        <b id="overScore">0</b>
+        <span id="newBest" class="badge icon-label" hidden><img class="ico" src="icons/star.png" alt="">Ny rekord!</span>
+      </div>
+      <p id="overRank" class="over-rank"></p>
+      <dl class="over-stats">
+        <div><dt>Rekord</dt><dd id="overBest">0</dd></div>
+        <div><dt id="overCoinsLbl">Mønter</dt><dd id="overCoins" class="gold">+0</dd></div>
+        <div><dt>Perfekte sving</dt><dd id="overPerfects">0</dd></div>
+        <div><dt>Bedste combo</dt><dd id="overCombo">–</dd></div>
+      </dl>
+      <div id="revivePanel" class="revive" hidden>
+        <p>Vil du fortsætte turen? Du har <span id="reviveHave">0</span> mønter.</p>
+        <div class="revive-timer"><i id="reviveFill"></i></div>
+        <button id="reviveCoins" class="btn primary">Genopliv for <span class="coin-ico"></span><span id="reviveCost">75</span></button>
+        <button id="reviveSkip" class="link-btn">Nej tak</button>
+      </div>
+      <div class="mini-board">
+        <span class="lbl">Top 5</span>
+        <div data-board="5" class="board"></div>
+      </div>
+      <div class="over-player">
+        <label for="overPlayerSelect" class="lbl">Hvem kører næste tur?</label>
+        <select id="overPlayerSelect" class="player-select"></select>
+        <form id="overNameForm" class="name-row" autocomplete="off">
+          <input id="overNameInput" class="name-input" type="text" maxlength="16" placeholder="Ny spiller" spellcheck="false" aria-label="Navn på ny spiller">
+          <button id="overCreateBtn" type="submit" class="btn" disabled>Lav spiller</button>
+        </form>
+      </div>
+      <div class="row">
+        <button id="againBtn" class="btn primary big">Kør igen</button>
+        <button id="overMenuBtn" class="btn">Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="pause" class="screen dim center" aria-label="Pause" hidden>
+    <div class="panel pause-panel">
+      <h2>Pause</h2>
+      <button id="resumeBtn" class="btn primary big">Fortsæt</button>
+      <button id="quitBtn" class="btn">Afslut til menu</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+
+</body></html>

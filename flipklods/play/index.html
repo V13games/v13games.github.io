@@ -1,0 +1,648 @@
+<!doctype html><html lang="da"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="description" content="The block runs by itself. You choose floor or ceiling.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+</head><body>
+<title>Flipklods</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=DM+Mono:wght@500&family=DM+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: one game stage as the hero, HUD laid over the canvas, a short how-to strip under it. Single dark night look by choice. */
+:root {
+  --night: #1b1736;
+  --night-deep: #110e26;
+  --night-soft: #2b2456;
+  --rail: #36c9b8;
+  --rail-light: #8af0e2;
+  --rail-dark: #1d7f76;
+  --spike: #ff5e7a;
+  --cube: #ffc845;
+  --ink: #f3efff;
+  --muted: #a8a1d6;
+  --display: "Bungee", "Arial Black", Impact, system-ui, sans-serif;
+  --body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "DM Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night-deep);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding-block: 20px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(26px, 5vw, 38px);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  color: var(--cube);
+}
+h1 span { color: var(--rail); }
+.tag {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100vh - 190px);
+  min-height: 240px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--night);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.stage:focus-visible { box-shadow: 0 0 0 3px var(--rail-light); }
+@media (max-width: 640px) {
+  .stage { aspect-ratio: 4 / 3; }
+}
+canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 16px;
+  pointer-events: none;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.dist { font-size: 22px; color: var(--ink); line-height: 1.1; }
+.dist small { font-size: 13px; color: var(--muted); margin-left: 2px; }
+.best { font-size: 13px; color: var(--muted); padding-top: 4px; }
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--night-deep) 62%, transparent);
+  text-align: center;
+  padding: 20px;
+  transition: opacity 0.18s ease;
+}
+.overlay.off { opacity: 0; }
+.card { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 34ch; }
+.card h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(28px, 6vw, 48px);
+  line-height: 1.05;
+  color: var(--cube);
+  text-wrap: balance;
+}
+.card p { margin: 0; color: var(--ink); text-wrap: balance; }
+.card .record { color: var(--rail-light); font-weight: 600; }
+.card .hint {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: 0.45; } }
+.help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.help > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+kbd {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--night-soft);
+  border-radius: 5px;
+  padding: 2px 7px;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--night-deep) 70%, transparent);
+}
+.swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+@media (prefers-reduced-motion: reduce) {
+  .card .hint { animation: none; }
+  .overlay { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Flip<span>klods</span></h1>
+    <div class="tag">Prototype · én knap · <a href="../../" style="color:inherit">Alle spil</a></div>
+  </header>
+
+  <div class="stage" id="stage" tabindex="0" aria-label="Spilleflade. Tryk mellemrum for at vende tyngdekraften.">
+    <canvas id="game"></canvas>
+    <div class="hud">
+      <div class="dist"><span id="dist">0</span><small>m</small></div>
+      <div class="best">Rekord <span id="best">0</span> m</div>
+    </div>
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <h2 id="ovTitle">Flipklods</h2>
+        <p id="ovText">Klodsen løber selv. Du bestemmer, om den løber på gulvet eller i loftet.</p>
+        <p class="record" id="ovRecord" hidden>Ny rekord!</p>
+        <div class="hint" id="ovHint">Tryk for at starte</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="help">
+    <div><kbd>Mellemrum</kbd><kbd>↑</kbd> klik eller tap: vend tyngdekraften</div>
+    <div>Ét ekstra flip i luften, hold nede for at flippe ved hver landing</div>
+    <div><span class="swatch" style="background:var(--spike)"></span> pigge og huller er døden</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const cvs = document.getElementById('game');
+  const ctx = cvs.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovText = document.getElementById('ovText');
+  const ovRecord = document.getElementById('ovRecord');
+  const ovHint = document.getElementById('ovHint');
+  const hudDist = document.getElementById('dist');
+  const hudBest = document.getElementById('best');
+
+  const css = getComputedStyle(document.documentElement);
+  const C = {};
+  for (const k of ['night', 'night-deep', 'night-soft', 'rail', 'rail-light', 'rail-dark', 'spike', 'cube', 'ink', 'muted']) {
+    C[k] = css.getPropertyValue('--' + k).trim();
+  }
+
+  // World units: the canvas is always 360 units tall; width follows the stage's shape.
+  const H = 360, TILE = 40, THICK = 44, P = 26, SPIKE_H = 16, PX = 120;
+  const FLOOR_Y = H - THICK, CEIL_Y = THICK;
+  const G = 9000, KICK = 650, MAX_FALL = 1600;
+  const START_SPEED = 520, MAX_SPEED = 900, ACCEL = 9;
+  const COYOTE = 0.08, BUFFER = 0.2;
+  const STEP = 1 / 120;
+  const SAFE = { f: 0, c: 0 };
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let W = 640, dpr = 1, scale = 1, bgGrad = null;
+  let state = 'ready', clock = 0, deadAt = 0, newRecord = false;
+  let cols, colBase, genI, lastSide, camX, speed, player, particles, trail, trailTick, shake;
+  let best = 0, shownDist = -1, overlayOn = true, held = false;
+
+  try { best = Number(localStorage.getItem('flipklods-best')) || 0; } catch (e) {}
+  hudBest.textContent = best;
+
+  // ---------- level generation ----------
+  // Each column has a floor and a ceiling: 0 = solid, 1 = hole, 2 = spikes.
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const randInt = (a, b) => Math.floor(rand(a, b + 1));
+
+  function push(f, c, n) {
+    for (let k = 0; k < n; k++) cols.push({ f, c });
+    genI += n;
+  }
+  function danger(side, kind, len) {
+    if (side === 0) push(kind, 0, len); else push(0, kind, len);
+  }
+  function genChunk() {
+    const d = Math.min(1, genI / 500);
+    push(0, 0, Math.max(3, randInt(5, 8) - Math.round(d * 3)));
+    let side = Math.random() < 0.7 ? 1 - lastSide : lastSide;
+    if (d > 0.3 && Math.random() < 0.2 + d * 0.25) {
+      // zigzag: short hazards that alternate between floor and ceiling
+      const n = randInt(3, 3 + Math.round(d * 3));
+      for (let k = 0; k < n; k++) {
+        danger(side, Math.random() < 0.6 ? 2 : 1, randInt(2, 3));
+        if (k < n - 1) push(0, 0, d > 0.7 ? 1 : 2);
+        side = 1 - side;
+      }
+      lastSide = 1 - side;
+    } else {
+      danger(side, Math.random() < 0.5 ? 1 : 2, randInt(2, 3 + Math.round(d * 6)));
+      lastSide = side;
+    }
+  }
+  function getCol(i) {
+    const j = i - colBase;
+    return j >= 0 && j < cols.length ? cols[j] : SAFE;
+  }
+  function ensureWorld() {
+    while (genI * TILE < camX + W + TILE * 6) genChunk();
+    while ((colBase + 1) * TILE < camX - TILE * 2) { cols.shift(); colBase++; }
+  }
+
+  // ---------- game state ----------
+  function reset() {
+    cols = []; colBase = 0; genI = 0; lastSide = 1;
+    push(0, 0, 20);
+    camX = 0; speed = START_SPEED;
+    player = { y: FLOOR_Y - P, vy: 0, g: 1, grounded: true, lastGround: -1, buffer: -1, airFlips: 1, spin: 0, spinTarget: 0, squash: 0 };
+    particles = []; trail = []; trailTick = 0; shake = 0;
+    newRecord = false;
+    ensureWorld();
+  }
+
+  function start() {
+    state = 'running';
+    setOverlay(false);
+  }
+
+  function press() {
+    if (state === 'ready') { held = false; start(); return; }
+    if (state === 'dead') {
+      held = false;
+      if (clock - deadAt > 0.25) { reset(); start(); }
+      return;
+    }
+    player.buffer = clock;
+    tryFlip(true);
+  }
+
+  // On a surface: flip if the button was just pressed or is held down.
+  // In the air: one extra flip per landing, straight from a press.
+  function tryFlip(fromPress) {
+    const p = player;
+    const wanted = held || (p.buffer >= 0 && clock - p.buffer <= BUFFER);
+    if (!wanted) return;
+    const onSurface = p.grounded || (p.lastGround >= 0 && clock - p.lastGround < COYOTE);
+    if (onSurface) {
+      const surfaceY = p.g === 1 ? FLOOR_Y : CEIL_Y;
+      flip();
+      p.airFlips = 1;
+      puff(camX + PX + P / 2, surfaceY, -p.g, 9, C['rail-light']);
+    } else if (fromPress && p.airFlips > 0) {
+      p.airFlips--;
+      flip();
+      puff(camX + PX + P / 2, p.y + P / 2, -p.g, 9, C.cube);
+    }
+  }
+
+  function flip() {
+    const p = player;
+    p.g = -p.g;
+    p.vy = p.g * KICK;
+    p.grounded = false;
+    p.lastGround = -1;
+    p.buffer = -1;
+    p.spinTarget += Math.PI;
+  }
+
+  function land(y) {
+    const p = player;
+    if (Math.abs(p.vy) > 900) {
+      p.squash = 1;
+      if (!reduceMotion) shake = Math.max(shake, 1.5);
+      puff(camX + PX + P / 2, p.g === 1 ? FLOOR_Y : CEIL_Y, -p.g, 5, C['rail-light']);
+    }
+    p.y = y; p.vy = 0;
+    p.grounded = true;
+    p.lastGround = clock;
+    p.airFlips = 1;
+    tryFlip(false);
+  }
+
+  function die() {
+    state = 'dead';
+    deadAt = clock;
+    shake = reduceMotion ? 0 : 12;
+    const cx = camX + PX + P / 2, cy = player.y + P / 2;
+    for (let k = 0; k < 30; k++) {
+      const a = rand(0, Math.PI * 2), s = rand(120, 520);
+      particles.push({ x: cx, y: cy, vx: Math.cos(a) * s + speed * 0.4, vy: Math.sin(a) * s, life: rand(0.6, 1.1), max: 1.1, size: rand(3, 7), col: k % 4 === 0 ? C.ink : C.cube, grav: 900 * player.g });
+    }
+    const dist = Math.floor(camX / TILE);
+    if (dist > best) {
+      best = dist; newRecord = true;
+      hudBest.textContent = best;
+      try { localStorage.setItem('flipklods-best', String(best)); } catch (e) {}
+    }
+  }
+
+  function puff(x, y, dir, n, col) {
+    for (let k = 0; k < n; k++) {
+      particles.push({ x: x + rand(-10, 10), y, vx: rand(-160, 60), vy: dir * rand(40, 180), life: rand(0.2, 0.45), max: 0.45, size: rand(2, 4), col, grav: 0 });
+    }
+  }
+
+  // ---------- simulation ----------
+  function step(dt) {
+    clock += dt;
+    if (state !== 'running') return;
+
+    speed = Math.min(MAX_SPEED, speed + ACCEL * dt);
+    camX += speed * dt;
+    ensureWorld();
+
+    const p = player;
+    const prevY = p.y;
+    p.vy += p.g * G * dt;
+    p.vy = Math.max(-MAX_FALL, Math.min(MAX_FALL, p.vy));
+    p.y += p.vy * dt;
+
+    const wx = camX + PX;
+    const i0 = Math.floor(wx / TILE), i1 = Math.floor((wx + P - 0.01) / TILE);
+    let floorSolid = false, ceilSolid = false;
+    for (let i = i0; i <= i1; i++) {
+      const c = getCol(i);
+      if (c.f !== 1) floorSolid = true;
+      if (c.c !== 1) ceilSolid = true;
+    }
+
+    p.grounded = false;
+    if (p.g === 1) {
+      if (p.y + P >= FLOOR_Y && prevY + P <= FLOOR_Y + 1 && floorSolid) land(FLOOR_Y - P);
+      else if (p.y + P > FLOOR_Y + 2 && floorSolid) return die(); // slammed into the far wall of a hole
+    } else {
+      if (p.y <= CEIL_Y && prevY >= CEIL_Y - 1 && ceilSolid) land(CEIL_Y);
+      else if (p.y < CEIL_Y - 2 && ceilSolid) return die();
+    }
+
+    // spikes use a slightly forgiving hitbox
+    for (let i = i0; i <= i1; i++) {
+      const c = getCol(i);
+      const x0 = i * TILE + 6, x1 = (i + 1) * TILE - 6;
+      if (wx + P <= x0 || wx >= x1) continue;
+      if (c.f === 2 && p.y + P > FLOOR_Y - SPIKE_H + 5) return die();
+      if (c.c === 2 && p.y < CEIL_Y + SPIKE_H - 5) return die();
+    }
+
+    if (p.y > H + 30 || p.y < -P - 30) return die();
+
+    if (++trailTick % 2 === 0) {
+      trail.push({ x: wx, y: p.y, spin: p.spin });
+      if (trail.length > 12) trail.shift();
+    }
+  }
+
+  function updateFx(dt) {
+    const p = player;
+    p.spin += (p.spinTarget - p.spin) * Math.min(1, dt * 30);
+    p.squash = Math.max(0, p.squash - dt * 7);
+    shake = Math.max(0, shake - dt * 40);
+    for (const q of particles) {
+      q.life -= dt;
+      q.vy += q.grav * dt;
+      q.x += q.vx * dt;
+      q.y += q.vy * dt;
+    }
+    particles = particles.filter(q => q.life > 0);
+    if (state === 'dead' && !overlayOn && clock - deadAt > 0.25) showDeath();
+  }
+
+  // ---------- drawing ----------
+  function hash(n) {
+    const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  }
+
+  const LAYERS = [
+    { f: 0.12, cell: 64, size: 2, alpha: 0.45 },
+    { f: 0.3, cell: 120, size: 3.5, alpha: 0.28 },
+  ];
+
+  function drawBackground() {
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(-20, -20, W + 40, H + 40);
+
+    LAYERS.forEach((L, li) => {
+      const off = camX * L.f;
+      const first = Math.floor(off / L.cell) - 1;
+      const last = first + Math.ceil(W / L.cell) + 2;
+      ctx.fillStyle = C.muted;
+      for (let k = first; k <= last; k++) {
+        const x = k * L.cell - off + hash(k * 3 + li) * L.cell;
+        const y = CEIL_Y + 14 + hash(k * 7 + li * 13) * (FLOOR_Y - CEIL_Y - 28);
+        ctx.globalAlpha = L.alpha * (0.5 + hash(k + li * 5) * 0.5);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-L.size / 2, -L.size / 2, L.size, L.size);
+        ctx.restore();
+      }
+    });
+    ctx.globalAlpha = 1;
+
+    // dashed centre line scrolling at full speed: sells the motion
+    ctx.fillStyle = C['night-soft'];
+    const dashOff = camX % 60;
+    for (let x = -dashOff; x < W; x += 60) ctx.fillRect(x, H / 2 - 1, 24, 2);
+  }
+
+  function drawRails() {
+    const first = Math.floor(camX / TILE) - 1;
+    const last = first + Math.ceil(W / TILE) + 2;
+    for (let i = first; i <= last; i++) {
+      const c = getCol(i);
+      const x = Math.round(i * TILE - camX);
+      if (c.f !== 1) drawBlock(x, FLOOR_Y, 1, i, getCol(i - 1).f === 1, getCol(i + 1).f === 1);
+      if (c.c !== 1) drawBlock(x, 0, -1, i, getCol(i - 1).c === 1, getCol(i + 1).c === 1);
+    }
+    for (let i = first; i <= last; i++) {
+      const c = getCol(i);
+      const x = i * TILE - camX;
+      if (c.f === 2) drawSpikes(x, FLOOR_Y, -1);
+      if (c.c === 2) drawSpikes(x, CEIL_Y, 1);
+    }
+  }
+
+  // dir 1 = floor (surface on top), -1 = ceiling (surface underneath)
+  function drawBlock(x, y, dir, i, holeLeft, holeRight) {
+    ctx.fillStyle = C.rail;
+    ctx.fillRect(x, y, TILE + 1, THICK);
+    ctx.fillStyle = C['rail-dark'];
+    const deep = dir === 1 ? y + 10 : y;
+    ctx.fillRect(x, deep, TILE + 1, THICK - 10);
+    if (i % 2 === 0) {
+      ctx.fillStyle = C.rail;
+      ctx.globalAlpha = 0.25;
+      ctx.fillRect(x + 6, dir === 1 ? y + 18 : y + 8, TILE - 12, THICK - 26);
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = C['rail-light'];
+    ctx.fillRect(x, dir === 1 ? y : y + THICK - 4, TILE + 1, 4);
+    ctx.fillStyle = C['night-deep'];
+    if (holeLeft) ctx.fillRect(x, y, 3, THICK);
+    if (holeRight) ctx.fillRect(x + TILE - 3, y, 3, THICK);
+  }
+
+  function drawSpikes(x, baseY, dir) {
+    ctx.fillStyle = C.spike;
+    for (let s = 0; s < 2; s++) {
+      const sx = x + s * (TILE / 2);
+      ctx.beginPath();
+      ctx.moveTo(sx + 1, baseY);
+      ctx.lineTo(sx + TILE / 4, baseY + dir * SPIKE_H);
+      ctx.lineTo(sx + TILE / 2 - 1, baseY);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  function drawCube(x, y, spin, squash, vy, alpha) {
+    const stretch = Math.min(0.16, Math.abs(vy) / 9000);
+    const sx = 1 + squash * 0.28 - stretch * 0.6;
+    const sy = 1 - squash * 0.28 + stretch;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x + P / 2, y + P / 2);
+    ctx.scale(sx, sy);
+    ctx.rotate(spin);
+    ctx.fillStyle = C.cube;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(-P / 2, -P / 2, P, P, 5); else ctx.rect(-P / 2, -P / 2, P, P);
+    ctx.fill();
+    // eyes blink shut mid-spin, then face forward again with feet on the current surface
+    if (alpha === 1 && Math.abs(player.spinTarget - spin) < 0.4) {
+      ctx.rotate(-spin);
+      ctx.scale(1, player.g);
+      // eyes look forward and a little in the direction of travel
+      const look = Math.max(-2, Math.min(2, (vy * player.g) / 300));
+      ctx.fillStyle = C['night-deep'];
+      ctx.fillRect(1, -7 + look, 5, 7);
+      ctx.fillRect(8, -7 + look, 4, 7);
+      ctx.fillStyle = C['night-soft'];
+      ctx.globalAlpha = 0.35;
+      ctx.fillRect(-P / 2, P / 2 - 5, P, 5);
+    }
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    ctx.save();
+    if (shake > 0) ctx.translate(rand(-shake, shake), rand(-shake, shake));
+    drawBackground();
+    drawRails();
+
+    if (state !== 'dead') {
+      trail.forEach((t, k) => drawCube(t.x - camX, t.y, t.spin, 0, 0, (k + 1) / trail.length * 0.2));
+      drawCube(PX, player.y, player.spin, player.squash, player.vy, 1);
+    }
+
+    for (const q of particles) {
+      ctx.globalAlpha = Math.max(0, q.life / q.max);
+      ctx.fillStyle = q.col;
+      ctx.fillRect(q.x - camX - q.size / 2, q.y - q.size / 2, q.size, q.size);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function updateHud() {
+    const d = Math.floor(camX / TILE);
+    if (d !== shownDist) { shownDist = d; hudDist.textContent = d; }
+  }
+
+  function setOverlay(on) {
+    overlayOn = on;
+    overlay.classList.toggle('off', !on);
+  }
+
+  function showDeath() {
+    const d = Math.floor(camX / TILE);
+    ovTitle.textContent = d + ' m';
+    ovText.textContent = d < 15 ? 'Hov! Tryk lige før forhindringen, så skifter klodsen side.' : 'Klodsen ramte noget. Prøv igen.';
+    ovRecord.hidden = !newRecord;
+    ovHint.textContent = 'Tryk for at prøve igen';
+    setOverlay(true);
+  }
+
+  // ---------- setup ----------
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    scale = r.height / H;
+    W = r.width / scale;
+    cvs.width = Math.round(r.width * dpr);
+    cvs.height = Math.round(r.height * dpr);
+    bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, C['night-deep']);
+    bgGrad.addColorStop(0.5, C.night);
+    bgGrad.addColorStop(1, C['night-deep']);
+    if (cols) ensureWorld();
+    render();
+  }
+
+  const KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'KeyW', 'KeyS', 'Enter'];
+  stage.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    stage.focus({ preventScroll: true });
+    held = true;
+    press();
+  });
+  window.addEventListener('pointerup', () => { held = false; });
+  window.addEventListener('pointercancel', () => { held = false; });
+  window.addEventListener('blur', () => { held = false; });
+  window.addEventListener('keydown', e => {
+    if (KEYS.includes(e.code)) {
+      e.preventDefault();
+      if (!e.repeat) { held = true; press(); }
+    }
+  });
+  window.addEventListener('keyup', e => {
+    if (KEYS.includes(e.code)) held = false;
+  });
+
+  reset();
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  let last = performance.now(), acc = 0;
+  function frame(t) {
+    const dt = Math.min(0.05, (t - last) / 1000);
+    last = t;
+    acc += dt;
+    while (acc >= STEP) { step(STEP); acc -= STEP; }
+    updateFx(dt);
+    render();
+    updateHud();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // exposed for quick testing in the console
+  window.__flip = { get state() { return state; }, get dist() { return Math.floor(camX / TILE); }, press };
+})();
+</script>
+
+</body></html>

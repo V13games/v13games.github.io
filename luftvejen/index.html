@@ -1,154 +1,195 @@
-<!doctype html><html lang="da"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="description" content="An endless road in the sky, and one button to drive it.">
+<!doctype html>
+<html lang="en" style="--accent:#ff8a7a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Luftvejen · Slowwater Games</title>
+<meta name="description" content="An endless road in the sky, and one button to drive it.">
+<meta name="theme-color" content="#09090b">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Slowwater Games">
+<meta property="og:title" content="Luftvejen · Slowwater Games">
+<meta property="og:description" content="An endless road in the sky, and one button to drive it.">
+<meta property="og:url" content="https://v13games.github.io/luftvejen/">
+<meta property="og:image" content="https://v13games.github.io/luftvejen/cover.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
-</head><body>
-<title>Luftvejen</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Baloo+2:wght@500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../site.css">
+<style>
+/* A game's own front page. The accent and the soft glow behind the top both come from the game. */
+.glow{position:absolute;inset:0 0 auto;height:min(820px,110vh);pointer-events:none;overflow:hidden;
+  -webkit-mask-image:linear-gradient(#000 35%,transparent 100%);mask-image:linear-gradient(#000 35%,transparent 100%)}
+.glow::before{content:"";position:absolute;inset:-12%;background:url(cover.jpg) center/cover no-repeat;filter:blur(80px) saturate(1.25);opacity:.26}
 
-<div id="app" lang="da">
-  <canvas id="game" aria-label="Spillet. Hold mellemrum nede for at dreje til højre, slip for at dreje til venstre."></canvas>
+.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:4px 0 0;list-style:none;font-size:14px;color:var(--dim)}
+.crumbs li+li::before{content:"/";margin-right:6px;color:#4a4a52}
+.crumbs a{color:var(--muted);text-decoration:none}
+.crumbs a:hover{color:var(--text)}
+.crumbs [aria-current]{color:var(--text)}
 
-  <!-- In-game HUD -->
-  <div id="hud" hidden>
-    <div class="hud-left" id="buffs"></div>
-    <div class="hud-center">
-      <div id="score" class="score">0</div>
-      <div class="combo">
-        <span id="comboLabel" class="combo-label">×1,0</span>
-        <div class="combo-bar"><i id="comboFill"></i></div>
+.ghero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(28px,5vw,60px);align-items:center;padding-block:clamp(22px,4vw,44px) clamp(40px,6vw,72px)}
+.gcover{position:relative;display:block;padding:10px;background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:18px;text-decoration:none;transition:border-color .2s}
+.gcover:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.gcover .frame{border-radius:10px}
+.playmark{position:absolute;left:50%;top:calc(50% + 15px);width:72px;height:72px;margin:-36px 0 0 -36px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--accent) 92%,transparent);color:var(--accent-ink);box-shadow:0 10px 40px rgba(0,0,0,.45);transition:transform .2s}
+.gcover:hover .playmark{transform:scale(1.07)}
+.eyebrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;color:var(--accent);font-size:14px;font-weight:600}
+.eyebrow a{color:inherit;text-decoration:none}
+.eyebrow a:hover{text-decoration:underline;text-underline-offset:3px}
+h1{font-size:clamp(40px,5.6vw,64px);line-height:1.04;letter-spacing:-.035em;overflow-wrap:anywhere}
+.lede{margin:16px 0 0;color:var(--muted);font-size:clamp(17px,1.5vw,19px);line-height:1.6;max-width:32em}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.btn.big{padding:13px 26px;font-size:17px}
+.note{margin:14px 0 0;color:var(--dim);font-size:14px}
+.gintro .tags{margin-top:18px;padding:0}
+
+/* a divider as wide as the text, not the page padding */
+.divided::before{content:"";position:absolute;top:0;left:max(var(--gutter),env(safe-area-inset-left,0px));right:max(var(--gutter),env(safe-area-inset-right,0px));height:1px;background:var(--line)}
+.details{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start;padding-block:clamp(36px,5vw,56px)}
+.details h2{font-size:20px;letter-spacing:-.015em;margin-bottom:14px}
+.col-main{display:grid;gap:clamp(32px,4vw,44px)}
+.col-main p{margin:0 0 12px;color:#d4d4d8;font-size:17px;line-height:1.7;max-width:38em}
+.col-main section{scroll-margin-top:20px}
+.steps{display:grid;gap:12px;margin:0;padding:0;list-style:none;counter-reset:step}
+.steps li{counter-increment:step;display:grid;grid-template-columns:32px minmax(0,1fr);gap:14px;align-items:start;color:#d4d4d8;line-height:1.6}
+.steps li::before{content:counter(step);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-weight:600;font-size:14px}
+.steps li span{padding-top:4px}
+.col-side{display:grid;gap:16px}
+.panel{padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.panel h2{font-size:16px;margin-bottom:14px}
+.panel dl{display:grid;gap:14px;margin:0}
+.panel dt{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:600;font-size:14px}
+.panel dt svg{color:var(--accent);flex:none}
+.panel dd{margin:4px 0 0;color:var(--muted);font-size:15px;line-height:1.55}
+.facts div{display:grid;grid-template-columns:minmax(84px,.6fr) minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px solid var(--line)}
+.facts div:first-child{padding-top:0;border-top:0}
+.facts dt{color:var(--dim);font-weight:500}
+.facts dd{margin:0;color:var(--text)}
+.btn.wide{width:100%;padding:12px 18px}
+
+.more{padding-block:clamp(36px,5vw,56px) clamp(56px,8vw,88px)}
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:clamp(36px,5vw,52px)}
+.pg{display:grid;gap:2px;padding:16px 20px;background:var(--panel);border:1px solid var(--line);border-radius:14px;text-decoration:none;transition:border-color .2s;min-width:0}
+.pg:hover{border-color:var(--line-2)}
+.pg span{color:var(--dim);font-size:13px;font-weight:500}
+.pg b{font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg.next{text-align:right}
+.see-all{margin-left:auto;color:var(--muted);font-size:15px;font-weight:500;text-decoration:none;white-space:nowrap}
+.see-all:hover{color:var(--text)}
+
+@media (max-width:900px){.ghero,.details{grid-template-columns:minmax(0,1fr)}.ghero{gap:24px}}
+@media (max-width:520px){.pager{grid-template-columns:minmax(0,1fr)}.pg.next{text-align:left}.playmark{width:60px;height:60px;margin:-30px 0 0 -30px}}
+@media (prefers-reduced-motion:reduce){.gcover,.playmark,.pg{transition:none}.gcover:hover .playmark{transform:none}}
+</style>
+</head>
+<body>
+  <!-- This page is generated from src/game.html and games.json. Run: node build.js -->
+  <div class="glow" aria-hidden="true"></div>
+  <header class="wrap nav">
+    <a class="brand" href="../"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="28" height="28" alt=""><span>Slowwater Games</span></a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="link" href="../#games">All games</a>
+      <a class="btn" href="play/">Play</a>
+    </nav>
+  </header>
+
+  <main>
+    <nav class="wrap crumbs" aria-label="You are here">
+      <ol><li><a href="../">Games</a></li><li><a href="../?genre=Arcade#games">Arcade</a></li><li aria-current="page">Luftvejen</li></ol>
+    </nav>
+
+    <section class="wrap ghero">
+      <a class="gcover" href="play/" aria-label="Play Luftvejen">
+        <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/luftvejen/play</span></div><img src="../luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line."></div>
+        <span class="playmark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>
+      </a>
+      <div class="gintro">
+        <p class="eyebrow"><a href="../?genre=Arcade#games">Arcade</a></p>
+        <h1>Luftvejen</h1>
+        <p class="lede">An endless road in the sky, and one button to drive it.</p>
+        <div class="actions">
+          <a class="btn big" href="play/"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Play now</a>
+          <a class="btn ghost big" href="#how">How to play</a>
+        </div>
+        <p class="note">Free, and it runs right in your browser. The game is in Danish.</p>
+        <ul class="tags" aria-label="Tags"><li><a href="../?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="../?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
       </div>
-    </div>
-    <div class="hud-right">
-      <div id="coinPill" class="coin-pill"><span class="coin-ico"></span><span id="hudCoins">0</span></div>
-      <button id="pauseBtn" class="pause-btn" aria-label="Pause"><svg viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="256" fill="#ef5552"/><rect x="150" y="118" width="78" height="276" rx="39" fill="#fff"/><rect x="284" y="118" width="78" height="276" rx="39" fill="#fff"/></svg></button>
-    </div>
-  </div>
+    </section>
 
-  <div id="banner" class="banner" hidden>
-    <span id="bannerKicker" class="banner-kicker">Ny verden</span>
-    <b id="bannerName">Stranden</b>
-    <span id="bannerTip">Sandet er lidt glat</span>
-  </div>
-
-  <div id="goText" class="go-text" hidden aria-hidden="true">KØR!</div>
-
-  <div id="hint" class="hint" hidden>
-    <div id="hintBig" class="hint-big">Tryk for at starte</div>
-    <div id="hintSmall" class="hint-small"></div>
-  </div>
-
-  <!-- Main menu -->
-  <section id="menu" class="screen" aria-label="Hovedmenu">
-    <div class="menu-wrap">
-      <div class="panel menu-panel">
-        <p class="eyebrow">Én knap · uendelig vej i himlen</p>
-        <h1 class="logo"><span class="l1">Luft</span><span class="l2">vejen</span></h1>
-        <p class="how"><b class="hold">Hold mellemrum nede</b> for at dreje til højre. <b class="release">Slip</b> for at dreje til venstre. Pas på, bilen skrider i svingene!</p>
-        <div id="playerPick" class="player-pick">
-          <label for="playerSelect" class="lbl">Spiller</label>
-          <select id="playerSelect" class="player-select"></select>
-        </div>
-        <div class="menu-stats">
-          <div><span class="lbl">Rekord</span><b><img class="ico" src="icons/star.png" alt=""><span id="menuBest">0</span></b></div>
-          <div><span class="lbl">Mønter</span><b><span class="coin-ico"></span><span id="menuCoins">0</span></b></div>
-          <div><span class="lbl">Ture</span><b><img class="ico" src="icons/car.png" alt=""><span id="menuRuns">0</span></b></div>
-        </div>
-        <button id="playBtn" class="btn primary big" disabled>Kør!</button>
-        <p id="playNote" class="play-note">Lav en spiller nedenfor for at køre.</p>
-        <form id="nameForm" class="name-form" autocomplete="off">
-          <label for="nameInput" class="lbl">Ny spiller</label>
-          <div class="name-row">
-            <input id="nameInput" class="name-input" type="text" maxlength="16" placeholder="Skriv et navn" spellcheck="false">
-            <button id="createBtn" type="submit" class="btn" disabled>Lav spiller</button>
-          </div>
-          <p id="nameHelp" class="name-help" hidden>Skriv et navn på mindst 2 tegn.</p>
-        </form>
-        <button id="modeBtn" class="btn mode-btn" aria-pressed="false"><span class="product-ico" aria-hidden="true"></span><span id="modeLabel">Skønhedstilstand: fra</span></button>
-        <div class="row">
-          <button id="boardBtn" class="btn board-btn icon-label"><img class="ico" src="icons/trophy.png" alt="">Rangliste</button>
-          <button id="muteBtn" class="btn ghost icon-label" aria-pressed="true"><img id="muteIco" class="ico" src="icons/volume.png" alt=""><span id="muteLabel">Lyd til</span></button>
-        </div>
-        <p class="keys">Styr med mellemrumstasten · på mobil med fingeren</p>
-        <p class="keys"><a href="../" style="color:inherit;font-weight:700">Alle spil</a></p>
-        <p class="credit">Ikoner lavet af <a href="https://www.flaticon.com/authors/freepik" target="_blank" rel="noopener">Freepik</a> fra <a href="https://www.flaticon.com/" target="_blank" rel="noopener">www.flaticon.com</a></p>
+    <div class="wrap details divided">
+      <div class="col-main">
+        <section aria-labelledby="about-title">
+          <h2 id="about-title">About the game</h2>
+          <p>A road that winds forever through the sky, and a little car that never stops. Hold to turn right, let go to turn left, and try not to drift over the edge.</p>
+          <p>The road changes world as you go, from meadow to beach, icebergs and candy land, and each has its own grip. Grab faster cars, magnets, shields and coins on the way, and spend coins to keep a run going.</p>
+        </section>
+        <section id="how" aria-labelledby="how-title">
+          <h2 id="how-title">How to play</h2>
+          <ol class="steps"><li><span>Hold the button to turn right. Let go to turn left.</span></li><li><span>Take corners cleanly for perfect turns and a bigger combo.</span></li><li><span>Drive through a new car on the road to swap into it for the rest of the run.</span></li><li><span>Make a player for each person, and race for the top of the leaderboard on this device.</span></li></ol>
+        </section>
       </div>
-      <aside class="panel side-board" aria-label="Rangliste">
-        <h2><img class="ico" src="icons/trophy.png" alt="">Rangliste</h2>
-        <p class="sub">De bedste scorer på denne enhed</p>
-        <p class="board-warn" hidden>Du kan se ranglisten, men din score kan ikke gemmes her.</p>
-        <div data-board="10" class="board"></div>
+      <aside class="col-side">
+        <section class="panel" aria-labelledby="controls-title">
+          <h2 id="controls-title">Controls</h2>
+          <dl>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Computer</dt><dd>Hold Space to turn right, let go to turn left.</dd></div>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Phone and tablet</dt><dd>Hold a finger on the screen to turn right, lift it to turn left.</dd></div>
+          </dl>
+        </section>
+        <section class="panel" aria-labelledby="facts-title">
+          <h2 id="facts-title">Good to know</h2>
+          <dl class="facts"><div><dt>Players</dt><dd>1 at a time, with several players on one device</dd></div><div><dt>A run</dt><dd>As long as you stay on the road</dd></div><div><dt>Saved</dt><dd>Records, coins and the leaderboard, on this device</dd></div><div><dt>Language</dt><dd>Danish</dd></div></dl>
+        </section>
+        <a class="btn wide" href="play/">Play Luftvejen</a>
       </aside>
     </div>
-  </section>
 
-  <!-- Leaderboard -->
-  <section id="board" class="screen dim center" aria-label="Rangliste" hidden>
-    <div class="panel board-panel">
-      <header class="panel-head">
-        <h2><img class="ico" src="icons/trophy.png" alt="">Rangliste</h2>
-        <button id="boardClose" class="btn small ghost">Tilbage</button>
-      </header>
-      <p class="sub">De bedste scorer på denne enhed</p>
-      <p class="board-warn" hidden>Du kan se ranglisten, men din score kan ikke gemmes her.</p>
-      <div data-board="50" class="board scroll"></div>
-    </div>
-  </section>
-
-  <!-- Crash screen -->
-  <section id="over" class="screen dim center" aria-label="Turen er slut" hidden>
-    <div class="panel over-panel">
-      <p class="eyebrow warn"><span id="overName">Du</span> røg ud over kanten</p>
-      <div class="final">
-        <b id="overScore">0</b>
-        <span id="newBest" class="badge icon-label" hidden><img class="ico" src="icons/star.png" alt="">Ny rekord!</span>
+    <section class="wrap more divided" aria-labelledby="more-title">
+      <nav class="pager" aria-label="Previous and next game">
+        <a class="pg" href="../flipklods/" rel="prev"><span>&lsaquo; Previous game</span><b>Flipklods</b></a>
+        <a class="pg next" href="../stale-light/" rel="next"><span>Next game &rsaquo;</span><b>Stale Light</b></a>
+      </nav>
+      <div class="title-row">
+        <h2 id="more-title"><span>//</span>More games</h2>
+        <a class="see-all" href="../#games">See all 8 &rarr;</a>
       </div>
-      <p id="overRank" class="over-rank"></p>
-      <dl class="over-stats">
-        <div><dt>Rekord</dt><dd id="overBest">0</dd></div>
-        <div><dt id="overCoinsLbl">Mønter</dt><dd id="overCoins" class="gold">+0</dd></div>
-        <div><dt>Perfekte sving</dt><dd id="overPerfects">0</dd></div>
-        <div><dt>Bedste combo</dt><dd id="overCombo">–</dd></div>
-      </dl>
-      <div id="revivePanel" class="revive" hidden>
-        <p>Vil du fortsætte turen? Du har <span id="reviveHave">0</span> mønter.</p>
-        <div class="revive-timer"><i id="reviveFill"></i></div>
-        <button id="reviveCoins" class="btn primary">Genopliv for <span class="coin-ico"></span><span id="reviveCost">75</span></button>
-        <button id="reviveSkip" class="link-btn">Nej tak</button>
+      <div class="grid">
+        <article class="card" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/flipklods</span></div><img src="../flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Arcade</span>
+            <h3><a class="card-link" href="../flipklods/">Flipklods</a></h3>
+            <p>The block runs by itself. You choose floor or ceiling.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="../?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
+          </div>
+        </article>
+        <article class="card" data-genre="Arcade" data-tags="One button|Reflexes|Unlockables">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/zigwave</span></div><img src="../zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Arcade</span>
+            <h3><a class="card-link" href="../zigwave/">ZIGWAVE</a></h3>
+            <p>Hold to rise, let go to dive, and thread a neon wave through tight corridors.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li></ul>
+          </div>
+        </article>
+        <article class="card" data-genre="Party" data-tags="Multiplayer|Vs computer|Reflexes|Unlockables|3D">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/bean-scramble</span></div><img src="../bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Party</span>
+            <h3><a class="card-link" href="../bean-scramble/">Bean Scramble</a></h3>
+            <p>Race your friends online through twelve wild 3D maps until one bean takes the crown.</p>
+            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="../?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li><li><a href="../?tag=3D#games" data-tag="3D">3D</a></li></ul>
+          </div>
+        </article>
       </div>
-      <div class="mini-board">
-        <span class="lbl">Top 5</span>
-        <div data-board="5" class="board"></div>
-      </div>
-      <div class="over-player">
-        <label for="overPlayerSelect" class="lbl">Hvem kører næste tur?</label>
-        <select id="overPlayerSelect" class="player-select"></select>
-        <form id="overNameForm" class="name-row" autocomplete="off">
-          <input id="overNameInput" class="name-input" type="text" maxlength="16" placeholder="Ny spiller" spellcheck="false" aria-label="Navn på ny spiller">
-          <button id="overCreateBtn" type="submit" class="btn" disabled>Lav spiller</button>
-        </form>
-      </div>
-      <div class="row">
-        <button id="againBtn" class="btn primary big">Kør igen</button>
-        <button id="overMenuBtn" class="btn">Menu</button>
-      </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
-  <!-- Pause -->
-  <section id="pause" class="screen dim center" aria-label="Pause" hidden>
-    <div class="panel pause-panel">
-      <h2>Pause</h2>
-      <button id="resumeBtn" class="btn primary big">Fortsæt</button>
-      <button id="quitBtn" class="btn">Afslut til menu</button>
-    </div>
-  </section>
-
-  <div id="toast" class="toast" role="status" hidden></div>
-</div>
-
-<script type="module" src="js/main.js"></script>
-
-</body></html>
+  <footer class="wrap foot">
+    <p>© 2026 Slowwater Games</p>
+  </footer>
+</body>
+</html>
