@@ -11,7 +11,7 @@
 <meta property="og:title" content="Slowwater Games">
 <meta property="og:description" content="Free games you play in your browser. Nothing to install.">
 <meta property="og:url" content="https://v13games.github.io/">
-<meta property="og:image" content="https://v13games.github.io/voidlings/cover.jpg">
+<meta property="og:image" content="https://v13games.github.io/strafe-arena/cover.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,6 +45,21 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
 .empty{padding:40px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line-2);border-radius:14px}
 .empty[hidden]{display:none}
 .empty p{margin:0 0 14px}
+.live{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:2px 10px;border:1px solid rgba(74,222,128,.3);background:rgba(74,222,128,.08);border-radius:999px;color:#86efac;font-size:13px;font-weight:600}
+.live[hidden]{display:none}
+.live i{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.popular{padding-bottom:clamp(36px,5vw,56px)}
+.popular[hidden]{display:none}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:rank}
+.rank-row{display:grid;grid-template-columns:28px 96px minmax(0,1fr);gap:16px;align-items:center;padding:10px 16px 10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;text-decoration:none;transition:border-color .2s}
+.rank-row:hover{border-color:var(--line-2)}
+.rank-n{color:var(--accent);font-weight:700;font-size:18px;text-align:center}
+.rank-row img{display:block;width:96px;height:54px;object-fit:cover;border-radius:6px;background:#0c0c0e}
+.rank-text{display:grid;gap:2px;min-width:0}
+.rank-text b{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:480px){.rank-row{grid-template-columns:22px 72px minmax(0,1fr);gap:12px}.rank-row img{width:72px;height:41px}}
+@media (prefers-reduced-motion:reduce){.live i{animation:none}}
 
 @media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.spot{transition:none}}
@@ -56,26 +71,34 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
     <a class="brand" href="./"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="28" height="28" alt=""><span>Slowwater Games</span></a>
     <nav class="nav-links" aria-label="Main">
       <a class="link" href="#games">All games</a>
-      <a class="btn" href="voidlings/play/">Play newest</a>
+      <a class="btn" href="strafe-arena/play/">Play newest</a>
     </nav>
   </header>
 
   <main>
     <section class="wrap hero">
       <div>
-        <p class="eyebrow">Free browser games</p>
+        <p class="eyebrow">Free browser games <span class="live" data-online hidden><i aria-hidden="true"></i><b>0</b> online now</span></p>
         <h1>Pull up a chair and play.</h1>
-        <p class="lede">9 small games that run right in your browser, on a computer or a phone. Nothing to install.</p>
+        <p class="lede">10 small games that run right in your browser, on a computer or a phone. Nothing to install.</p>
       </div>
       <div class="spot">
-        <a class="spot-cover" href="voidlings/" tabindex="-1" aria-hidden="true"><div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/voidlings</span></div><img src="voidlings/cover.jpg" width="1600" height="900" alt="The role reveal in Voidlings: the word CREWMATE glows above a row of round, colourful creatures standing in front of the emergency button table."></div></a>
+        <a class="spot-cover" href="strafe-arena/" tabindex="-1" aria-hidden="true"><div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/strafe-arena</span></div><img src="strafe-arena/cover.jpg" width="1600" height="900" alt="First-person view in Strafe Arena: a lever-action rifle with a scope, looking down a ruined city street with chain-link fences, power lines and a blue sky."></div></a>
         <div class="spot-text">
           <span class="new">Newest game</span>
-          <h2><a href="voidlings/">Voidlings</a></h2>
-          <p>Do your tasks and trust no one. A hidden impostor is picking off the crew of a drifting space station.</p>
-          <div class="actions"><a class="btn" href="voidlings/play/">Play now</a><a class="btn ghost" href="voidlings/">About the game</a></div>
+          <h2><a href="strafe-arena/">Strafe Arena</a></h2>
+          <p>A fast cowboy arena shooter. Red takes on blue, with bunny hops, slides and bots that hunt you by sound.</p>
+          <div class="actions"><a class="btn" href="strafe-arena/play/">Play now</a><a class="btn ghost" href="strafe-arena/">About the game</a></div>
         </div>
       </div>
+    </section>
+
+    <!-- Filled in by stats.js once there are players to count -->
+    <section class="wrap popular" id="popular" aria-labelledby="popular-title" hidden>
+      <div class="title-row">
+        <h2 id="popular-title"><span>//</span>Most played</h2>
+      </div>
+      <ol class="rank"></ol>
     </section>
 
     <section class="wrap games" id="games" aria-labelledby="games-title">
@@ -83,93 +106,113 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
         <h2 id="games-title"><span>//</span>Games</h2>
         <div class="chips" role="group" aria-label="Show games by type">
           <button type="button" class="chip tag-chip" id="tag-chip" hidden>#<b></b> <i aria-hidden="true">×</i></button>
-          <button type="button" class="chip" data-genre="all" aria-pressed="true">All <span>9</span></button>
+          <button type="button" class="chip" data-genre="all" aria-pressed="true">All <span>10</span></button>
           <button type="button" class="chip" data-genre="Arcade" aria-pressed="false">Arcade <span>3</span></button>
           <button type="button" class="chip" data-genre="Party" aria-pressed="false">Party <span>2</span></button>
           <button type="button" class="chip" data-genre="Puzzle" aria-pressed="false">Puzzle <span>2</span></button>
           <button type="button" class="chip" data-genre="Casino" aria-pressed="false">Casino <span>1</span></button>
+          <button type="button" class="chip" data-genre="Shooter" aria-pressed="false">Shooter <span>1</span></button>
           <button type="button" class="chip" data-genre="Strategy" aria-pressed="false">Strategy <span>1</span></button>
         </div>
       </div>
       <div class="grid" data-filter="all">
-        <article class="card is-new" data-genre="Party" data-tags="Multiplayer|Vs computer|Thinking">
+        <article class="card is-new" data-slug="strafe-arena" data-genre="Shooter" data-tags="Vs computer|Reflexes|3D">
+          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/strafe-arena</span></div><img src="strafe-arena/cover.jpg" width="1600" height="900" alt="First-person view in Strafe Arena: a lever-action rifle with a scope, looking down a ruined city street with chain-link fences, power lines and a blue sky." loading="lazy"></div>
+          <div class="meta">
+            <span class="genre">Shooter</span>
+            <h3><a class="card-link" href="strafe-arena/">Strafe Arena</a></h3>
+            <p>A fast cowboy arena shooter. Red takes on blue, with bunny hops, slides and bots that hunt you by sound.</p>
+            <p class="stats" data-stats-for="strafe-arena" hidden></p>
+            <ul class="tags" aria-label="Tags"><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=3D#games" data-tag="3D">3D</a></li></ul>
+          </div>
+        </article>
+        <article class="card" data-slug="voidlings" data-genre="Party" data-tags="Multiplayer|Vs computer|Thinking">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/voidlings</span></div><img src="voidlings/cover.jpg" width="1600" height="900" alt="The role reveal in Voidlings: the word CREWMATE glows above a row of round, colourful creatures standing in front of the emergency button table." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Party</span>
             <h3><a class="card-link" href="voidlings/">Voidlings</a></h3>
             <p>Do your tasks and trust no one. A hidden impostor is picking off the crew of a drifting space station.</p>
+            <p class="stats" data-stats-for="voidlings" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Party" data-tags="Multiplayer|Vs computer|Reflexes|Unlockables|3D">
+        <article class="card" data-slug="bean-scramble" data-genre="Party" data-tags="Multiplayer|Vs computer|Reflexes|Unlockables|3D">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/bean-scramble</span></div><img src="bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Party</span>
             <h3><a class="card-link" href="bean-scramble/">Bean Scramble</a></h3>
             <p>Race your friends online through twelve wild 3D maps until one bean takes the crown.</p>
+            <p class="stats" data-stats-for="bean-scramble" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li><li><a href="?tag=3D#games" data-tag="3D">3D</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Casino" data-tags="Virtual coins only|Take your time">
+        <article class="card" data-slug="orechip" data-genre="Casino" data-tags="Virtual coins only|Take your time">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/orechip</span></div><img src="orechip/cover.jpg" width="1600" height="900" alt="A Mines round in OreChip Casino, with six green pixel gems uncovered and a yellow Cash out button beside the board." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Casino</span>
             <h3><a class="card-link" href="orechip/">OreChip Casino</a></h3>
             <p>Seventeen casino games played with free coins and no real money.</p>
+            <p class="stats" data-stats-for="orechip" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Virtual%20coins%20only#games" data-tag="Virtual coins only">Virtual coins only</a></li><li><a href="?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Puzzle" data-tags="Thinking|Take your time|Endless">
+        <article class="card" data-slug="tessera" data-genre="Puzzle" data-tags="Thinking|Take your time|Endless">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/tessera</span></div><img src="tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Puzzle</span>
             <h3><a class="card-link" href="tessera/">Tessera</a></h3>
             <p>Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.</p>
+            <p class="stats" data-stats-for="tessera" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="?tag=Endless#games" data-tag="Endless">Endless</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Puzzle" data-tags="Thinking|Take your time|In Danish">
+        <article class="card" data-slug="kodeord" data-genre="Puzzle" data-tags="Thinking|Take your time|In Danish">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/kodeord</span></div><img src="kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Puzzle</span>
             <h3><a class="card-link" href="kodeord/">Kodeord</a></h3>
             <p>Guess the five-letter word in six tries. A new word every day, in Danish or English.</p>
+            <p class="stats" data-stats-for="kodeord" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Arcade" data-tags="One button|Reflexes|Unlockables">
+        <article class="card" data-slug="zigwave" data-genre="Arcade" data-tags="One button|Reflexes|Unlockables">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/zigwave</span></div><img src="zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Arcade</span>
             <h3><a class="card-link" href="zigwave/">ZIGWAVE</a></h3>
             <p>Hold to rise, let go to dive, and thread a neon wave through tight corridors.</p>
+            <p class="stats" data-stats-for="zigwave" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
+        <article class="card" data-slug="flipklods" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/flipklods</span></div><img src="flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Arcade</span>
             <h3><a class="card-link" href="flipklods/">Flipklods</a></h3>
             <p>The block runs by itself. You choose floor or ceiling.</p>
+            <p class="stats" data-stats-for="flipklods" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
+        <article class="card" data-slug="luftvejen" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/luftvejen</span></div><img src="luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Arcade</span>
             <h3><a class="card-link" href="luftvejen/">Luftvejen</a></h3>
             <p>An endless road in the sky, and one button to drive it.</p>
+            <p class="stats" data-stats-for="luftvejen" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
           </div>
         </article>
-        <article class="card" data-genre="Strategy" data-tags="Thinking|Vs computer|3D">
+        <article class="card" data-slug="stale-light" data-genre="Strategy" data-tags="Thinking|Vs computer|3D">
           <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/stale-light</span></div><img src="stale-light/cover.jpg" width="1600" height="900" alt="Low-poly blue and red warships trading fire around a lighthouse island on a bright turquoise sea." loading="lazy"></div>
           <div class="meta">
             <span class="genre">Strategy</span>
             <h3><a class="card-link" href="stale-light/">Stale Light</a></h3>
             <p>Command a fleet in a strait where light crawls at 70 knots. Every ship you see is seconds out of date, and every order takes time to arrive.</p>
+            <p class="stats" data-stats-for="stale-light" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=3D#games" data-tag="3D">3D</a></li></ul>
           </div>
         </article>
@@ -234,5 +277,6 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
       apply(false);
     })();
   </script>
+
 </body>
 </html>

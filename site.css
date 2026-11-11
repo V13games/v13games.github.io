@@ -80,6 +80,15 @@ h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.02em;text-wrap:balance}
 .tags a::before{content:"#";margin-right:2px;color:var(--dim)}
 .tags a:hover{color:var(--text);border-color:#5a5a62;background:var(--panel-2)}
 
+/* live numbers (stats.js): players, stars, playing now */
+.stats{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.stats[hidden]{display:none}
+.meta .stats{font-size:13px;color:var(--muted)}
+.stats span{white-space:nowrap}
+.stat-stars{color:#fcd34d}
+.stat-live{color:#86efac}
+.stat-live::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#4ade80;vertical-align:1px}
+
 .foot{color:var(--dim);font-size:14px}
 .foot p{margin:0;padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
 
