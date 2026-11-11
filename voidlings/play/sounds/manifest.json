@@ -1,0 +1,108 @@
+{
+  "sounds": {
+    "scare": {
+      "file": "scare.mp3",
+      "volume": 0.9
+    },
+    "kill": {
+      "file": "kill.wav",
+      "volume": 0.9
+    },
+    "vent": {
+      "file": "vent.wav",
+      "volume": 0.8
+    },
+    "emergency": {
+      "file": "emergency.wav",
+      "volume": 0.75
+    },
+    "report": {
+      "file": "report.wav",
+      "volume": 0.8
+    },
+    "wireSnap": {
+      "file": "wire-snap.wav",
+      "volume": 0.7
+    },
+    "taskDone": {
+      "file": "task-done.wav",
+      "volume": 0.6
+    },
+    "cardSlide": {
+      "file": "card-slide.wav",
+      "volume": 0.6
+    },
+    "cardFail": {
+      "file": "card-fail.wav",
+      "volume": 0.45
+    },
+    "cardOk": {
+      "file": "card-ok.wav",
+      "volume": 0.6
+    },
+    "laser": {
+      "file": "laser.wav",
+      "volume": 0.45
+    },
+    "explosion": {
+      "file": "explosion.wav",
+      "volume": 0.7
+    },
+    "scanLoop": {
+      "file": "scan-loop.wav",
+      "volume": 0.45
+    },
+    "scanDone": {
+      "file": "scan-done.wav",
+      "volume": 0.7
+    },
+    "footsteps": {
+      "file": "footsteps.wav",
+      "volume": 0.35
+    },
+    "ambience": {
+      "file": "ambience.wav",
+      "volume": 0.22
+    },
+    "alarm": {
+      "file": "alarm.wav",
+      "volume": 0.35
+    },
+    "door": {
+      "file": "door.wav",
+      "volume": 0.7
+    },
+    "vote": {
+      "file": "vote.wav",
+      "volume": 0.6
+    },
+    "eject": {
+      "file": "eject.wav",
+      "volume": 0.7
+    },
+    "lightsOut": {
+      "file": "lights-out.wav",
+      "volume": 0.7
+    },
+    "shapeshift": {
+      "file": "shapeshift.wav",
+      "volume": 0.6
+    },
+    "reveal": {
+      "file": "reveal.wav",
+      "volume": 0.7
+    },
+    "victory": {
+      "file": "victory.wav",
+      "volume": 0.6
+    },
+    "defeat": {
+      "file": "defeat.wav",
+      "volume": 0.6
+    },
+    "taskFail": {
+      "file": "card-fail.wav",
+      "volume": 0.36000000000000004
+    }
+  }
+}
