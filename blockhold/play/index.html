@@ -136,7 +136,10 @@ html, body {
 .card.down { transform: scale(0.94); }
 .card.on { background: #2B6CA3; border-color: var(--cyan); box-shadow: 0 4px 0 var(--stroke), 0 0 0 3px var(--cyan); }
 .card.poor { filter: grayscale(0.8) brightness(0.7); }
-.card .tico svg { width: calc(46px * var(--ui)); height: calc(46px * var(--ui)); }
+.card .tico { display: flex; justify-content: center; width: 100%; padding: calc(4px * var(--ui)) 0; border-radius: calc(10px * var(--ui)); background: linear-gradient(160deg, #46698f, #2a3f58); border: 2px solid rgba(0,0,0,0.35); }
+.card.on .tico { background: linear-gradient(160deg, #5ab8ff, #2b6ca3); }
+.card .tico svg { width: calc(46px * var(--ui)); height: calc(46px * var(--ui)); filter: drop-shadow(0 3px 0 rgba(0,0,0,0.35)); }
+.card .count { position: absolute; right: calc(-8px * var(--ui)); top: calc(-10px * var(--ui)); min-width: calc(26px * var(--ui)); height: calc(26px * var(--ui)); padding: 0 4px; display: flex; align-items: center; justify-content: center; background: #2F80ED; border: 3px solid var(--stroke); border-radius: calc(9px * var(--ui)); font-weight: 900; font-size: calc(13px * var(--ui)); box-shadow: 0 3px 0 var(--stroke); }
 .card .name { font-weight: 900; font-size: calc(15px * var(--ui)); }
 .card .cost { font-weight: 900; color: var(--accent); font-size: calc(15px * var(--ui)); }
 .card.poor .cost { color: var(--bad); }
@@ -290,6 +293,9 @@ const CONFIG = {
     wood: 0xa86b3c,
     woodDark: 0x7d4b29,
     leaf: [0x4caf50, 0x3f9a45, 0x5cc45f],
+    jungle: [0x2e7d32, 0x3b8c3f, 0x24692b, 0x337a2c],
+    blockSide: 0x5aa83a,
+    dirt: 0x8b5e3c,
     trunk: 0x8a5a34,
     rock: [0xa7a9b4, 0x8d909c, 0xbfc1ca],
     water: 0x5ec8f2,
@@ -478,6 +484,19 @@ const LEVEL = {
   propSeed: 1337,
   pond: { x: 46, z: 42, r: 6.5 },
 };
+
+/**
+ * Ground height on the field: the grass is made of raised blocks (2 or 4 units wide), so the
+ * lane and the pads sit lower, like a trench. 2-unit cells over [-60, 60); 0 where no block.
+ */
+const HMAP = { cell: 2, n: 60, half: 60, h: new Float32Array(60 * 60) };
+
+function groundHeight(x, z) {
+  const i = Math.floor((x + HMAP.half) / HMAP.cell);
+  const j = Math.floor((z + HMAP.half) / HMAP.cell);
+  if (i < 0 || j < 0 || i >= HMAP.n || j >= HMAP.n) return 0;
+  return HMAP.h[j * HMAP.n + i];
+}
 
 /** The lane as dense samples: x,z pairs, cumulative distance, total length. */
 const PATH = (() => {
@@ -1354,14 +1373,14 @@ function buildPropsGeometry(rng, colliders) {
     if (Math.hypot(x - LEVEL.playerSpawn.x, z - LEVEL.playerSpawn.z) < 4) return true;
     return false;
   };
-  const tree = (x, z, s, y = 0) => {
+  const tree = (x, z, s, y = 0, pal = P.leaf) => {
     const kind = rng.int(0, 2);
     b.add(new THREE.CylinderGeometry(0.22 * s, 0.32 * s, 1.4 * s, 7), P.trunk, x, y + 0.7 * s, z);
     if (kind === 0) {
-      for (let k = 0; k < 3; k++) b.add(new THREE.ConeGeometry((1.6 - k * 0.38) * s, 1.5 * s, 8), P.leaf[k % 3], x, y + (1.6 + k * 0.85) * s, z, 0, rng.next() * 3, 0);
+      for (let k = 0; k < 3; k++) b.add(new THREE.ConeGeometry((1.6 - k * 0.38) * s, 1.5 * s, 8), pal[k % pal.length], x, y + (1.6 + k * 0.85) * s, z, 0, rng.next() * 3, 0);
     } else {
-      b.add(new THREE.IcosahedronGeometry(1.25 * s, 0), P.leaf[rng.int(0, 2)], x, y + 2.2 * s, z, rng.next(), rng.next(), 0, 1, 0.9, 1);
-      if (kind === 2) b.add(new THREE.IcosahedronGeometry(0.85 * s, 0), P.leaf[rng.int(0, 2)], x + 0.6 * s, y + 2.9 * s, z + 0.2 * s);
+      b.add(new THREE.IcosahedronGeometry(1.25 * s, 0), rng.pick(pal), x, y + 2.2 * s, z, rng.next(), rng.next(), 0, 1, 0.9, 1);
+      if (kind === 2) b.add(new THREE.IcosahedronGeometry(0.85 * s, 0), rng.pick(pal), x + 0.6 * s, y + 2.9 * s, z + 0.2 * s);
     }
   };
   const rock = (x, z, s, y = 0) => b.add(new THREE.DodecahedronGeometry(s, 0), rng.pick(P.rock), x, y + s * 0.3, z, rng.next(), rng.next() * 3, 0, 1.3, 0.55, 1);
@@ -1373,15 +1392,16 @@ function buildPropsGeometry(rng, colliders) {
     const kind = rng.next();
     const r = kind < 0.45 ? 1.2 : kind < 0.75 ? 1.0 : 0.7;
     if (blocked(x, z, r + 1)) continue;
-    if (kind < 0.45) tree(x, z, rng.range(0.85, 1.25));
-    else if (kind < 0.75) rock(x, z, rng.range(0.7, 1.2));
+    const gy = groundHeight(x, z);
+    if (kind < 0.45) tree(x, z, rng.range(0.85, 1.25), gy);
+    else if (kind < 0.75) rock(x, z, rng.range(0.7, 1.2), gy);
     else if (kind < 0.88) {
-      b.add(rbox(1.1, 1.1, 1.1, 0.08), P.wood, x, 0.55, z, 0, rng.next() * 3, 0);
-      b.add(rbox(1.14, 0.12, 0.2, 0.03), P.woodDark, x, 0.55, z, 0, rng.next() * 3, 0.8);
+      b.add(rbox(1.1, 1.1, 1.1, 0.08), P.wood, x, gy + 0.55, z, 0, rng.next() * 3, 0);
+      b.add(rbox(1.14, 0.12, 0.2, 0.03), P.woodDark, x, gy + 0.55, z, 0, rng.next() * 3, 0.8);
     } else {
-      b.add(new THREE.CylinderGeometry(0.5, 0.5, 1.1, 10), P.wood, x, 0.55, z);
-      b.add(new THREE.TorusGeometry(0.5, 0.05, 4, 12), P.woodDark, x, 0.3, z, Math.PI / 2, 0, 0);
-      b.add(new THREE.TorusGeometry(0.5, 0.05, 4, 12), P.woodDark, x, 0.8, z, Math.PI / 2, 0, 0);
+      b.add(new THREE.CylinderGeometry(0.5, 0.5, 1.1, 10), P.wood, x, gy + 0.55, z);
+      b.add(new THREE.TorusGeometry(0.5, 0.05, 4, 12), P.woodDark, x, gy + 0.3, z, Math.PI / 2, 0, 0);
+      b.add(new THREE.TorusGeometry(0.5, 0.05, 4, 12), P.woodDark, x, gy + 0.8, z, Math.PI / 2, 0, 0);
     }
     colliders.push({ x, z, r });
     placed++;
@@ -1400,18 +1420,140 @@ function buildPropsGeometry(rng, colliders) {
     rock(pd.x + Math.cos(a) * (pd.r + 0.4), pd.z + Math.sin(a) * (pd.r + 0.4), rng.range(0.35, 0.6), -0.1);
   }
   colliders.push({ x: pd.x, z: pd.z, r: pd.r });
-  // Outside the playable area: a dense ring of trees and rocks on the hills.
-  for (let k = 0; k < 230; k++) {
+  // Outside the playable area: a dense, dark jungle on the hills, and bushes along the edge.
+  for (let k = 0; k < 420; k++) {
     const a = rng.next() * TAU;
-    const d = rng.range(62, 105);
+    const d = rng.range(61, 108);
     const x = Math.cos(a) * d * 1.05;
     const z = Math.sin(a) * d;
     if (Math.abs(x) < 59 && Math.abs(z) < 59) continue;
     const y = terrainHeight(x, z);
-    if (rng.next() < 0.78) tree(x, z, rng.range(1.0, 1.8), y);
+    const r = rng.next();
+    if (r < 0.82) tree(x, z, rng.range(1.0, 1.9), y, rng.next() < 0.7 ? P.jungle : P.leaf);
     else rock(x, z, rng.range(1.0, 2.2), y);
   }
+  for (let k = 0; k < 150; k++) {
+    // Bushes on the rim: the edge of the field reads as a wall of greenery.
+    const along = rng.range(-62, 62);
+    const out = rng.range(57.5, 64);
+    const side = rng.int(0, 3);
+    const x = side === 0 ? out : side === 1 ? -out : along;
+    const z = side === 2 ? out : side === 3 ? -out : along;
+    const y = terrainHeight(x, z);
+    const s = rng.range(0.8, 1.5);
+    for (let q = 0; q < 3; q++) b.add(new THREE.IcosahedronGeometry(s * (0.9 - q * 0.18), 0), rng.pick(P.jungle), x + (q - 1) * 0.7 * s, y + s * 0.45, z + rng.range(-0.5, 0.5), rng.next(), rng.next(), 0, 1, 0.72, 1);
+  }
   return b.build();
+}
+
+/**
+ * A unit grass block (1×1×1, origin at the bottom centre): a flat top, a bevelled rim and
+ * straight sides that fade from grass green to earth. Flat-shaded for a crisp, chunky look.
+ */
+function bevelBlockGeometry() {
+  const P = CONFIG.palette;
+  const inset = 0.07, bevel = 0.16;
+  const yTop = 1, yRim = 1 - bevel;
+  const top = color(P.grass), side = color(P.blockSide), dirt = color(P.dirt);
+  const pos = [], nor = [], col = [];
+  const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), N = new THREE.Vector3();
+  const quad = (a, b, c, d, out, ca, cb, cc, cd) => {
+    A.fromArray(b).sub(TMP.v1.fromArray(a));
+    B.fromArray(c).sub(TMP.v1.fromArray(a));
+    N.crossVectors(A, B).normalize();
+    if (N.dot(TMP.v2.fromArray(out)) < 0) {
+      [b, d] = [d, b];
+      [cb, cd] = [cd, cb];
+      N.negate();
+    }
+    for (const [v, c2] of [[a, ca], [b, cb], [c, cc], [a, ca], [c, cc], [d, cd]]) {
+      pos.push(...v);
+      nor.push(N.x, N.y, N.z);
+      col.push(c2.r, c2.g, c2.b);
+    }
+  };
+  const i = 0.5 - inset, o = 0.5;
+  const t = (x, z) => [x, yTop, z];
+  const r = (x, z) => [x, yRim, z];
+  const g = (x, z) => [x, 0, z];
+  quad(t(-i, -i), t(-i, i), t(i, i), t(i, -i), [0, 1, 0], top, top, top, top);
+  const sides = [
+    [[1, 0], [o, -o], [o, o], [i, -i], [i, i]],
+    [[-1, 0], [-o, -o], [-o, o], [-i, -i], [-i, i]],
+    [[0, 1], [-o, o], [o, o], [-i, i], [i, i]],
+    [[0, -1], [-o, -o], [o, -o], [-i, -i], [i, -i]],
+  ];
+  for (const [[nx, nz], o1, o2, i1, i2] of sides) {
+    quad(r(o1[0], o1[1]), r(o2[0], o2[1]), t(i2[0], i2[1]), t(i1[0], i1[1]), [nx, 0.7, nz], top, top, top, top);
+    quad(g(o1[0], o1[1]), g(o2[0], o2[1]), r(o2[0], o2[1]), r(o1[0], o1[1]), [nx, 0, nz], dirt, dirt, side, side);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return geo;
+}
+
+/**
+ * Raised grass blocks over the field (4-unit blocks, split into 2-unit ones near the lane, pads
+ * and buildings), with a few height steps. Fills the HMAP height map. One instanced mesh.
+ */
+function buildTiles(rng) {
+  const half = 56, T = 4, n = 28;
+  const H = LEVEL.pathHalfWidth + 0.45 + 0.4;
+  const blocked = (cx, cz, hs) => {
+    if (distToPath(cx, cz) < H + hs * 1.42) return true;
+    for (const [px, pz] of LEVEL.pads) if (Math.abs(px - cx) < LEVEL.padSize / 2 + 0.6 + hs && Math.abs(pz - cz) < LEVEL.padSize / 2 + 0.6 + hs) return true;
+    const B = LEVEL.base;
+    if (Math.abs(B.x - cx) < B.size / 2 + 1.4 + hs && Math.abs(B.z - cz) < B.size / 2 + 1.4 + hs) return true;
+    if (Math.hypot(cx - LEVEL.portal.x, cz - LEVEL.portal.z) < 6.5 + hs) return true;
+    if (Math.hypot(cx - LEVEL.pond.x, cz - LEVEL.pond.z) < LEVEL.pond.r + 0.9 + hs) return true;
+    return false;
+  };
+  const heightAt = (cx, cz) => {
+    const v = Math.sin(cx * 0.085 + Math.cos(cz * 0.07) * 1.7) * 0.5 + Math.sin(cz * 0.11 - cx * 0.05 + 1.3) * 0.5;
+    return 0.26 + Math.round(clamp(v * 0.5 + 0.5, 0, 1) * 3) * 0.17;
+  };
+  const list = [];
+  for (let gz = 0; gz < n; gz++)
+    for (let gx = 0; gx < n; gx++) {
+      const x0 = -half + gx * T, z0 = -half + gz * T;
+      if (!blocked(x0 + 2, z0 + 2, 2)) {
+        list.push([x0 + 2, z0 + 2, 4, heightAt(x0 + 2, z0 + 2)]);
+        continue;
+      }
+      for (const [ox, oz] of [[1, 1], [3, 1], [1, 3], [3, 3]]) {
+        const sx = x0 + ox, sz = z0 + oz;
+        if (!blocked(sx, sz, 1)) list.push([sx, sz, 2, heightAt(sx, sz)]);
+      }
+    }
+  HMAP.h.fill(0);
+  for (const [cx, cz, s, h] of list) {
+    const i0 = Math.round((cx - s / 2 + HMAP.half) / HMAP.cell);
+    const j0 = Math.round((cz - s / 2 + HMAP.half) / HMAP.cell);
+    for (let j = j0; j < j0 + s / HMAP.cell; j++)
+      for (let i = i0; i < i0 + s / HMAP.cell; i++) if (i >= 0 && j >= 0 && i < HMAP.n && j < HMAP.n) HMAP.h[j * HMAP.n + i] = h;
+  }
+  const mesh = new THREE.InstancedMesh(bevelBlockGeometry(), ART.mats.vc, list.length);
+  const m = TMP.m1;
+  list.forEach(([cx, cz, s, h], k) => {
+    m.compose(TMP.v1.set(cx, 0, cz), TMP.q2.identity(), TMP.s1.set(s - 0.12, h, s - 0.12));
+    mesh.setMatrixAt(k, m);
+    // Patchy greens: mostly the base grass, some deeper, some sunnier tiles.
+    const b = 0.86 + rng.next() * 0.16;
+    const r = rng.next();
+    if (r < 0.22) mesh.setColorAt(k, TMP.c1.setRGB(b * 0.78, b * 0.9, b * 0.78));
+    else if (r < 0.36) mesh.setColorAt(k, TMP.c1.setRGB(b * 1.06, b * 1.02, b * 0.8));
+    else mesh.setColorAt(k, TMP.c1.setRGB(b, b * 0.99, b * 0.93));
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.instanceColor.needsUpdate = true;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.matrixAutoUpdate = false;
+  mesh.updateMatrix();
+  mesh.userData.count = list.length;
+  return mesh;
 }
 
 /** Ground height: flat in the playable area, rolling hills outside it. */
@@ -1645,7 +1787,7 @@ function buildGrass(count, rng) {
     if (bad) continue;
     const s = rng.range(0.8, 1.4);
     TMP.q1.setFromAxisAngle(TMP.up, rng.next() * TAU);
-    m.compose(TMP.v1.set(x, 0, z), TMP.q1, TMP.s1.set(s, s, s));
+    m.compose(TMP.v1.set(x, groundHeight(x, z), z), TMP.q1, TMP.s1.set(s, s, s));
     if (fi < nFlowers && rng.next() < 0.18) {
       flowers.setMatrixAt(fi, m);
       flowers.setColorAt(fi, TMP.c1.set(rng.pick(fcols)));
@@ -1729,7 +1871,7 @@ function createPlayer() {
     hp: CONFIG.player.hp, alive: true, deathT: 0, respawnT: 0,
     ammo: CONFIG.player.gun.mag, reloading: false, reloadT: 0, fireCd: 0,
     dashCd: 0, dashT: 0, dashX: 0, dashZ: 1, invulnT: 0, flashT: 0, walkPhase: 0, recoilT: 0, speedNow: 0,
-    firing: false, interactT: 0, interactTower: null, aimVert: 0, muzzleT: 0,
+    firing: false, interactT: 0, interactTower: null, aimVert: 0, muzzleT: 0, y: 0,
   };
 }
 
@@ -1756,7 +1898,7 @@ function resetPlayer(p) {
 /** Procedural animation of the blocky rig from the player's state. */
 function animatePlayer(p, dt) {
   const r = p.rig;
-  r.root.position.set(p.x, 0, p.z);
+  r.root.position.set(p.x, p.y, p.z);
   r.root.rotation.y = p.yaw;
   const sp = p.speedNow / CONFIG.player.speed;
   p.walkPhase += dt * (4 + sp * 9);
@@ -2108,8 +2250,10 @@ function createFx() {
   fx.scorch = new Pool(16, () => ({ x: 0, z: 0, t: 0, s: 1 }));
   fx.scorchSet = new InstancedSet(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: ART.tex.scorch, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), 16, { renderOrder: 1 });
   // Flash spheres (explosions): additive, they fade by darkening.
-  fx.flashes = new Pool(20, () => ({ x: 0, y: 0, z: 0, t: 0, dur: 0.3, r: 1, color: new THREE.Color() }));
-  fx.flashSet = new InstancedSet(new THREE.SphereGeometry(1, 14, 10), new THREE.MeshBasicMaterial({ blending: add, transparent: true, depthWrite: false, toneMapped: false }), 20, { renderOrder: 6 });
+  fx.flashes = new Pool(40, () => ({ x: 0, y: 0, z: 0, t: 0, dur: 0.3, r: 1, color: new THREE.Color() }));
+  fx.flashSet = new InstancedSet(new THREE.SphereGeometry(1, 14, 10), new THREE.MeshBasicMaterial({ blending: add, transparent: true, depthWrite: false, toneMapped: false }), 40, { renderOrder: 6 });
+  // Soft glow halos around every bolt (cheap stand-in for bloom on Medium and Low).
+  fx.haloSet = new InstancedSet(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: ART.tex.puff, transparent: true, depthWrite: false, blending: add, toneMapped: false }), CONFIG.pools.bolts + CONFIG.pools.enemyShots, { renderOrder: 8 });
   // Particles: little cubes.
   fx.particles = new Pool(600, () => ({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 0, max: 1, size: 0.2, r: 1, g: 1, b: 1, grav: 9, drag: 0, spin: 0, glow: false }));
   fx.partSet = new InstancedSet(rbox(1, 1, 1, 0.15, 1), toon(0xffffff), 600);
@@ -2397,8 +2541,9 @@ function renderInstanced() {
   const fx = G.fx;
   const m = TMP.m1;
   const cam = G.camera;
-  // Bolts: stretched along their velocity.
+  // Bolts: stretched along their velocity, each with a camera-facing glow.
   fx.boltSet.begin();
+  fx.haloSet.begin();
   for (const b of fx.bolts.items) {
     if (!b.alive) continue;
     const v = TMP.v2.set(b.vx, b.vy, b.vz);
@@ -2408,8 +2553,12 @@ function renderInstanced() {
     const stretch = b.enemy ? 1 : Math.min(4.5, 1 + sp * 0.06);
     m.compose(TMP.v1.set(b.x, b.y, b.z), TMP.q1, TMP.s1.set(b.size, b.size, b.size * stretch));
     fx.boltSet.push(m, b.r, b.g, b.b);
+    const hs = b.size * (b.enemy ? 1.5 : 1.15);
+    m.compose(TMP.v1.set(b.x, b.y, b.z), cam.quaternion, TMP.s1.set(hs, hs, hs));
+    fx.haloSet.push(m, b.r * 0.42, b.g * 0.42, b.b * 0.42);
   }
   fx.boltSet.end();
+  fx.haloSet.end();
   // Shells and their target markers.
   fx.shellSet.begin();
   fx.markerSet.begin();
@@ -2439,7 +2588,7 @@ function renderInstanced() {
   // Blob shadows.
   fx.shadowSet.begin();
   const shadow = (x, z, s) => {
-    m.compose(TMP.v1.set(x, 0.11, z), TMP.q2.identity(), TMP.s1.set(s, 1, s));
+    m.compose(TMP.v1.set(x, groundHeight(x, z) + 0.11, z), TMP.q2.identity(), TMP.s1.set(s, 1, s));
     fx.shadowSet.push(m, 1, 1, 1);
   };
   const p = G.player;
@@ -2692,7 +2841,7 @@ function spawnEnemy(type) {
 }
 
 function enemyCenterY(e) {
-  return e.def.fly ? e.y : 1.25 * e.scale;
+  return e.def.fly ? e.y : e.y + 1.25 * e.scale;
 }
 
 function updateEnemies(dt) {
@@ -2737,6 +2886,7 @@ function updateEnemies(dt) {
         e.x = TMP.p.x;
         e.z = TMP.p.z;
         e.yaw = dampAngle(e.yaw, Math.atan2(TMP.p.dx, TMP.p.dz), 10, dt);
+        if (!e.def.fly) e.y = damp(e.y, 0, 12, dt);
         if (!e.def.fly && e.def.melee > 0 && pd < AI.aggroRange + e.radius && p.invulnT <= 0) e.state = 'chase';
         // Brutes and bosses stop to smash towers near the lane.
         if (e.def.smash && e.smashCd <= 0) {
@@ -2769,6 +2919,7 @@ function updateEnemies(dt) {
           e.squashT = 0.12;
         }
         e.yaw = dampAngle(e.yaw, Math.atan2(p.x - e.x, p.z - e.z), 12, dt);
+        e.y = damp(e.y, groundHeight(e.x, e.z), 14, dt);
         break;
       }
       case 'return': {
@@ -2781,6 +2932,7 @@ function updateEnemies(dt) {
         }
         e.x += (dx / d) * speed * dt;
         e.z += (dz / d) * speed * dt;
+        e.y = damp(e.y, groundHeight(e.x, e.z), 14, dt);
         e.yaw = dampAngle(e.yaw, Math.atan2(dx, dz), 10, dt);
         if (p.alive && pd < AI.aggroRange && p.invulnT <= 0) e.state = 'chase';
         break;
@@ -2887,7 +3039,7 @@ function fireEnemyShot(e) {
   const b = G.fx.bolts.get();
   if (!b) return;
   const p = G.player;
-  const tx = p.x, ty = 1.2, tz = p.z;
+  const tx = p.x, ty = 1.2 + p.y, tz = p.z;
   const dx = tx - e.x, dy = ty - e.y, dz = tz - e.z;
   const d = Math.hypot(dx, dy, dz) || 1;
   const s = CONFIG.enemyAI.flyerShotSpeed;
@@ -3151,7 +3303,7 @@ function updateProjectiles(dt) {
       continue;
     }
     if (b.enemy) {
-      if (p.alive && Math.hypot(b.x - p.x, b.z - p.z) < 0.8 && b.y < 2.4) {
+      if (p.alive && Math.hypot(b.x - p.x, b.z - p.z) < 0.8 && b.y < 2.4 + p.y) {
         damagePlayer(b.dmg);
         spawnParticles(6, b.x, b.y, b.z, CONFIG.palette.enemyShot, { glow: true, speed: 3, life: 0.3, grav: 0 });
         fx.bolts.release(b);
@@ -3180,6 +3332,7 @@ function updateProjectiles(dt) {
     }
     if (hit) {
       damageEnemy(hit, b.dmg, { player: b.player });
+      spawnFlash(b.x, b.y, b.z, 0.5, b.player ? 0xfff1a8 : 0x8fe9ff, 0.12);
       spawnParticles(4, b.x, b.y, b.z, b.player ? 0xfff1a8 : 0x8fe9ff, { glow: true, speed: 4, life: 0.25, grav: 0, size: 0.18 });
       if (b.player) sfx('hit');
       fx.bolts.release(b);
@@ -3234,8 +3387,9 @@ function updateCoins(dt) {
       c.x += c.vx * dt;
       c.z += c.vz * dt;
       c.y += c.vy * dt;
-      if (c.y <= 0.3) {
-        c.y = 0.3;
+      const floor = groundHeight(c.x, c.z) + 0.3;
+      if (c.y <= floor) {
+        c.y = floor;
         if (Math.abs(c.vy) < 2.5) {
           c.landed = true;
           c.vx = c.vz = 0;
@@ -3373,6 +3527,8 @@ function updatePlayer(dt) {
   p.x += p.vx * dt;
   p.z += p.vz * dt;
   resolveCollisions(p);
+  // Step up and down the grass blocks smoothly.
+  p.y = damp(p.y, groundHeight(p.x, p.z), 18, dt);
   p.speedNow = Math.hypot(p.vx, p.vz);
   // Facing: toward the aim when shooting or aiming, else toward movement.
   const fire = A.fireHeld && !building;
@@ -3426,7 +3582,7 @@ function playerShoot(p) {
   const rx = -Math.cos(yaw), rz = Math.sin(yaw);
   const sx = p.x + fx * 1.1 + rx * 0.62;
   const sz = p.z + fz * 1.1 + rz * 0.62;
-  const sy = gun.height;
+  const sy = gun.height + p.y;
   // Aim up or down at an enemy roughly in line (flyers are up high), else straight ahead.
   let vy = 0;
   const e = enemyInCone(p.x, p.z, yaw, CONFIG.aim.autoElevateCone, gun.range);
@@ -3644,10 +3800,10 @@ function updateCamera(dt) {
   const leadX = clamp(p.vx, -9, 9) / 9 * C.lead;
   const leadZ = clamp(p.vz, -9, 9) / 9 * C.lead;
   const px = p.x - fx * dist * Math.cos(pitch) + rx * C.shoulder + leadX;
-  const py = C.height + dist * Math.sin(pitch);
+  const py = C.height + dist * Math.sin(pitch) + p.y;
   const pz = p.z - fz * dist * Math.cos(pitch) + rz * C.shoulder + leadZ;
   const lx = p.x + fx * 6 + rx * C.shoulder * 0.6 + leadX;
-  const ly = 1.6 + Math.sin(pitch) * -2;
+  const ly = 1.6 + Math.sin(pitch) * -2 + p.y;
   const lz = p.z + fz * 6 + rz * C.shoulder * 0.6 + leadZ;
   // Build camera: looking down over the whole map from the south.
   const bd = buildCamDistance() * CAM.buildZoom;
@@ -4635,6 +4791,8 @@ function createUI(root) {
     const card = el('button', 'card', tray);
     el('span', 'key', card, { text: String(i + 1) });
     el('span', 'tico', card, { svg: TOWER_ICON[type] });
+    U.cardCount = U.cardCount ?? {};
+    U.cardCount[type] = el('span', 'count', card);
     el('span', 'name', card, { text: T.name });
     el('span', 'cost', card, { text: `$${T.cost}` });
     el('span', 'role', card, { text: T.role });
@@ -5179,6 +5337,10 @@ function createUI(root) {
     // Build mode: card affordability, hint, ghost confirm buttons.
     if (G.mode === 'build') {
       for (const t of CONFIG.towerOrder) {
+        let n = 0;
+        for (const tw of G.towers) if (tw && tw.type === t) n++;
+        setText(U.cardCount[t], String(n));
+        setShow(U.cardCount[t], n > 0);
         const poor = G.money < CONFIG.towers[t].cost;
         const c = U.cards[t];
         if (c._poor !== poor) {
@@ -5429,9 +5591,9 @@ function buildWorld() {
   const P = CONFIG.palette;
   const scene = G.scene;
   scene.fog = new THREE.Fog(P.skyHorizon, 125, 290);
-  G.hemi = new THREE.HemisphereLight(0xbfe6ff, 0x5f9a3c, 1.25);
+  G.hemi = new THREE.HemisphereLight(0xcfe9ff, 0x3f6b2b, 1.05);
   scene.add(G.hemi);
-  const sun = new THREE.DirectionalLight(0xfff1d6, 2.3);
+  const sun = new THREE.DirectionalLight(0xffe3b8, 2.75);
   sun.position.set(30, 40, 22);
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.04;
@@ -5444,6 +5606,9 @@ function buildWorld() {
   scene.add(buildSky());
   scene.add(buildTerrain());
   scene.add(buildPathMesh());
+  // Raised grass blocks (before props and grass, which sit on top of them).
+  G.static.tiles = buildTiles(makeRng(LEVEL.propSeed + 11));
+  scene.add(G.static.tiles);
   // Pebbles scattered on the lane edges.
   const rng = makeRng(LEVEL.propSeed + 7);
   const peb = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.16, 0), toon(P.pebble), 160);
