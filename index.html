@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Slowwater Games</title>
 <meta name="description" content="Free games you play in your browser. Nothing to install.">
-<meta name="theme-color" content="#09090b">
+<meta name="theme-color" content="#111816">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Slowwater Games">
 <meta property="og:title" content="Slowwater Games">
@@ -13,199 +13,141 @@
 <meta property="og:url" content="https://v13games.github.io/">
 <meta property="og:image" content="https://v13games.github.io/blockhold/cover.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111816'/%3E%3Cpath d='M5 13c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0M5 20.5c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0' fill='none' stroke='%23bfffa8' stroke-width='2.6'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@200;400;500;700&family=Inter+Tight:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="site.css">
 <style>
-/* Homepage: a short welcome beside the newest game, then every game in one grid you can filter. */
-.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.95fr);gap:clamp(28px,5vw,64px);align-items:center;padding-block:clamp(40px,7vw,88px) clamp(40px,6vw,72px)}
-.eyebrow{margin:0 0 14px;color:var(--accent);font-size:14px;font-weight:600;letter-spacing:.01em}
-h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
-.lede{margin:18px 0 0;color:var(--muted);font-size:clamp(17px,1.5vw,19px);line-height:1.6;max-width:30em}
-.spot{padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:18px;transition:border-color .2s}
-.spot:hover{border-color:var(--line-2)}
-.spot-cover{display:block;text-decoration:none}
-.spot .frame{border-radius:10px}
-.spot-text{display:grid;gap:8px;justify-items:start;padding:16px 8px 8px}
-.spot-text h2{font-size:clamp(24px,2.4vw,28px)}
-.spot-text h2 a{text-decoration:none}
-.spot-text h2 a:hover{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
-.spot-text p{margin:0;color:var(--muted)}
-.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+/* Homepage. The top: a wall of game screens, the featured game's character, and GAMES outlined across the
+   bottom. Then a short intro, and every game in one numbered list you can filter. */
+.hero{position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:clamp(540px,92svh,960px);overflow:hidden;background:var(--ink)}
+.hero-in{position:relative;z-index:2;margin-top:auto;padding-top:40px;pointer-events:none}
+.hero-in>*{pointer-events:auto}
 
-.games{padding-bottom:clamp(56px,8vw,96px);scroll-margin-top:16px}
-/* the featured game is already at the top, so the unfiltered list does not show it twice */
-.grid[data-filter="all"] .card.is-featured{display:none}
-.tag-chip{color:var(--text);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);padding-right:10px}
-.tag-chip[hidden]{display:none}
-.tag-chip b{font-weight:600}
-.tag-chip i{font-style:normal;color:var(--muted);font-size:16px;line-height:1}
-.empty{padding:40px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line-2);border-radius:14px}
-.empty[hidden]{display:none}
-.empty p{margin:0 0 14px}
-.live{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:2px 10px;border:1px solid rgba(74,222,128,.3);background:rgba(74,222,128,.08);border-radius:999px;color:#86efac;font-size:13px;font-weight:600}
-.live[hidden]{display:none}
-.live i{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:pulse 2s infinite}
-@keyframes pulse{70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
-.popular{padding-bottom:clamp(36px,5vw,56px)}
-.popular[hidden]{display:none}
-.rank{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:rank}
-.rank-row{display:grid;grid-template-columns:28px 96px minmax(0,1fr);gap:16px;align-items:center;padding:10px 16px 10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;text-decoration:none;transition:border-color .2s}
-.rank-row:hover{border-color:var(--line-2)}
-.rank-n{color:var(--accent);font-weight:700;font-size:18px;text-align:center}
-.rank-row img{display:block;width:96px;height:54px;object-fit:cover;border-radius:6px;background:#0c0c0e}
-.rank-text{display:grid;gap:2px;min-width:0}
-.rank-text b{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:480px){.rank-row{grid-template-columns:22px 72px minmax(0,1fr);gap:12px}.rank-row img{width:72px;height:41px}}
-@media (prefers-reduced-motion:reduce){.live i{animation:none}}
+/* the wall: every game's picture, grey and tinted lime. Pointing at one brings back its colour. */
+.wall{position:absolute;inset:-6% -8%;z-index:-3;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(150px,21vw,400px),1fr));align-content:start;gap:3px;
+  transform:perspective(1800px) rotateX(7deg) rotateY(-11deg) scale(1.08) translate(calc(var(--mx,0) * -14px),calc(var(--my,0) * -9px));
+  transition:transform 1s cubic-bezier(.2,.8,.2,1)}
+.wall a{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;background:var(--panel)}
+.wall img{display:block;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.15) brightness(.5);transition:filter .4s}
+.wall a::after{content:"";position:absolute;inset:0;background:var(--lime);mix-blend-mode:multiply;transition:opacity .4s}
+.wall span{position:absolute;left:8px;bottom:5px;z-index:1;color:var(--lime);font:400 10.5px/1.4 var(--mono);letter-spacing:var(--track);opacity:.8}
+.wall a:hover img{filter:none}
+.wall a:hover::after{opacity:0}
+/* shade at the top and bottom so the words stay readable, and faint scan lines */
+.shade{position:absolute;inset:0;z-index:-2;pointer-events:none;background:
+  linear-gradient(180deg,rgba(17,24,22,.9) 0,rgba(17,24,22,.3) 20%,rgba(17,24,22,.12) 46%,rgba(17,24,22,.82) 80%,var(--bg) 100%),
+  repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+/* a thin line of light that sweeps down the wall */
+.scan{position:absolute;left:0;right:0;top:-160px;height:160px;z-index:-2;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(191,255,168,.05) 80%,rgba(191,255,168,.4) 99.4%,transparent);animation:scan 9s linear infinite}
+@keyframes scan{to{translate:0 1260px}}
 
-@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
-@media (prefers-reduced-motion:reduce){.spot{transition:none}}
+/* the featured game's character, standing in front of the big word */
+.figure{position:absolute;z-index:1;right:max(var(--gutter),8vw);bottom:0;height:min(80%,720px);translate:calc(var(--mx,0) * 12px) calc(var(--my,0) * 5px);transition:translate 1s cubic-bezier(.2,.8,.2,1);animation:rise 1.1s cubic-bezier(.2,.8,.2,1) .15s both}
+.figure img{display:block;height:100%;width:auto;filter:drop-shadow(0 0 1px rgba(191,255,168,.9)) drop-shadow(0 0 26px rgba(191,255,168,.22)) drop-shadow(0 30px 30px rgba(0,0,0,.55))}
+.hero .giant{position:relative;z-index:0;margin-top:clamp(18px,2.6vw,36px);animation:fade 1.4s ease both}
+.hero .giant [data-fit]{filter:drop-shadow(0 0 14px rgba(191,255,168,.18))}
 
-/* The three small facts under the welcome */
-.hero-stats{display:flex;flex-wrap:wrap;row-gap:12px;margin:28px 0 0;padding:0}
-.hero-stats div{padding:0 26px;border-left:1px solid var(--line-2)}
-.hero-stats div:first-child{padding-left:0;border-left:0}
-.hero-stats dt{font-size:13px;font-weight:500;color:var(--dim)}
-.hero-stats dd{margin:2px 0 0;font-size:clamp(24px,2.6vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.2}
+/* the label for the featured game, like a readout on a screen */
+.hero-tag{position:relative;display:inline-grid;gap:6px;max-width:min(100%,440px);padding:16px 56px 16px 18px;text-decoration:none;background:rgba(17,24,22,.74);border:1px solid var(--line-2);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:border-color .2s;animation:up .9s cubic-bezier(.2,.8,.2,1) .4s both}
+.hero-tag:hover{border-color:var(--lime)}
+.hero-tag b{font:400 clamp(20px,2vw,28px)/1.15 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--white)}
+.hero-tag .arrow{position:absolute;right:18px;top:50%;margin-top:-9px;transition:translate .25s}
+.hero-tag:hover .arrow{translate:4px 0}
+@keyframes rise{from{opacity:0;transform:translateY(8%)}}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}}
 
-/* ---------- The featured game drawn big (games.json "hero"): a character bursting out of a glowing ring,
-   in the hero's own colour. Only the top of the page changes colour; the rest keeps the honey accent. ---------- */
-.hero-wrap{position:relative}
-.sparks{display:none}
-.hero-wrap[data-art]{
-  --hero-2:color-mix(in srgb,var(--hero) 55%,#4aa3ff);
-  --hero-hi:color-mix(in srgb,var(--hero) 25%,#b9d8ff);
-  --accent:var(--hero-hi);
-  overflow:hidden}
-@supports (overflow:clip){.hero-wrap[data-art]{overflow:visible;overflow-x:clip}}
-.hero-wrap[data-art] .sparks{display:block;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.hero-wrap[data-art] .hero{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(20px,4vw,56px);padding-block:clamp(20px,4vw,48px) clamp(48px,7vw,88px)}
-.hero-wrap[data-art] h1{font-size:clamp(44px,6.2vw,78px);line-height:1.02;letter-spacing:-.045em}
-.hero-wrap[data-art] .glow{display:inline-block;background:linear-gradient(100deg,#fff 0%,var(--hero-hi) 42%,var(--hero-2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;padding-bottom:.06em}
-.hero-actions{margin-top:30px}
-.hero-actions .btn{padding:12px 22px;font-size:16px}
-.hero-btn{position:relative;overflow:hidden;color:#fff;background:linear-gradient(180deg,var(--hero-2),var(--hero));border-color:color-mix(in srgb,var(--hero-hi) 45%,transparent);box-shadow:0 12px 32px -12px var(--hero-2),inset 0 1px 0 rgba(255,255,255,.22)}
-.hero-btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.32) 50%,transparent 70%);translate:-120% 0;transition:translate .7s}
-.hero-btn:hover::after{translate:120% 0}
+/* intro: a small spec list on the left, and the welcome in big mono capitals */
+.intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:clamp(24px,4vw,64px);padding-block:clamp(44px,6vw,96px) clamp(48px,7vw,104px)}
+.spec{margin:0;text-align:right;color:var(--white);font:400 12.5px/1.9 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
+.spec dt{display:inline;color:var(--dim)}
+.spec dt::after{content:" / "}
+.spec dd{display:inline;margin:0}
+.spec .dot{display:inline-block;width:7px;height:7px;margin-right:8px;background:var(--lime);box-shadow:0 0 10px var(--lime);vertical-align:1px;animation:blink 2s steps(2,jump-none) infinite}
+@keyframes blink{50%{opacity:.25}}
+.intro h1{max-width:44em;font:700 clamp(17px,1.55vw,22px)/1.45 var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.lede{margin:22px 0 0;max-width:40em;color:var(--muted);font-size:16px;line-height:1.7}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
 
-/* the picture: rays, a glowing portal, a chrome ring, the character, and the front of the ring over his boots */
-.stage{position:relative;width:100%;max-width:560px;justify-self:center}
-.stage-art{position:relative;display:block;aspect-ratio:1/1;--mx:0;--my:0}
-.fx{position:absolute;pointer-events:none}
-.fx-rays{inset:-20%;border-radius:50%;opacity:.5;translate:calc(var(--mx)*-14px) calc(var(--my)*-10px);
-  background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--hero-hi) 26%,transparent) 0deg 1.1deg,transparent 1.1deg 8deg);
-  -webkit-mask-image:radial-gradient(closest-side,transparent 36%,#000 50%,transparent 80%);mask-image:radial-gradient(closest-side,transparent 36%,#000 50%,transparent 80%);
-  animation:enter-zoom 1.2s cubic-bezier(.2,.8,.2,1) both,spin 140s linear infinite}
-.fx-portal,.fx-ring{left:13%;top:9%;width:74%;aspect-ratio:1/1;border-radius:50%}
-.fx-portal{translate:calc(var(--mx)*-9px) calc(var(--my)*-7px);
-  background:
-    radial-gradient(circle at 50% 34%,color-mix(in srgb,var(--hero-hi) 70%,transparent) 0,transparent 36%),
-    repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.045) 0 1px,transparent 1.5px 13px),
-    conic-gradient(from 0deg,transparent 0 10%,rgba(255,255,255,.05) 14%,transparent 20% 46%,rgba(255,255,255,.05) 52%,transparent 58% 80%,rgba(255,255,255,.04) 86%,transparent 92%),
-    radial-gradient(circle at 50% 46%,var(--hero-2) 0,var(--hero) 40%,color-mix(in srgb,var(--hero) 40%,#020611) 70%,#02050d 100%);
-  box-shadow:inset 0 0 70px 14px rgba(0,0,0,.6),0 0 70px 6px color-mix(in srgb,var(--hero-2) 55%,transparent),0 0 200px 50px color-mix(in srgb,var(--hero) 42%,transparent);
-  animation:enter-zoom 1s cubic-bezier(.2,.8,.2,1) both,breathe 7s ease-in-out 1s infinite}
-.fx-ring{--rw:clamp(7px,1.5vw,12px);translate:calc(var(--mx)*-5px) calc(var(--my)*-4px);transition:filter .35s;
-  filter:drop-shadow(0 0 8px color-mix(in srgb,var(--hero-hi) 85%,transparent)) drop-shadow(0 0 26px var(--hero-2));
-  animation:enter-zoom 1s cubic-bezier(.2,.8,.2,1) .12s both}
-.fx-ring::before,.fx-ring i{content:"";position:absolute;inset:0;border-radius:50%;
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw) + 1px));mask:radial-gradient(farthest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw) + 1px))}
-.fx-ring::before{background:conic-gradient(from 200deg,#fff,#c9d6ec 8%,#6c80a6 20%,#f4f7fd 33%,#9cb0d2 47%,#fff 58%,#5d6f93 72%,#dbe5f6 86%,#fff)}
-.fx-ring i{background:conic-gradient(from 0deg,transparent 0 74%,rgba(255,255,255,.95) 86%,transparent 96%);animation:spin 5.5s linear infinite}
-/* the front copy only shows its lower part, faded in softly, with a small glow (the back ring already glows) */
-.fx-ring.fx-front{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--hero-hi) 80%,transparent));
-  -webkit-mask-image:linear-gradient(transparent 60%,#000 72%);mask-image:linear-gradient(transparent 60%,#000 72%)}
-.stage:hover .fx-ring:not(.fx-front){filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 34px var(--hero-2))}
-.fx-fig{inset:0 0 2.5% 0;display:flex;justify-content:center;translate:calc(var(--mx)*12px) calc(var(--my)*8px);animation:enter-rise 1.1s cubic-bezier(.2,.8,.2,1) .25s both}
-.fx-fig img{display:block;height:100%;width:auto;filter:drop-shadow(0 26px 26px rgba(0,0,0,.55)) drop-shadow(0 0 22px color-mix(in srgb,var(--hero-2) 45%,transparent));animation:bob 6s ease-in-out 1.4s infinite}
-.fx-floor{left:30%;right:30%;bottom:.5%;height:7%;border-radius:50%;translate:calc(var(--mx)*10px) 0;
-  background:radial-gradient(closest-side,color-mix(in srgb,var(--hero-hi) 60%,transparent),color-mix(in srgb,var(--hero-2) 35%,transparent) 55%,transparent);
-  animation:enter-fade 1s ease .5s both,floor 6s ease-in-out 1.4s infinite}
-.stage-tag{position:absolute;left:-12%;bottom:16%;display:grid;grid-template-columns:auto auto;column-gap:16px;row-gap:3px;align-items:center;padding:12px 16px 12px 14px;text-decoration:none;
-  background:rgba(8,12,24,.62);border:1px solid color-mix(in srgb,var(--hero-hi) 28%,transparent);border-radius:14px;
-  -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
-  box-shadow:0 20px 40px -20px rgba(0,0,0,.9);transition:border-color .2s,translate .25s;animation:enter-up .9s cubic-bezier(.2,.8,.2,1) .7s both}
-.stage-tag:hover{border-color:color-mix(in srgb,var(--hero-hi) 70%,transparent);translate:0 -3px}
-.stage-tag .new{grid-column:1;justify-self:start;margin-bottom:4px}
-.stage-tag b{grid-column:1;font-size:18px;font-weight:700;letter-spacing:-.01em}
-.stage-tag small{grid-column:1;font-size:13px;color:var(--muted)}
-.stage-tag .arrow{grid-column:2;grid-row:1/4;color:var(--hero-hi);transition:translate .25s}
-.stage-tag:hover .arrow{translate:4px 0}
-.hero-wrap[data-art] .hero-copy>*{animation:enter-up .8s cubic-bezier(.2,.8,.2,1) both}
-.hero-wrap[data-art] .hero-copy>:nth-child(2){animation-delay:.08s}
-.hero-wrap[data-art] .hero-copy>:nth-child(3){animation-delay:.16s}
-.hero-wrap[data-art] .hero-copy>:nth-child(4){animation-delay:.24s}
-.hero-wrap[data-art] .hero-copy>:nth-child(5){animation-delay:.32s}
-.foot p.credit{margin-top:-10px;padding-top:0;border-top:0;font-size:12px}
-.credit a{color:var(--muted)}
-@keyframes spin{to{rotate:360deg}}
-@keyframes breathe{50%{transform:scale(1.035);filter:brightness(1.15)}}
-@keyframes bob{50%{transform:translateY(-1.8%)}}
-@keyframes floor{50%{transform:scaleX(.84);opacity:.65}}
-@keyframes enter-zoom{from{opacity:0;scale:.82}}
-@keyframes enter-rise{from{opacity:0;transform:translateY(9%)}}
-@keyframes enter-fade{from{opacity:0}}
-@keyframes enter-up{from{opacity:0;transform:translateY(16px)}}
-@media (max-width:860px){
-  .hero-wrap[data-art] .hero{grid-template-columns:minmax(0,1fr);gap:4px}
-  .stage{max-width:460px}
-  .stage-tag{position:relative;left:auto;bottom:auto;width:max-content;max-width:100%;margin:-4% auto 0}
+.games{scroll-margin-top:16px}
+.tag-chip{border-color:var(--lime);padding-right:10px}
+.tag-chip b{font-weight:500}
+.tag-chip i{font-style:normal;font-size:15px;line-height:1}
+.empty{padding:44px 20px;text-align:center;color:var(--muted);border-top:1px dashed var(--line-2)}
+.empty p{margin:0 0 16px;font:400 12.5px/1.5 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
+
+/* Most played (stats.js) */
+.popular{padding-bottom:clamp(44px,6vw,80px)}
+.rank{list-style:none;margin:0;padding:0;border-bottom:1px dashed var(--line-2)}
+.rank-row{display:grid;grid-template-columns:var(--cols);column-gap:var(--colgap);align-items:center;padding-block:14px;border-top:1px dashed var(--line-2);text-decoration:none;transition:background-color .2s}
+.rank-row:hover{background:rgba(191,255,168,.035)}
+.rank-n{font:400 12.5px/1.5 var(--mono);letter-spacing:var(--track)}
+.rank-n::before{content:"No. "}
+.rank-row img{grid-column:3;grid-row:1;justify-self:end;display:block;width:112px;height:63px;object-fit:cover}
+.rank-text{grid-column:2;grid-row:1;display:grid;gap:4px;min-width:0}
+.rank-text b{font:200 clamp(20px,1.8vw,26px)/1.2 var(--mono);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+@media (max-width:760px){
+  .intro{grid-template-columns:minmax(0,1fr)}
+  .spec{order:2;text-align:left}
+  .figure{right:-5%;height:min(62%,500px)}
+  .hero-tag{max-width:calc(100% - 30vw);padding:12px 40px 12px 14px}
+  .hero-tag .arrow{right:12px}
+  .rank-row{grid-template-columns:56px minmax(0,1fr) 80px}
+  .rank-row img{width:80px;height:45px}
 }
-@media (max-width:480px){
-  .hero-stats div{padding:0 18px}
-  .hero-actions .btn{flex:1 1 auto}
-  .stage-tag{padding:10px 12px;column-gap:12px}
-  .stage-tag b{font-size:16px}
-}
+@media (max-width:480px){.actions .btn{flex:1 1 auto}}
 @media (prefers-reduced-motion:reduce){
-  .hero-wrap[data-art] *,.hero-wrap[data-art] *::before,.hero-wrap[data-art] *::after{animation:none!important;transition:none!important}
+  .scan,.spec .dot{animation:none}.scan{display:none}
+  .figure,.hero .giant,.hero-tag{animation:none}
+  .wall,.figure,.wall img,.wall a::after,.rank-row{transition:none}
 }
 </style>
 </head>
 <body>
   <!-- This page is generated. To change the games on it, edit games.json and run: node build.js -->
-  <header class="wrap nav">
-    <a class="brand" href="./"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="28" height="28" alt=""><span>Slowwater Games</span></a>
-    <nav class="nav-links" aria-label="Main">
-      <a class="link" href="#games">All games</a>
-      <a class="btn" href="blockhold/play/">Play newest</a>
-    </nav>
-  </header>
-
   <main>
-    <section class="hero-wrap" data-art style="--hero:#0a428f">
-      <canvas class="sparks" aria-hidden="true"></canvas>
-      <div class="wrap hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Free browser games <span class="live" data-online hidden><i aria-hidden="true"></i><b>0</b> online now</span></p>
-          <h1>Pull up a chair <span class="glow">and play.</span></h1>
-          <p class="lede">13 small games that run right in your browser, on a computer or a phone. Nothing to install.</p>
-          <dl class="hero-stats">
-            <div><dt>Games</dt><dd>13</dd></div>
-            <div><dt>Free to play</dt><dd>100%</dd></div>
-            <div><dt>Downloads</dt><dd>0</dd></div>
-          </dl>
-          <div class="actions hero-actions"><a class="btn hero-btn" href="strafe-arena/play/"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>Play Strafe Arena</a><a class="btn ghost" href="#games">Browse all games</a></div>
-        </div>
-      <div class="stage">
-        <a class="stage-art" href="strafe-arena/" tabindex="-1" aria-hidden="true">
-          <span class="fx fx-rays"></span>
-          <span class="fx fx-portal"></span>
-          <span class="fx fx-ring"><i></i></span>
-          <span class="fx fx-floor"></span>
-          <span class="fx fx-fig"><img src="art/cowboy-blue.png" width="303" height="673" alt="" fetchpriority="high" decoding="async"></span>
-          <span class="fx fx-ring fx-front"><i></i></span>
-        </a>
-        <a class="stage-tag" href="strafe-arena/">
-          <span class="new">Featured game</span>
+    <section class="hero" aria-label="Slowwater Games">
+      <div class="wall" aria-hidden="true"><a href="blockhold/" tabindex="-1"><img src="blockhold/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G13</span></a><a href="pixel-dominion/" tabindex="-1"><img src="pixel-dominion/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G12</span></a><a href="firnline/" tabindex="-1"><img src="firnline/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G11</span></a><a href="strafe-arena/" tabindex="-1"><img src="strafe-arena/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G10</span></a><a href="voidlings/" tabindex="-1"><img src="voidlings/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G09</span></a><a href="bean-scramble/" tabindex="-1"><img src="bean-scramble/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G08</span></a><a href="orechip/" tabindex="-1"><img src="orechip/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G07</span></a><a href="tessera/" tabindex="-1"><img src="tessera/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G06</span></a><a href="kodeord/" tabindex="-1"><img src="kodeord/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G05</span></a><a href="zigwave/" tabindex="-1"><img src="zigwave/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G04</span></a><a href="flipklods/" tabindex="-1"><img src="flipklods/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G03</span></a><a href="luftvejen/" tabindex="-1"><img src="luftvejen/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G02</span></a><a href="stale-light/" tabindex="-1"><img src="stale-light/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G01</span></a><a href="blockhold/" tabindex="-1"><img src="blockhold/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G13</span></a><a href="pixel-dominion/" tabindex="-1"><img src="pixel-dominion/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G12</span></a><a href="firnline/" tabindex="-1"><img src="firnline/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G11</span></a><a href="strafe-arena/" tabindex="-1"><img src="strafe-arena/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G10</span></a><a href="voidlings/" tabindex="-1"><img src="voidlings/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G09</span></a><a href="bean-scramble/" tabindex="-1"><img src="bean-scramble/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G08</span></a><a href="orechip/" tabindex="-1"><img src="orechip/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G07</span></a><a href="tessera/" tabindex="-1"><img src="tessera/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G06</span></a><a href="kodeord/" tabindex="-1"><img src="kodeord/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G05</span></a><a href="zigwave/" tabindex="-1"><img src="zigwave/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G04</span></a><a href="flipklods/" tabindex="-1"><img src="flipklods/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G03</span></a><a href="luftvejen/" tabindex="-1"><img src="luftvejen/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G02</span></a><a href="stale-light/" tabindex="-1"><img src="stale-light/cover.jpg" width="1600" height="900" alt="" decoding="async"><span>G01</span></a></div>
+      <div class="shade" aria-hidden="true"></div>
+      <div class="scan" aria-hidden="true"></div>
+      <header class="wrap nav">
+        <a class="brand" href="./"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111816'/%3E%3Cpath d='M5 13c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0M5 20.5c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0' fill='none' stroke='%23bfffa8' stroke-width='2.6'/%3E%3C/svg%3E" width="24" height="24" alt=""><span>Slowwater Games</span></a>
+        <nav class="nav-links" aria-label="Main">
+          <a class="link" href="#games">All games</a>
+          <a class="go" href="blockhold/play/">Play newest</a>
+        </nav>
+      </header>
+      <a class="figure" href="strafe-arena/" tabindex="-1" aria-hidden="true"><img src="art/cowboy-blue.png" width="303" height="673" alt="" fetchpriority="high" decoding="async"></a>
+      <div class="wrap hero-in">
+        <a class="hero-tag" href="strafe-arena/">
+          <span class="label dim">Featured game / G10</span>
           <b>Strafe Arena</b>
-          <small>Shooter · Multiplayer</small>
-          <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="label">Shooter / Multiplayer</span>
+          <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
         </a>
       </div>
+      <p class="giant" aria-hidden="true"><span data-fit style="--len:5">Games</span></p>
+    </section>
+
+    <section class="wrap intro" aria-labelledby="intro-title">
+      <dl class="spec">
+        <div><dt>Index</dt><dd>Slowwater Games</dd></div>
+        <div><dt>Games</dt><dd>13</dd></div>
+        <div><dt>Types</dt><dd>7</dd></div>
+        <div><dt>Free to play</dt><dd>100%</dd></div>
+        <div><dt>Downloads</dt><dd>0</dd></div>
+        <div><dt>Runs on</dt><dd>Computer / phone / tablet</dd></div>
+        <div><dt>Newest</dt><dd>Blockhold</dd></div>
+        <div data-online hidden><dt>Online now</dt><dd><i class="dot" aria-hidden="true"></i><b>0</b></dd></div>
+      </dl>
+      <div>
+        <h1 id="intro-title">Pull up a chair and play. 13 small games that run right in your browser, on a computer or a phone.</h1>
+        <p class="lede">Arcade, puzzles, strategy, shooters and party games. Nothing to install and nothing to buy: pick one from the list and you are playing in a second.</p>
+        <div class="actions"><a class="btn" href="strafe-arena/play/"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16l14-8z" fill="currentColor"/></svg>Play Strafe Arena</a><a class="btn ghost" href="#games">Browse all games</a></div>
       </div>
     </section>
 
@@ -219,7 +161,7 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
 
     <section class="wrap games" id="games" aria-labelledby="games-title">
       <div class="title-row">
-        <h2 id="games-title"><span>//</span>Games</h2>
+        <h2 id="games-title"><span>//</span>All games</h2>
         <div class="chips" role="group" aria-label="Show games by type">
           <button type="button" class="chip tag-chip" id="tag-chip" hidden>#<b></b> <i aria-hidden="true">×</i></button>
           <button type="button" class="chip" data-genre="all" aria-pressed="true">All <span>13</span></button>
@@ -232,136 +174,137 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
           <button type="button" class="chip" data-genre="Sports" aria-pressed="false">Sports <span>1</span></button>
         </div>
       </div>
-      <div class="grid" data-filter="all">
-        <article class="card" data-slug="blockhold" data-genre="Strategy" data-tags="3D|Reflexes|Thinking">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/blockhold</span></div><img src="blockhold/cover.jpg" width="1600" height="900" alt="Blockhold in the middle of a wave: a blocky blue-and-yellow hero aims a blaster across green grass while chunky towers fire at colourful monsters walking a sandy lane." loading="lazy"></div>
+      <div class="list-head label" aria-hidden="true"><span>No:</span><span>Title:</span><span>Picture:</span></div>
+      <div class="grid">
+        <article class="card" data-slug="blockhold" data-genre="Strategy" data-tags="3D|Reflexes|Thinking" style="--game:#2f80ed">
+          <div class="no"><span>G13</span><span class="genre">Strategy</span></div>
           <div class="meta">
-            <span class="genre">Strategy</span>
             <h3><a class="card-link" href="blockhold/">Blockhold</a></h3>
             <p>Defend the citadel on foot: shoot, grab coins, build and upgrade towers, and run between them to reload and repair. Hold out for 20 waves.</p>
             <p class="stats" data-stats-for="blockhold" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=3D#games" data-tag="3D">3D</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="blockhold/cover.jpg" width="1600" height="900" alt="Blockhold in the middle of a wave: a blocky blue-and-yellow hero aims a blaster across green grass while chunky towers fire at colourful monsters walking a sandy lane." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="pixel-dominion" data-genre="Strategy" data-tags="Multiplayer|Vs computer|Thinking|Unlockables">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/pixel-dominion</span></div><img src="pixel-dominion/cover.jpg" width="1600" height="900" alt="A Pixel Dominion game over Europe: colourful pixel territories named France, Germany, Italy and Poland with flags and troop counts, small building icons, and the leaderboard, control panel and build bar around the map." loading="lazy"></div>
+        <article class="card" data-slug="pixel-dominion" data-genre="Strategy" data-tags="Multiplayer|Vs computer|Thinking|Unlockables" style="--game:#4fa3ff">
+          <div class="no"><span>G12</span><span class="genre">Strategy</span></div>
           <div class="meta">
-            <span class="genre">Strategy</span>
             <h3><a class="card-link" href="pixel-dominion/">Pixel Dominion</a></h3>
             <p>Grow a pixel empire on a world map. Expand, build, ally, betray, sail and nuke your way to the top, against AI nations or friends online.</p>
             <p class="stats" data-stats-for="pixel-dominion" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="pixel-dominion/cover.jpg" width="1600" height="900" alt="A Pixel Dominion game over Europe: colourful pixel territories named France, Germany, Italy and Poland with flags and troop counts, small building icons, and the leaderboard, control panel and build bar around the map." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="firnline" data-genre="Sports" data-tags="3D|Take your time|Reflexes|Multiplayer">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/firnline</span></div><img src="firnline/cover.jpg" width="1600" height="900" alt="A skier racing down a snowy valley between mountains in Firnline" loading="lazy"></div>
+        <article class="card" data-slug="firnline" data-genre="Sports" data-tags="3D|Take your time|Reflexes|Multiplayer" style="--game:#ff5a1f">
+          <div class="no"><span>G11</span><span class="genre">Sports</span></div>
           <div class="meta">
-            <span class="genre">Sports</span>
             <h3><a class="card-link" href="firnline/">Firnline</a></h3>
             <p>Carve down snowy mountains on skis or a snowboard, throw layouts, corks and grabs, chase medals in missions, and ride with friends online.</p>
             <p class="stats" data-stats-for="firnline" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=3D#games" data-tag="3D">3D</a></li><li><a href="?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="firnline/cover.jpg" width="1600" height="900" alt="A skier racing down a snowy valley between mountains in Firnline" loading="lazy"></div></div>
         </article>
-        <article class="card is-featured" data-slug="strafe-arena" data-genre="Shooter" data-tags="Multiplayer|Vs computer|Reflexes|3D">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/strafe-arena</span></div><img src="strafe-arena/cover.jpg" width="1600" height="900" alt="First-person view in Strafe Arena: a lever-action rifle with a scope, looking down a ruined city street with chain-link fences, power lines and a blue sky." loading="lazy"></div>
+        <article class="card" data-slug="strafe-arena" data-genre="Shooter" data-tags="Multiplayer|Vs computer|Reflexes|3D" style="--game:#ff9f43">
+          <div class="no"><span>G10</span><span class="genre">Shooter</span></div>
           <div class="meta">
-            <span class="genre">Shooter</span>
             <h3><a class="card-link" href="strafe-arena/">Strafe Arena</a></h3>
             <p>A fast cowboy arena shooter. Play with friends or against bots, with bunny hops, slides and bots that hunt by sound.</p>
             <p class="stats" data-stats-for="strafe-arena" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=3D#games" data-tag="3D">3D</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="strafe-arena/cover.jpg" width="1600" height="900" alt="First-person view in Strafe Arena: a lever-action rifle with a scope, looking down a ruined city street with chain-link fences, power lines and a blue sky." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="voidlings" data-genre="Party" data-tags="Multiplayer|Vs computer|Thinking|Unlockables">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/voidlings</span></div><img src="voidlings/cover.jpg" width="1600" height="900" alt="The role reveal in Voidlings: the word CREWMATE glows above a row of round, colourful creatures standing in front of the emergency button table." loading="lazy"></div>
+        <article class="card" data-slug="voidlings" data-genre="Party" data-tags="Multiplayer|Vs computer|Thinking|Unlockables" style="--game:#8ca0ff">
+          <div class="no"><span>G09</span><span class="genre">Party</span></div>
           <div class="meta">
-            <span class="genre">Party</span>
             <h3><a class="card-link" href="voidlings/">Voidlings</a></h3>
             <p>Do your tasks and trust no one. Hidden impostors stalk the crew on a space station, a moon base and a frozen planet with a lava rift.</p>
             <p class="stats" data-stats-for="voidlings" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="voidlings/cover.jpg" width="1600" height="900" alt="The role reveal in Voidlings: the word CREWMATE glows above a row of round, colourful creatures standing in front of the emergency button table." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="bean-scramble" data-genre="Party" data-tags="Multiplayer|Vs computer|Reflexes|Unlockables|3D">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/bean-scramble</span></div><img src="bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky." loading="lazy"></div>
+        <article class="card" data-slug="bean-scramble" data-genre="Party" data-tags="Multiplayer|Vs computer|Reflexes|Unlockables|3D" style="--game:#6cb6ff">
+          <div class="no"><span>G08</span><span class="genre">Party</span></div>
           <div class="meta">
-            <span class="genre">Party</span>
             <h3><a class="card-link" href="bean-scramble/">Bean Scramble</a></h3>
             <p>Race your friends online through twelve wild 3D maps until one bean takes the crown.</p>
             <p class="stats" data-stats-for="bean-scramble" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li><li><a href="?tag=3D#games" data-tag="3D">3D</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="bean-scramble/cover.jpg" width="1600" height="900" alt="Colourful bean characters racing past a giant striped roller on a bright blue course in the sky." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="orechip" data-genre="Casino" data-tags="Virtual coins only|Take your time">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/orechip</span></div><img src="orechip/cover.jpg" width="1600" height="900" alt="A Mines round in OreChip Casino, with six green pixel gems uncovered and a yellow Cash out button beside the board." loading="lazy"></div>
+        <article class="card" data-slug="orechip" data-genre="Casino" data-tags="Virtual coins only|Take your time" style="--game:#f5c451">
+          <div class="no"><span>G07</span><span class="genre">Casino</span></div>
           <div class="meta">
-            <span class="genre">Casino</span>
             <h3><a class="card-link" href="orechip/">OreChip Casino</a></h3>
             <p>Seventeen casino games played with free coins and no real money.</p>
             <p class="stats" data-stats-for="orechip" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Virtual%20coins%20only#games" data-tag="Virtual coins only">Virtual coins only</a></li><li><a href="?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="orechip/cover.jpg" width="1600" height="900" alt="A Mines round in OreChip Casino, with six green pixel gems uncovered and a yellow Cash out button beside the board." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="tessera" data-genre="Puzzle" data-tags="Thinking|Take your time|Endless">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/tessera</span></div><img src="tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div>
+        <article class="card" data-slug="tessera" data-genre="Puzzle" data-tags="Thinking|Take your time|Endless" style="--game:#a78bfa">
+          <div class="no"><span>G06</span><span class="genre">Puzzle</span></div>
           <div class="meta">
-            <span class="genre">Puzzle</span>
             <h3><a class="card-link" href="tessera/">Tessera</a></h3>
             <p>Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.</p>
             <p class="stats" data-stats-for="tessera" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="?tag=Endless#games" data-tag="Endless">Endless</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="kodeord" data-genre="Puzzle" data-tags="Thinking|Take your time|In Danish">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/kodeord</span></div><img src="kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy"></div>
+        <article class="card" data-slug="kodeord" data-genre="Puzzle" data-tags="Thinking|Take your time|In Danish" style="--game:#3fcf8e">
+          <div class="no"><span>G05</span><span class="genre">Puzzle</span></div>
           <div class="meta">
-            <span class="genre">Puzzle</span>
             <h3><a class="card-link" href="kodeord/">Kodeord</a></h3>
             <p>Guess the five-letter word in six tries. A new word every day, in Danish or English.</p>
             <p class="stats" data-stats-for="kodeord" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="zigwave" data-genre="Arcade" data-tags="One button|Reflexes|Unlockables">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/zigwave</span></div><img src="zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy"></div>
+        <article class="card" data-slug="zigwave" data-genre="Arcade" data-tags="One button|Reflexes|Unlockables" style="--game:#ff5c9a">
+          <div class="no"><span>G04</span><span class="genre">Arcade</span></div>
           <div class="meta">
-            <span class="genre">Arcade</span>
             <h3><a class="card-link" href="zigwave/">ZIGWAVE</a></h3>
             <p>Hold to rise, let go to dive, and thread a neon wave through tight corridors.</p>
             <p class="stats" data-stats-for="zigwave" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="flipklods" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/flipklods</span></div><img src="flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div>
+        <article class="card" data-slug="flipklods" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish" style="--game:#ffd23f">
+          <div class="no"><span>G03</span><span class="genre">Arcade</span></div>
           <div class="meta">
-            <span class="genre">Arcade</span>
             <h3><a class="card-link" href="flipklods/">Flipklods</a></h3>
             <p>The block runs by itself. You choose floor or ceiling.</p>
             <p class="stats" data-stats-for="flipklods" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="luftvejen" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/luftvejen</span></div><img src="luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line." loading="lazy"></div>
+        <article class="card" data-slug="luftvejen" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish" style="--game:#ff8a7a">
+          <div class="no"><span>G02</span><span class="genre">Arcade</span></div>
           <div class="meta">
-            <span class="genre">Arcade</span>
             <h3><a class="card-link" href="luftvejen/">Luftvejen</a></h3>
             <p>An endless road in the sky, and one button to drive it.</p>
             <p class="stats" data-stats-for="luftvejen" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="stale-light" data-genre="Strategy" data-tags="Thinking|Vs computer|3D">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/stale-light</span></div><img src="stale-light/cover.jpg" width="1600" height="900" alt="Low-poly blue and red warships trading fire around a lighthouse island on a bright turquoise sea." loading="lazy"></div>
+        <article class="card" data-slug="stale-light" data-genre="Strategy" data-tags="Thinking|Vs computer|3D" style="--game:#5ccfe6">
+          <div class="no"><span>G01</span><span class="genre">Strategy</span></div>
           <div class="meta">
-            <span class="genre">Strategy</span>
             <h3><a class="card-link" href="stale-light/">Stale Light</a></h3>
             <p>Command a fleet in a strait where light crawls at 70 knots. Every ship you see is seconds out of date, and every order takes time to arrive.</p>
             <p class="stats" data-stats-for="stale-light" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="?tag=Vs%20computer#games" data-tag="Vs computer">Vs computer</a></li><li><a href="?tag=3D#games" data-tag="3D">3D</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="stale-light/cover.jpg" width="1600" height="900" alt="Low-poly blue and red warships trading fire around a lighthouse island on a bright turquoise sea." loading="lazy"></div></div>
         </article>
       </div>
       <div class="empty" id="empty" hidden>
@@ -371,9 +314,19 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
     </section>
   </main>
 
-  <footer class="wrap foot">
-    <p>© 2026 Slowwater Games</p>
-    <p class="credit">Cowboy on this page: <a href="https://sketchfab.com/3d-models/cowboy-character-56e684ea55de4fef95e2c3b3c990e9ab" rel="noopener">“Cowboy Character”</a> by LittleLion, CC BY-NC 4.0</p>
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot-top">
+        <p>© 2026 Slowwater Games<br>Free games for the browser</p>
+        <nav class="foot-links" aria-label="More">
+          <a href="#games">All games</a>
+          <a href="blockhold/play/">Play newest</a>
+          <a href="#">Back to top</a>
+        </nav>
+      </div>
+      <p class="credit">Cowboy on this page: <a href="https://sketchfab.com/3d-models/cowboy-character-56e684ea55de4fef95e2c3b3c990e9ab" rel="noopener">“Cowboy Character”</a> by LittleLion, CC BY-NC 4.0</p>
+    </div>
+    <p class="giant" aria-hidden="true"><span data-fit style="--len:9">Slowwater</span></p>
   </footer>
   <script>
     // Filters: one type of game (the buttons), one tag (click any #tag), or both.
@@ -391,18 +344,18 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
       if (q.get('tag') && known(q.get('tag'))) state.tag = q.get('tag');
 
       function apply(remember) {
-        var all = state.genre === 'all' && !state.tag, shown = 0;
+        var shown = 0;
         chips.forEach(function (c) { c.setAttribute('aria-pressed', String(c.dataset.genre === state.genre)); });
-        grid.dataset.filter = all ? 'all' : 'some';
         cards.forEach(function (card) {
           var ok = (state.genre === 'all' || card.dataset.genre === state.genre) && (!state.tag || tagsOf(card).indexOf(state.tag) >= 0);
           card.hidden = !ok;
-          if (ok && !(all && card.classList.contains('is-featured'))) shown++;
+          if (ok) shown++;
         });
         tagChip.hidden = !state.tag;
         tagChip.querySelector('b').textContent = state.tag;
         tagChip.setAttribute('aria-label', 'Remove the tag ' + state.tag);
         empty.hidden = shown > 0;
+        grid.hidden = shown === 0;
         if (remember) {
           var p = new URLSearchParams();
           if (state.genre !== 'all') p.set('genre', state.genre);
@@ -425,100 +378,34 @@ h1{font-size:clamp(38px,5.4vw,62px);line-height:1.06;letter-spacing:-.035em}
       apply(false);
     })();
 
-    // The featured game's picture at the top: sparks drift up out of the ring, and the layers shift a little
-    // with the mouse, which gives it depth. Nothing moves for people who ask their device for less motion.
+    // Giant words fill the page's width exactly, like a poster, whatever the screen and font.
     (function () {
-      var wrap = document.querySelector('.hero-wrap[data-art]');
-      if (!wrap || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      var art = wrap.querySelector('.stage-art'), canvas = wrap.querySelector('.sparks');
-      var ctx = canvas.getContext && canvas.getContext('2d');
-      if (!art || !ctx) return;
-      var hex = (wrap.style.getPropertyValue('--hero') || '#0a428f').trim();
-      var base = [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16) || 0; });
-      var mix = function (to, t) { return 'rgb(' + base.map(function (v, i) { return Math.round(v + (to[i] - v) * t); }).join(',') + ')'; };
-      var colours = [mix([255, 255, 255], 0.9), mix([150, 200, 255], 0.75), mix([90, 160, 255], 0.55)];
-      var W = 0, H = 0, dpr = 1, ring = { x: 0, y: 0, r: 1 }, sparks = [], dust = [];
-      var running = false, onScreen = true, last = 0;
-      var aim = { x: 0, y: 0 }, now = { x: 0, y: 0 };
-
-      function measure() {
-        var box = wrap.getBoundingClientRect(), s = art.getBoundingClientRect();
-        dpr = Math.min(window.devicePixelRatio || 1, 2);
-        W = box.width; H = box.height;
-        canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-        ring = { x: s.left - box.left + s.width / 2, y: s.top - box.top + s.height * 0.46, r: s.width * 0.37 };
-        var want = Math.round(Math.min(90, Math.max(30, W * H / 9000)));
-        while (sparks.length < want) sparks.push(spark({}, true));
-        sparks.length = want;
-        while (dust.length < 14) dust.push(mote({}, true));
-      }
-      // Most sparks leave from the ring; a few start anywhere, like dust in the light.
-      function spark(p, early) {
-        if (Math.random() < 0.78) {
-          var a = Math.random() * Math.PI * 2, d = ring.r * (0.75 + Math.random() * 0.4);
-          p.x = ring.x + Math.cos(a) * d; p.y = ring.y + Math.sin(a) * d;
-        } else { p.x = Math.random() * W; p.y = H * (0.25 + Math.random() * 0.75); }
-        p.vx = (Math.random() - 0.5) * 16; p.vy = -(14 + Math.random() * 40);
-        p.size = 0.6 + Math.random() * (Math.random() < 0.15 ? 1.8 : 1.1);
-        p.max = 2.5 + Math.random() * 4; p.life = early ? Math.random() * p.max : 0;
-        p.tw = Math.random() * 6.28; p.c = colours[Math.floor(Math.random() * colours.length)];
-        return p;
-      }
-      // Thin streaks drifting slowly down, as in a dusty beam of light
-      function mote(p, early) {
-        p.x = Math.random() * W; p.y = early ? Math.random() * H : -40;
-        p.len = 18 + Math.random() * 42; p.v = 6 + Math.random() * 10; p.a = 0.05 + Math.random() * 0.09;
-        return p;
-      }
-      function frame(t) {
-        if (!running) return;
-        var dt = Math.min(0.05, last ? (t - last) / 1000 : 0.016); last = t;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, W, H);
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = colours[0]; ctx.lineWidth = 1;
-        for (var j = 0; j < dust.length; j++) {
-          var m = dust[j];
-          m.y += m.v * dt; m.x -= m.v * 0.55 * dt;
-          if (m.y > H + 40 || m.x < -60) mote(m, false);
-          ctx.globalAlpha = m.a;
-          ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.len * 0.55, m.y + m.len); ctx.stroke();
-        }
-        for (var i = 0; i < sparks.length; i++) {
-          var p = sparks[i];
-          p.life += dt;
-          if (p.life > p.max) spark(p, false);
-          p.vx += Math.sin(t / 900 + p.tw) * 5 * dt;
-          p.x += p.vx * dt; p.y += p.vy * dt;
-          var a = Math.sin(Math.PI * p.life / p.max) * (0.6 + 0.4 * Math.sin(t / 170 + p.tw));
-          ctx.fillStyle = p.c;
-          ctx.globalAlpha = a * 0.16; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2.6, 0, 6.2832); ctx.fill();
-          ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 6.2832); ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-        now.x += (aim.x - now.x) * 0.07; now.y += (aim.y - now.y) * 0.07;
-        art.style.setProperty('--mx', now.x.toFixed(3));
-        art.style.setProperty('--my', now.y.toFixed(3));
-        requestAnimationFrame(frame);
-      }
-      function update() {
-        var go = onScreen && !document.hidden;
-        if (go && !running) { running = true; last = 0; requestAnimationFrame(frame); }
-        else if (!go) running = false;
-      }
-      if (matchMedia('(pointer: fine)').matches) {
-        wrap.addEventListener('pointermove', function (e) {
-          var s = art.getBoundingClientRect();
-          aim.x = Math.max(-1, Math.min(1, (e.clientX - s.left - s.width / 2) / (s.width / 2)));
-          aim.y = Math.max(-1, Math.min(1, (e.clientY - s.top - s.height / 2) / (s.height / 2)));
+      var words = [].slice.call(document.querySelectorAll('[data-fit]'));
+      function fit() {
+        words.forEach(function (w) {
+          var box = w.parentNode, cs = getComputedStyle(box);
+          var room = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+          if (room <= 0 || room === w._room) return;
+          w.style.fontSize = '100px';
+          var width = w.getBoundingClientRect().width;
+          if (width > 0) { w.style.fontSize = (100 * room / width).toFixed(2) + 'px'; w._room = room; }
         });
-        wrap.addEventListener('pointerleave', function () { aim.x = aim.y = 0; });
       }
-      measure();
-      if (window.ResizeObserver) new ResizeObserver(measure).observe(wrap); else window.addEventListener('resize', measure);
-      if (window.IntersectionObserver) new IntersectionObserver(function (e) { onScreen = e[0].isIntersecting; update(); }).observe(wrap);
-      document.addEventListener('visibilitychange', update);
-      update();
+      fit();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { words.forEach(function (w) { w._room = 0; }); fit(); });
+      window.addEventListener('resize', fit);
+    })();
+
+    // The top shifts a little with the mouse, which gives the wall and the character some depth.
+    (function () {
+      var hero = document.querySelector('.hero');
+      if (!hero || !matchMedia('(pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      hero.addEventListener('pointermove', function (e) {
+        var r = hero.getBoundingClientRect();
+        hero.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 2 - 1).toFixed(3));
+        hero.style.setProperty('--my', ((e.clientY - r.top) / r.height * 2 - 1).toFixed(3));
+      });
+      hero.addEventListener('pointerleave', function () { hero.style.setProperty('--mx', 0); hero.style.setProperty('--my', 0); });
     })();
   </script>
 

@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en" style="--accent:#ff8a7a">
+<html lang="en" style="--game:#ff8a7a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Luftvejen · Slowwater Games</title>
 <meta name="description" content="An endless road in the sky, and one button to drive it.">
-<meta name="theme-color" content="#09090b">
+<meta name="theme-color" content="#111816">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Slowwater Games">
 <meta property="og:title" content="Luftvejen · Slowwater Games">
@@ -13,130 +13,145 @@
 <meta property="og:url" content="https://v13games.github.io/luftvejen/">
 <meta property="og:image" content="https://v13games.github.io/luftvejen/cover.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111816'/%3E%3Cpath d='M5 13c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0M5 20.5c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0' fill='none' stroke='%23bfffa8' stroke-width='2.6'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@200;400;500;700&family=Inter+Tight:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="../site.css">
 <style>
-/* A game's own front page. The accent and the soft glow behind the top both come from the game. */
-.glow{position:absolute;inset:0 0 auto;height:min(820px,110vh);pointer-events:none;overflow:hidden;
-  -webkit-mask-image:linear-gradient(#000 35%,transparent 100%);mask-image:linear-gradient(#000 35%,transparent 100%)}
-.glow::before{content:"";position:absolute;inset:-12%;background:url(cover.jpg) center/cover no-repeat;filter:blur(80px) saturate(1.25);opacity:.26}
+/* A game's own front page: its picture across the whole top with its name outlined over it, then a spec list
+   beside the intro, the details, and more games. The game's own colour is the small square by its number. */
+.ghero{position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:clamp(440px,84svh,900px);overflow:hidden;background:var(--ink)}
+.ghero-img{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;animation:settle 1.6s cubic-bezier(.2,.8,.2,1) both}
+.ghero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:
+  linear-gradient(180deg,rgba(17,24,22,.94) 0,rgba(17,24,22,.5) 14%,rgba(17,24,22,.12) 34%,rgba(17,24,22,.1) 50%,rgba(17,24,22,.82) 80%,var(--bg) 100%),
+  repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
+.ghero-in{margin-top:auto;padding-top:48px}
+.ghero .giant{margin-top:clamp(16px,2.4vw,32px);animation:fade 1.2s ease .1s both}
+.ghero .giant [data-fit]{filter:drop-shadow(0 0 2px rgba(17,24,22,.7)) drop-shadow(0 0 16px rgba(191,255,168,.2))}
+.play-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.play-row .btn.ghost{background:rgba(17,24,22,.6);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.btn.big{padding:16px 26px;font-size:14px}
+@keyframes settle{from{transform:scale(1.06);opacity:.4}}
+@keyframes fade{from{opacity:0}}
 
-.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:4px 0 0;list-style:none;font-size:14px;color:var(--dim)}
-.crumbs li+li::before{content:"/";margin-right:6px;color:#4a4a52}
-.crumbs a{color:var(--muted);text-decoration:none}
-.crumbs a:hover{color:var(--text)}
-.crumbs [aria-current]{color:var(--text)}
+.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0;padding:0;list-style:none}
+.crumbs li+li::before{content:"/";margin-right:8px;color:var(--dim)}
+.crumbs a{text-decoration:none;color:var(--muted)}
+.crumbs a:hover{color:var(--lime);text-decoration:underline;text-underline-offset:4px}
+.crumbs [aria-current]{color:var(--white)}
 
-.ghero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(28px,5vw,60px);align-items:center;padding-block:clamp(22px,4vw,44px) clamp(40px,6vw,72px)}
-.gcover{position:relative;display:block;padding:10px;background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:18px;text-decoration:none;transition:border-color .2s}
-.gcover:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
-.gcover .frame{border-radius:10px}
-.playmark{position:absolute;left:50%;top:calc(50% + 15px);width:72px;height:72px;margin:-36px 0 0 -36px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--accent) 92%,transparent);color:var(--accent-ink);box-shadow:0 10px 40px rgba(0,0,0,.45);transition:transform .2s}
-.gcover:hover .playmark{transform:scale(1.07)}
-.eyebrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;color:var(--accent);font-size:14px;font-weight:600}
-.eyebrow a{color:inherit;text-decoration:none}
-.eyebrow a:hover{text-decoration:underline;text-underline-offset:3px}
-h1{font-size:clamp(40px,5.6vw,64px);line-height:1.04;letter-spacing:-.035em;overflow-wrap:anywhere}
-.lede{margin:16px 0 0;color:var(--muted);font-size:clamp(17px,1.5vw,19px);line-height:1.6;max-width:32em}
-.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
-.btn.big{padding:13px 26px;font-size:17px}
-.note{margin:14px 0 0;color:var(--dim);font-size:14px}
-.gintro .tags{margin-top:18px;padding:0}
+/* the intro: a spec list on the left, right-aligned, and the blurb in big mono capitals */
+.gintro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:clamp(24px,4vw,64px);padding-block:clamp(40px,6vw,88px)}
+.spec{margin:0;text-align:right;color:var(--white);font:400 12.5px/1.9 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
+.spec-head{margin:0 0 6px;color:var(--lime)}
+.spec-head::before{content:"";display:inline-block;width:8px;height:8px;margin-right:9px;background:var(--game);vertical-align:1px}
+.spec dl{margin:0}
+.spec dt{display:inline;color:var(--dim)}
+.spec dt::after{content:" / "}
+.spec dd{display:inline;margin:0}
+.spec a{text-decoration:none}
+.spec a:hover{text-decoration:underline;text-underline-offset:4px}
+.big-lede{margin:0;max-width:40em;font:700 clamp(17px,1.55vw,22px)/1.45 var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.gintro .new{margin-bottom:16px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.note{margin:16px 0 0;color:var(--muted);font-size:15px}
+.gstats{margin-top:12px}
+.gintro .tags{margin-top:12px;padding:0}
 
-/* a divider as wide as the text, not the page padding */
-.divided::before{content:"";position:absolute;top:0;left:max(var(--gutter),env(safe-area-inset-left,0px));right:max(var(--gutter),env(safe-area-inset-right,0px));height:1px;background:var(--line)}
-.details{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start;padding-block:clamp(36px,5vw,56px)}
-.details h2{font-size:20px;letter-spacing:-.015em;margin-bottom:14px}
-.col-main{display:grid;gap:clamp(32px,4vw,44px)}
-.col-main p{margin:0 0 12px;color:#d4d4d8;font-size:17px;line-height:1.7;max-width:38em}
+/* details: about and how to play on the left, controls and credits on the right */
+.details{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:clamp(28px,5vw,80px);align-items:start;padding-bottom:clamp(40px,6vw,88px)}
+.details h2,.panel h2{margin:0 0 18px;padding-top:14px;border-top:1px dashed var(--line-2);font:400 12.5px/1.5 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
+.col-main{display:grid;gap:clamp(36px,4.6vw,56px)}
+.col-main p{margin:0 0 14px;max-width:40em;color:var(--muted);font-size:17px;line-height:1.75}
 .col-main section{scroll-margin-top:20px}
-.steps{display:grid;gap:12px;margin:0;padding:0;list-style:none;counter-reset:step}
-.steps li{counter-increment:step;display:grid;grid-template-columns:32px minmax(0,1fr);gap:14px;align-items:start;color:#d4d4d8;line-height:1.6}
-.steps li::before{content:counter(step);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-weight:600;font-size:14px}
-.steps li span{padding-top:4px}
-.col-side{display:grid;gap:16px}
-.panel{padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
-.panel h2{font-size:16px;margin-bottom:14px}
-.panel dl{display:grid;gap:14px;margin:0}
-.panel dt{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:600;font-size:14px}
-.panel dt svg{color:var(--accent);flex:none}
-.panel dd{margin:4px 0 0;color:var(--muted);font-size:15px;line-height:1.55}
-.facts div{display:grid;grid-template-columns:minmax(84px,.6fr) minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px solid var(--line)}
-.facts div:first-child{padding-top:0;border-top:0}
-.facts dt{color:var(--dim);font-weight:500}
-.facts dd{margin:0;color:var(--text)}
-.btn.wide{width:100%;padding:12px 18px}
+.steps{margin:0;padding:0;list-style:none;counter-reset:step}
+.steps li{counter-increment:step;display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;padding-block:14px;border-top:1px solid var(--line);color:var(--muted);font-size:16.5px;line-height:1.6}
+.steps li:first-child{border-top:0;padding-top:0}
+.steps li::before{content:counter(step,decimal-leading-zero);padding-top:3px;color:var(--lime);font:400 13px/1.5 var(--mono);letter-spacing:var(--track)}
+.col-side{display:grid;gap:clamp(28px,3.6vw,44px)}
+.panel dl{display:grid;gap:16px;margin:0}
+.panel dt{display:flex;align-items:center;gap:10px;color:var(--lime);font:400 12px/1.5 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
+.panel dt svg{flex:none}
+.panel dd{margin:6px 0 0;color:var(--muted);font-size:15.5px;line-height:1.6}
+.btn.wide{width:100%;padding:16px 20px}
 /* models and art by other people, with their licenses */
-.credits{list-style:none;margin:0;padding:0;display:grid;gap:12px;font-size:14px;line-height:1.45;color:var(--muted)}
-.credits a{color:var(--text);text-underline-offset:3px;text-decoration-color:var(--line-2)}
-.credits a:hover{text-decoration-color:var(--accent)}
-.credits span{display:block;color:var(--dim);font-size:12.5px}
+.credits{list-style:none;margin:0;padding:0;display:grid;gap:14px;color:var(--muted);font-size:14.5px;line-height:1.5}
+.credits a{color:var(--lime);text-underline-offset:3px;text-decoration-thickness:1px}
+.credits a:hover{color:var(--white)}
+.credits span{display:block;color:var(--dim);font:400 11.5px/1.6 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
 
 /* live numbers under the Play button, and the rating and ideas box */
-.gstats{margin-top:12px;font-size:14px}
-.rate[hidden]{display:none}
 .stars{display:flex;gap:4px;margin:-4px 0 6px}
-.stars button{width:44px;height:44px;padding:0;border:0;background:none;color:#3a3a42;font-size:34px;line-height:1;cursor:pointer;transition:color .12s,transform .12s}
-.stars button.on,.stars button.hover{color:var(--accent)}
+.stars button{width:44px;height:44px;padding:0;border:0;background:none;color:rgba(191,255,168,.22);font-size:32px;line-height:1;cursor:pointer;transition:color .12s,transform .12s}
+.stars button.on,.stars button.hover{color:var(--lime)}
 .stars button:hover{transform:scale(1.08)}
-.rate .rate-note{margin:0 0 22px;color:var(--muted);font-size:14px}
-.idea{display:grid;gap:10px;max-width:38em}
-.idea label{font-weight:600;font-size:15px}
-.idea textarea{width:100%;min-height:96px;resize:vertical;padding:12px 14px;border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--text);font:400 16px/1.5 var(--font)}
-.idea textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.rate .rate-note{margin:0 0 22px;font-size:14px}
+.idea{display:grid;gap:10px;max-width:40em}
+.idea label{font:400 12.5px/1.5 var(--mono);letter-spacing:var(--track);text-transform:uppercase;color:var(--lime)}
+.idea textarea{width:100%;min-height:104px;resize:vertical;padding:12px 14px;border:1px solid var(--line-2);border-radius:0;background:var(--panel);color:var(--white);font:400 16px/1.5 var(--sans)}
+.idea textarea:focus{outline:1px solid var(--lime);outline-offset:2px;border-color:var(--lime)}
 .idea-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.idea .count{color:var(--dim);font-size:13px}
+.idea .count{color:var(--dim);font:400 12px/1.5 var(--mono)}
 .idea .btn[disabled]{opacity:.6;cursor:wait}
-.rate .idea-status{margin:0;min-height:1.4em;color:var(--text);font-size:14px}
+.rate .idea-status{margin:0;min-height:1.4em;color:var(--white);font-size:14px}
 .rate .idea-private{margin:0;color:var(--dim);font-size:13px}
-@media (prefers-reduced-motion:reduce){.stars button{transition:none}.stars button:hover{transform:none}}
 
-.more{padding-block:clamp(36px,5vw,56px) clamp(56px,8vw,88px)}
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:clamp(36px,5vw,52px)}
-.pg{display:grid;gap:2px;padding:16px 20px;background:var(--panel);border:1px solid var(--line);border-radius:14px;text-decoration:none;transition:border-color .2s;min-width:0}
-.pg:hover{border-color:var(--line-2)}
-.pg span{color:var(--dim);font-size:13px;font-weight:500}
-.pg b{font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pg.next{text-align:right}
-.see-all{margin-left:auto;color:var(--muted);font-size:15px;font-weight:500;text-decoration:none;white-space:nowrap}
-.see-all:hover{color:var(--text)}
+/* previous and next game, then more games */
+.pager{display:grid;grid-template-columns:1fr 1fr;margin-bottom:clamp(44px,6vw,80px);border-top:1px dashed var(--line-2);border-bottom:1px dashed var(--line-2)}
+.pg{display:grid;gap:8px;min-width:0;padding-block:22px 24px;text-decoration:none;transition:background-color .2s}
+.pg:hover{background:rgba(191,255,168,.035)}
+.pg+.pg{padding-left:var(--colgap);border-left:1px dashed var(--line-2)}
+.pg span{color:var(--dim)}
+.pg b{font:200 clamp(22px,2.4vw,34px)/1.15 var(--mono);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.2em}
+.pg:hover b{color:var(--white)}
+.pg.next{text-align:right;padding-right:0}
+.see-all{color:var(--lime);text-decoration:none}
+.see-all:hover{text-decoration:underline;text-underline-offset:4px}
 
-@media (max-width:900px){.ghero,.details{grid-template-columns:minmax(0,1fr)}.ghero{gap:24px}}
-@media (max-width:520px){.pager{grid-template-columns:minmax(0,1fr)}.pg.next{text-align:left}.playmark{width:60px;height:60px;margin:-30px 0 0 -30px}}
-@media (prefers-reduced-motion:reduce){.gcover,.playmark,.pg{transition:none}.gcover:hover .playmark{transform:none}}
+@media (max-width:900px){.gintro,.details{grid-template-columns:minmax(0,1fr)}.spec{order:2;text-align:left}}
+@media (max-width:560px){.pager{grid-template-columns:minmax(0,1fr)}.pg+.pg{padding-left:0;border-left:0;border-top:1px dashed var(--line-2)}.pg.next{text-align:left}.play-row .btn{flex:1 1 auto}}
+@media (prefers-reduced-motion:reduce){.ghero-img,.ghero .giant{animation:none}.stars button,.pg{transition:none}.stars button:hover{transform:none}}
 </style>
 </head>
 <body>
   <!-- This page is generated from src/game.html and games.json. Run: node build.js -->
-  <div class="glow" aria-hidden="true"></div>
-  <header class="wrap nav">
-    <a class="brand" href="../"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M6 13c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0M6 20c3.3-3.5 6.7-3.5 10 0s6.7 3.5 10 0' fill='none' stroke='%23f2b661' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" width="28" height="28" alt=""><span>Slowwater Games</span></a>
-    <nav class="nav-links" aria-label="Main">
-      <a class="link" href="../#games">All games</a>
-      <a class="btn" href="play/">Play</a>
-    </nav>
-  </header>
-
   <main>
-    <nav class="wrap crumbs" aria-label="You are here">
-      <ol><li><a href="../">Games</a></li><li><a href="../?genre=Arcade#games">Arcade</a></li><li aria-current="page">Luftvejen</li></ol>
-    </nav>
-
-    <section class="wrap ghero">
-      <a class="gcover" href="play/" aria-label="Play Luftvejen">
-        <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/luftvejen/play</span></div><img src="../luftvejen/cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line."></div>
-        <span class="playmark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>
-      </a>
-      <div class="gintro">
-        <p class="eyebrow"><a href="../?genre=Arcade#games">Arcade</a></p>
-        <h1>Luftvejen</h1>
-        <p class="lede">An endless road in the sky, and one button to drive it.</p>
-        <div class="actions">
-          <a class="btn big" href="play/"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Play now</a>
+    <section class="ghero">
+      <img class="ghero-img" src="cover.jpg" width="1600" height="900" alt="A small red low-poly car on a zigzag road through a blue sky, just past a flagman at the start line." fetchpriority="high">
+      <header class="wrap nav">
+        <a class="brand" href="../"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111816'/%3E%3Cpath d='M5 13c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0M5 20.5c3.5-3.6 7.5-3.6 11 0s7.5 3.6 11 0' fill='none' stroke='%23bfffa8' stroke-width='2.6'/%3E%3C/svg%3E" width="24" height="24" alt=""><span>Slowwater Games</span></a>
+        <nav class="nav-links" aria-label="Main">
+          <a class="link" href="../#games">All games</a>
+          <a class="go" href="play/">Play</a>
+        </nav>
+      </header>
+      <nav class="wrap crumbs label" aria-label="You are here">
+        <ol><li><a href="../">Games</a></li><li><a href="../?genre=Arcade#games">Arcade</a></li><li aria-current="page">Luftvejen</li></ol>
+      </nav>
+      <div class="wrap ghero-in">
+        <div class="play-row">
+          <a class="btn big" href="play/"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16l14-8z" fill="currentColor"/></svg>Play Luftvejen</a>
           <a class="btn ghost big" href="#how">How to play</a>
+        </div>
+      </div>
+      <h1 class="giant"><span data-fit style="--len:9">Luftvejen</span></h1>
+    </section>
+
+    <section class="wrap gintro" aria-label="About Luftvejen">
+      <div class="spec">
+        <p class="spec-head">G02 / Luftvejen</p>
+        <dl>
+          <div><dt>Type</dt><dd><a href="../?genre=Arcade#games">Arcade</a></dd></div>
+          <div><dt>Players</dt><dd>1 at a time, with several players on one device</dd></div><div><dt>A run</dt><dd>As long as you stay on the road</dd></div><div><dt>Saved</dt><dd>Records, coins and the leaderboard, on this device</dd></div><div><dt>Language</dt><dd>Danish</dd></div>
+        </dl>
+      </div>
+      <div>
+        
+        <p class="big-lede">An endless road in the sky, and one button to drive it.</p>
+        <div class="actions">
+          <a class="btn" href="play/"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16l14-8z" fill="currentColor"/></svg>Play now</a>
+          <a class="btn ghost" href="#how">How to play</a>
         </div>
         <p class="note">Free, and it runs right in your browser. The game is in Danish.</p>
         <p class="stats gstats" data-stats-for="luftvejen" data-stats-long="1" hidden></p>
@@ -144,7 +159,7 @@ h1{font-size:clamp(40px,5.6vw,64px);line-height:1.04;letter-spacing:-.035em;over
       </div>
     </section>
 
-    <div class="wrap details divided">
+    <div class="wrap details">
       <div class="col-main">
         <section aria-labelledby="about-title">
           <h2 id="about-title">About the game</h2>
@@ -182,66 +197,92 @@ h1{font-size:clamp(40px,5.6vw,64px);line-height:1.04;letter-spacing:-.035em;over
         <section class="panel" aria-labelledby="controls-title">
           <h2 id="controls-title">Controls</h2>
           <dl>
-            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Computer</dt><dd>Hold Space to turn right, let go to turn left.</dd></div>
-            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Phone and tablet</dt><dd>Hold a finger on the screen to turn right, lift it to turn left.</dd></div>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="12"/><path d="M8 20h8M12 16v4"/></svg>Computer</dt><dd>Hold Space to turn right, let go to turn left.</dd></div>
+            <div><dt><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19"/><path d="M11 18h2"/></svg>Phone and tablet</dt><dd>Hold a finger on the screen to turn right, lift it to turn left.</dd></div>
           </dl>
-        </section>
-        <section class="panel" aria-labelledby="facts-title">
-          <h2 id="facts-title">Good to know</h2>
-          <dl class="facts"><div><dt>Players</dt><dd>1 at a time, with several players on one device</dd></div><div><dt>A run</dt><dd>As long as you stay on the road</dd></div><div><dt>Saved</dt><dd>Records, coins and the leaderboard, on this device</dd></div><div><dt>Language</dt><dd>Danish</dd></div></dl>
         </section>
         <a class="btn wide" href="play/">Play Luftvejen</a>
 
       </aside>
     </div>
 
-    <section class="wrap more divided" aria-labelledby="more-title">
+    <section class="wrap more" aria-labelledby="more-title">
       <nav class="pager" aria-label="Previous and next game">
-        <a class="pg" href="../flipklods/" rel="prev"><span>&lsaquo; Previous game</span><b>Flipklods</b></a>
-        <a class="pg next" href="../stale-light/" rel="next"><span>Next game &rsaquo;</span><b>Stale Light</b></a>
+        <a class="pg" href="../flipklods/" rel="prev"><span class="label">&lsaquo; Previous game / G03</span><b>Flipklods</b></a>
+        <a class="pg next" href="../stale-light/" rel="next"><span class="label">G01 / Next game &rsaquo;</span><b>Stale Light</b></a>
       </nav>
       <div class="title-row">
         <h2 id="more-title"><span>//</span>More games</h2>
-        <a class="see-all" href="../#games">See all 13 &rarr;</a>
+        <a class="see-all label" href="../#games">See all 13 &rarr;</a>
       </div>
+      <div class="list-head label" aria-hidden="true"><span>No:</span><span>Title:</span><span>Picture:</span></div>
       <div class="grid">
-        <article class="card" data-slug="flipklods" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/flipklods</span></div><img src="../flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div>
+        <article class="card" data-slug="flipklods" data-genre="Arcade" data-tags="One button|Endless|Reflexes|In Danish" style="--game:#ffd23f">
+          <div class="no"><span>G03</span><span class="genre">Arcade</span></div>
           <div class="meta">
-            <span class="genre">Arcade</span>
             <h3><a class="card-link" href="../flipklods/">Flipklods</a></h3>
             <p>The block runs by itself. You choose floor or ceiling.</p>
             <p class="stats" data-stats-for="flipklods" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="../?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="../?tag=Endless#games" data-tag="Endless">Endless</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="../flipklods/cover.jpg" width="1600" height="900" alt="A yellow block running upside down along the ceiling of a dark tunnel, with gaps in the teal floor and ceiling." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="zigwave" data-genre="Arcade" data-tags="One button|Reflexes|Unlockables">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/zigwave</span></div><img src="../zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy"></div>
+        <article class="card" data-slug="zigwave" data-genre="Arcade" data-tags="One button|Reflexes|Unlockables" style="--game:#ff5c9a">
+          <div class="no"><span>G04</span><span class="genre">Arcade</span></div>
           <div class="meta">
-            <span class="genre">Arcade</span>
             <h3><a class="card-link" href="../zigwave/">ZIGWAVE</a></h3>
             <p>Hold to rise, let go to dive, and thread a neon wave through tight corridors.</p>
             <p class="stats" data-stats-for="zigwave" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="../?tag=One%20button#games" data-tag="One button">One button</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=Unlockables#games" data-tag="Unlockables">Unlockables</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="../zigwave/cover.jpg" width="1600" height="900" alt="A neon wave bursting into sparks inside a glowing red zigzag corridor." loading="lazy"></div></div>
         </article>
-        <article class="card" data-slug="blockhold" data-genre="Strategy" data-tags="3D|Reflexes|Thinking">
-          <div class="frame"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>v13games.github.io/blockhold</span></div><img src="../blockhold/cover.jpg" width="1600" height="900" alt="Blockhold in the middle of a wave: a blocky blue-and-yellow hero aims a blaster across green grass while chunky towers fire at colourful monsters walking a sandy lane." loading="lazy"></div>
+        <article class="card" data-slug="blockhold" data-genre="Strategy" data-tags="3D|Reflexes|Thinking" style="--game:#2f80ed">
+          <div class="no"><span>G13</span><span class="genre">Strategy</span></div>
           <div class="meta">
-            <span class="genre">Strategy</span>
             <h3><a class="card-link" href="../blockhold/">Blockhold</a></h3>
             <p>Defend the citadel on foot: shoot, grab coins, build and upgrade towers, and run between them to reload and repair. Hold out for 20 waves.</p>
             <p class="stats" data-stats-for="blockhold" hidden></p>
             <ul class="tags" aria-label="Tags"><li><a href="../?tag=3D#games" data-tag="3D">3D</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=Thinking#games" data-tag="Thinking">Thinking</a></li></ul>
           </div>
+          <div class="pic"><div class="frame"><img src="../blockhold/cover.jpg" width="1600" height="900" alt="Blockhold in the middle of a wave: a blocky blue-and-yellow hero aims a blaster across green grass while chunky towers fire at colourful monsters walking a sandy lane." loading="lazy"></div></div>
         </article>
       </div>
     </section>
   </main>
 
-  <footer class="wrap foot">
-    <p>© 2026 Slowwater Games</p>
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot-top">
+        <p>© 2026 Slowwater Games<br>Free games for the browser</p>
+        <nav class="foot-links" aria-label="More">
+          <a href="../#games">All games</a>
+          <a href="play/">Play Luftvejen</a>
+          <a href="#">Back to top</a>
+        </nav>
+      </div>
+    </div>
+    <p class="giant" aria-hidden="true"><span data-fit style="--len:9">Slowwater</span></p>
   </footer>
+  <script>
+    // Giant words fill the page's width exactly, like a poster, whatever the screen and font.
+    (function () {
+      var words = [].slice.call(document.querySelectorAll('[data-fit]'));
+      function fit() {
+        words.forEach(function (w) {
+          var box = w.parentNode, cs = getComputedStyle(box);
+          var room = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+          if (room <= 0 || room === w._room) return;
+          w.style.fontSize = '100px';
+          var width = w.getBoundingClientRect().width;
+          if (width > 0) { w.style.fontSize = (100 * room / width).toFixed(2) + 'px'; w._room = room; }
+        });
+      }
+      fit();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { words.forEach(function (w) { w._room = 0; }); fit(); });
+      window.addEventListener('resize', fit);
+    })();
+  </script>
 
 </body>
 </html>
