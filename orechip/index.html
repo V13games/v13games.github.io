@@ -54,10 +54,9 @@
 .spec a:hover{text-decoration:underline;text-underline-offset:4px}
 .big-lede{margin:0;max-width:40em;font:700 clamp(17px,1.55vw,22px)/1.45 var(--mono);letter-spacing:.04em;text-transform:uppercase}
 .gintro .new{margin-bottom:16px}
-.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
 .note{margin:16px 0 0;color:var(--muted);font-size:15px}
-.gstats{margin-top:12px}
-.gintro .tags{margin-top:12px;padding:0}
+.gstats{margin-top:16px}
+.gintro .tags{margin-top:20px;padding:0}
 
 /* details: about and how to play on the left, controls and credits on the right */
 .details{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:clamp(28px,5vw,80px);align-items:start;padding-bottom:clamp(40px,6vw,88px)}
@@ -149,11 +148,7 @@
       <div>
         
         <p class="big-lede">Seventeen casino games played with free coins and no real money.</p>
-        <div class="actions">
-          <a class="btn" href="play/"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16l14-8z" fill="currentColor"/></svg>Play now</a>
-          <a class="btn ghost" href="#how">How to play</a>
-        </div>
-        <p class="note">Free, and it runs right in your browser.</p>
+        
         <p class="stats gstats" data-stats-for="orechip" data-stats-long="1" hidden></p>
         <ul class="tags" aria-label="Tags"><li><a href="../?tag=Virtual%20coins%20only#games" data-tag="Virtual coins only">Virtual coins only</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li></ul>
       </div>
@@ -215,37 +210,33 @@
         <h2 id="more-title"><span>//</span>More games</h2>
         <a class="see-all label" href="../#games">See all 13 &rarr;</a>
       </div>
-      <div class="list-head label" aria-hidden="true"><span>No:</span><span>Title:</span><span>Picture:</span></div>
       <div class="grid">
         <article class="card" data-slug="firnline" data-genre="Sports" data-tags="3D|Take your time|Reflexes|Multiplayer" style="--game:#ff5a1f">
-          <div class="no"><span>G11</span><span class="genre">Sports</span></div>
+          <div class="frame"><img src="../firnline/cover.jpg" width="1600" height="900" alt="A skier racing down a snowy valley between mountains in Firnline" loading="lazy"></div>
           <div class="meta">
+            <span class="no">G11 / Sports</span>
             <h3><a class="card-link" href="../firnline/">Firnline</a></h3>
-            <p>Carve down snowy mountains on skis or a snowboard, throw layouts, corks and grabs, chase medals in missions, and ride with friends online.</p>
-            <p class="stats" data-stats-for="firnline" hidden></p>
-            <ul class="tags" aria-label="Tags"><li><a href="../?tag=3D#games" data-tag="3D">3D</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="../?tag=Reflexes#games" data-tag="Reflexes">Reflexes</a></li><li><a href="../?tag=Multiplayer#games" data-tag="Multiplayer">Multiplayer</a></li></ul>
+            <a class="play" href="../firnline/play/" aria-label="Play Firnline"><svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18l16-9z" fill="currentColor"/></svg>Play</a>
           </div>
-          <div class="pic"><div class="frame"><img src="../firnline/cover.jpg" width="1600" height="900" alt="A skier racing down a snowy valley between mountains in Firnline" loading="lazy"></div></div>
+          <p class="stats" data-stats-for="firnline" hidden></p>
         </article>
         <article class="card" data-slug="tessera" data-genre="Puzzle" data-tags="Thinking|Take your time|Endless" style="--game:#a78bfa">
-          <div class="no"><span>G06</span><span class="genre">Puzzle</span></div>
+          <div class="frame"><img src="../tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div>
           <div class="meta">
+            <span class="no">G06 / Puzzle</span>
             <h3><a class="card-link" href="../tessera/">Tessera</a></h3>
-            <p>Fit blocks onto an 8×8 board and fill whole rows or columns to clear them.</p>
-            <p class="stats" data-stats-for="tessera" hidden></p>
-            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="../?tag=Endless#games" data-tag="Endless">Endless</a></li></ul>
+            <a class="play" href="../tessera/play/" aria-label="Play Tessera"><svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18l16-9z" fill="currentColor"/></svg>Play</a>
           </div>
-          <div class="pic"><div class="frame"><img src="../tessera/cover.jpg" width="1600" height="900" alt="A neon block puzzle board full of glowing coloured blocks, with one line lit up and about to clear." loading="lazy"></div></div>
+          <p class="stats" data-stats-for="tessera" hidden></p>
         </article>
         <article class="card" data-slug="kodeord" data-genre="Puzzle" data-tags="Thinking|Take your time|In Danish" style="--game:#3fcf8e">
-          <div class="no"><span>G05</span><span class="genre">Puzzle</span></div>
+          <div class="frame"><img src="../kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy"></div>
           <div class="meta">
+            <span class="no">G05 / Puzzle</span>
             <h3><a class="card-link" href="../kodeord/">Kodeord</a></h3>
-            <p>Guess the five-letter word in six tries. A new word every day, in Danish or English.</p>
-            <p class="stats" data-stats-for="kodeord" hidden></p>
-            <ul class="tags" aria-label="Tags"><li><a href="../?tag=Thinking#games" data-tag="Thinking">Thinking</a></li><li><a href="../?tag=Take%20your%20time#games" data-tag="Take your time">Take your time</a></li><li><a href="../?tag=In%20Danish#games" data-tag="In Danish">In Danish</a></li></ul>
+            <a class="play" href="../kodeord/play/" aria-label="Play Kodeord"><svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18l16-9z" fill="currentColor"/></svg>Play</a>
           </div>
-          <div class="pic"><div class="frame"><img src="../kodeord/cover.jpg" width="1600" height="900" alt="A word puzzle board with coloured letter tiles, solved on the fourth guess with the Danish word HYGGE." loading="lazy"></div></div>
+          <p class="stats" data-stats-for="kodeord" hidden></p>
         </article>
       </div>
     </section>
@@ -254,10 +245,9 @@
   <footer class="foot">
     <div class="wrap">
       <div class="foot-top">
-        <p>© 2026 Slowwater Games<br>Free games for the browser</p>
+        <p>© 2026 Slowwater Games</p>
         <nav class="foot-links" aria-label="More">
           <a href="../#games">All games</a>
-          <a href="play/">Play OreChip Casino</a>
           <a href="#">Back to top</a>
         </nav>
       </div>

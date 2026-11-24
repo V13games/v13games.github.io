@@ -11,9 +11,6 @@
   --sans:'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif;
   --track:.08em;
   --gutter:clamp(16px,3vw,40px);
-  /* the game list: number, title, picture */
-  --cols:minmax(0,150px) minmax(0,1fr) minmax(0,440px);
-  --colgap:clamp(16px,2.6vw,48px);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -67,7 +64,7 @@ h1,h2,h3{margin:0;font-weight:700;text-wrap:balance}
 .giant{display:block;width:100%;max-width:1680px;margin:0 auto;padding-inline:max(var(--gutter),env(safe-area-inset-left,0px));line-height:0;pointer-events:none}
 /* Helvetica or Arial, as on biosis.dk: their letters are single shapes, so the outline has no stray lines
    (web variable fonts draw overlapping parts, which an outline shows) */
-.giant [data-fit]{display:inline-block;white-space:nowrap;font:700 calc((min(100vw,1680px) - 2 * var(--gutter)) / (var(--len,5) * .7))/.8 'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:0;text-transform:uppercase;color:transparent;-webkit-text-stroke:1.5px var(--lime)}
+.giant [data-fit]{display:inline-block;white-space:nowrap;font:700 calc((min(100vw,1680px) - 2 * var(--gutter)) / (var(--len,5) * .7))/.8 'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:0;text-transform:uppercase;color:transparent;-webkit-text-stroke:1.5px var(--lime);-webkit-text-stroke-width:max(1.5px,.009em)}
 
 /* section titles: "// Games" */
 .title-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px;margin-bottom:clamp(18px,2.6vw,30px);min-width:0}
@@ -82,24 +79,23 @@ h1,h2,h3{margin:0;font-weight:700;text-wrap:balance}
 .chip[aria-pressed="true"]{background:var(--lime);border-color:var(--lime);color:var(--ink)}
 .chip[aria-pressed="true"] span{color:rgba(17,24,22,.6)}
 
-/* the game list: one row per game, with dashed lines between them. The title link covers the whole row;
-   the tags sit above it so each one can be clicked. */
-.list-head{display:grid;grid-template-columns:var(--cols);column-gap:var(--colgap);padding-bottom:12px}
-.grid{display:grid;border-bottom:1px dashed var(--line-2)}
-.card{position:relative;display:grid;grid-template-columns:var(--cols);grid-template-areas:"no meta pic";column-gap:var(--colgap);align-items:start;padding-block:22px 28px;border-top:1px dashed var(--line-2);transition:background-color .25s}
-.card:hover{background:rgba(191,255,168,.035)}
-.card:has(.card-link:focus-visible){outline:1px solid var(--lime);outline-offset:-1px}
-.no{grid-area:no;display:grid;align-content:start;justify-items:start;gap:6px;font:400 12.5px/1.5 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
+/* the games: a grid of pictures, each with its number, name, type and a Play button. The name's link covers
+   the whole tile (to the game's page); the Play button sits above it and opens the game straight away. */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:clamp(30px,3.2vw,48px) clamp(16px,2vw,28px)}
+.card{position:relative;display:flex;flex-direction:column;min-width:0}
+.card:has(.card-link:focus-visible){outline:1px solid var(--lime);outline-offset:6px}
+.meta{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;padding:14px 0 16px;border-bottom:1px dashed var(--line-2)}
+.meta .no{grid-column:1;color:var(--dim);font:400 12px/1.4 var(--mono);letter-spacing:var(--track);text-transform:uppercase}
 /* the game's own colour, as a small square beside its number */
-.no>span:first-child::before{content:"";display:inline-block;width:8px;height:8px;margin-right:9px;background:var(--game,var(--lime));vertical-align:1px}
-.no .genre{color:var(--dim)}
-.meta{grid-area:meta;align-self:stretch;display:flex;flex-direction:column;gap:10px;min-width:0}
-.meta h3{font:200 clamp(23px,2.2vw,32px)/1.15 var(--mono);letter-spacing:.03em;text-transform:uppercase;overflow-wrap:anywhere}
-.card-link{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.2em;outline:none;transition:color .15s}
+.meta .no::before{content:"";display:inline-block;width:8px;height:8px;margin-right:9px;background:var(--game,var(--lime));vertical-align:0}
+.meta h3{grid-column:1;font:400 clamp(20px,1.7vw,24px)/1.2 var(--mono);letter-spacing:.03em;text-transform:uppercase;overflow-wrap:anywhere}
+.card-link{text-decoration:none;outline:none;transition:color .15s}
 .card-link::after{content:"";position:absolute;inset:0;z-index:1}
 .card:hover .card-link{color:var(--white)}
-.meta p{margin:0;max-width:44em;color:var(--muted);font-size:15.5px;line-height:1.6}
-.pic{grid-area:pic}
+.play{grid-column:2;grid-row:1/3;position:relative;z-index:2;display:inline-flex;align-items:center;gap:8px;padding:11px 14px;border:1px solid var(--line-2);color:var(--lime);font:500 12px/1.2 var(--mono);letter-spacing:var(--track);text-transform:uppercase;text-decoration:none;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.card:hover .play{border-color:var(--lime)}
+.play:hover{background:var(--lime);color:var(--ink)}
+.card .stats{margin-top:10px}
 .card:hover .frame img{transform:scale(1.04)}
 .card:hover .frame::after{opacity:1;inset:9px}
 
@@ -129,14 +125,10 @@ h1,h2,h3{margin:0;font-weight:700;text-wrap:balance}
 .foot .giant{padding-top:clamp(28px,6vw,88px);padding-bottom:max(clamp(10px,1.4vw,22px),env(safe-area-inset-bottom,0px))}
 .foot .giant [data-fit]{-webkit-text-stroke-color:var(--ink)}
 
-@media (max-width:1100px){:root{--cols:minmax(0,96px) minmax(0,1fr) minmax(0,340px)}}
 @media (max-width:720px){
-  .list-head{display:none}
-  .card{grid-template-columns:minmax(0,1fr);grid-template-areas:"no" "pic" "meta";row-gap:14px;padding-block:18px 26px}
-  .no{display:flex;justify-content:space-between;width:100%}
   .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-2px}
   .chips::-webkit-scrollbar{display:none}
   .title-row{display:grid}
 }
 @media (max-width:420px){.nav-links .link{display:none}}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card,.btn,.chip,.tags a,.frame img,.frame::after,.card-link{transition:none}.card:hover .frame img{transform:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.play,.btn,.chip,.tags a,.frame img,.frame::after,.card-link{transition:none}.card:hover .frame img{transform:none}}
